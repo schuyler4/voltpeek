@@ -1,10 +1,13 @@
-SERIAL_PORT_CONNECTION_SUCCESS = 'Successfully connected to scope.'
-SERIAL_PORT_CONNECTION_ERROR = 'Could not connect to scope serial port.'
-PROMPT = 'scope:'
+class Errors:
+    SERIAL_PORT_CONNECTION_ERROR:str = 'Could not connect to scope serial port.'
+    INVALID_COMMAND_ERROR:str = 'Invalid Command.'
 
-EXIT_COMMAND = 'exit'
-TRIGGER_COMMAND = 'trigger'
+class Messages:
+    SERIAL_PORT_CONNECTION_SUCCESS:str = 'Successfully connected to scope.'
 
-INVALID_COMMAND_ERROR = 'Invalid Command.'
+class Prompts:
+    PROMPT:str = 'scope:'
 
-
+class Commands:
+    EXIT_COMMAND:str = 'exit'
+    TRIGGER_COMMAND:str = 'trigger'
