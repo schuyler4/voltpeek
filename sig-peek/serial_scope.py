@@ -2,51 +2,51 @@ import time
 
 from serial import Serial 
 
+from . import messages
+from . import constants
+
 class Serial_Scope:
-    BAUDRATE:int = 115200
-    DELAY:float = 1
-    DATA_RECIEVE_DELAY:float = 0.1
-    PORT:str = '/dev/ttyACM0'
-    DECODING_SCHEME:str = 'utf8'
-     
-    DATA_START_COMMAND:str = 'START'
-    DATA_END_COMMAND:str = 'END'
+    DECODING_SCHEME:str = constants.Serial_Protocol.DECODING_SCHEME
+    DATA_START_COMMAND:str = constants.Serial_Protocol.DATA_START_COMMAND 
+    DATA_END_COMMAND:str = constants.Serial_Protocol.DATA_END_COMMAND
+    DATA_RECIEVE_DELAY:float = constants.Serial_Protocol.DATA_RECIEVE_DELAY
+    BUFFER_FLUSH_DELAY:float = constants.Serial_Protocol.BUFFER_FLUSH_DELAY
+
+    def __init__(self, baudrate, port):
+        self.baudrate:int = baudrate
+        self.port:str = port
+        self.error:bool = False
     
-    def init_serial(self) -> bool:
+    def init_serial(self):
         try:
             self.serial_port:Serial = Serial()
-            self.serial_port.baudrate = self.BAUDRATE
-            self.serial_port.port = self.PORT
-            self.serial_port.timeout = self.DELAY
+            self.serial_port.baudrate = self.baudrate
+            self.serial_port.port = self.port
+            self.serial_port.timeout = self.BUFFER_FLUSH_DELAY
             self.serial_port.open()
             # Delays are required around the serial buffer flush
-            time.sleep(self.DELAY)
+            time.sleep(self.BUFFER_FLUSH_DELAY)
             self.serial_port.flush()
-            time.sleep(self.DELAY)
-            print(messages.SERIAL_PORT_CONNECTION_SUCCESS)
-            return True
+            time.sleep(self.BUFFER_FLUSH_DELAY)
+            print(messages.Messages.SERIAL_PORT_CONNECTION_SUCCESS)
         except:
-            print(messages.SERIAL_PORT_CONNECTION_ERROR)
-            return False
-
+            self.error = True
+            print(messages.Errors.SERIAL_PORT_CONNECTION_ERROR)
 
     def read_serial_data(self) -> list[str]:
         logging_data:bool = False
         recieved_data:list[str] = []
+        #TODO: Add a timeout error
         while True:
             try:
                 data_string:str = self.serial_port.readline().decode(self.DECODING_SCHEME)    
-                if(self.DATA_START_COMMAND in data_string):
-                    logging_data = True
-                elif(self.DATA_END_COMMAND in data_string):
-                    logging_data = False
-                    break
-                else:
-                    recieved_data.append(data_string)
+                logging_data = True if self.DATA_START_COMMAND in data_string else logging_data
+                logging_data = False if self.DATA_END_COMMAND in data_string else logging_data
+                if logging_data and len(data_string) > 0: recieved_data.append(data_string)
+                if not logging_data: break
             except:
-                pass 
+                self.error = True 
         return recieved_data
-
 
     def get_scope_specs(self):
         self.serial_port.write(b's')
@@ -56,7 +56,7 @@ class Serial_Scope:
         self.specs['fs'] = fs
         print('sample rate: ' + str(self.specs['fs']) + 'S/s')
 
-
+    #TODO: Get rid of this entire method
     def parse_trigger_data_channel(self, channel_data:str) -> list[int]:
         integer_channel_data:list[int] = []
         for c in channel_data: 
@@ -66,7 +66,6 @@ class Serial_Scope:
                 integer_channel_data.append(0)
         return integer_channel_data
 
-    
     def get_scope_trigger_data(self) -> list[list[int]]:
         self.serial_port.write(b't') 
         time.sleep(self.DATA_RECIEVE_DELAY) 
@@ -76,7 +75,6 @@ class Serial_Scope:
             parsed_trigger_data.append(self.parse_trigger_data_channel(channel))
         return parsed_trigger_data
 
-   
     def get_time_vector(self, channel_data_length:int) -> list[float]:
         sampling_period:float = 1/self.specs['fs']  
         print(sampling_period)
@@ -84,8 +82,3 @@ class Serial_Scope:
         for i in range(0, channel_data_length):
             times.append(sampling_period*i)
         return times
-
-    def __init__(self):
-        self.error:bool = False
-        self.get_scope_specs()
-

@@ -7,7 +7,7 @@ from . import messages
 from . import constants
 from .serial_scope import Serial_Scope
 from .measurements import measure_period
-from .scope_display import open_display
+from .scope_display import Scope_Display_Thread
 
 interface_settings = {
     'vertical': 0.25, # V/div
@@ -31,18 +31,16 @@ def generate_trigger_vector() -> list[float]:
     return [sin(2*pi*(i/Fs)*FREQUENCY) for i in range(0, constants.Display.SIZE)]
 
 class User_Interface:
-    def plot_trigger_data(self, time_vector:list[float], trigger_data:list[list[int]]):
-        pass
-
     def __init__(self):
-        pass
+        signal = generate_trigger_vector()
+        self.display = Scope_Display_Thread(interface_settings, signal)
                
     def __call__(self):
         while(True):
             user_input = input(messages.Prompts.PROMPT)
             if(user_input == messages.Commands.EXIT_COMMAND):
-                break
+                exit()    
             elif(user_input == messages.Commands.TRIGGER_COMMAND):
-                open_display(generate_trigger_vector(), interface_settings)
+                self.display.start()
             else:
                 print(messages.Errors.INVALID_COMMAND_ERROR) 
