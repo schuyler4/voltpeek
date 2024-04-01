@@ -1,3 +1,4 @@
+Volt Peek is a command based oscilloscope software that is still in progress.
 Minimum Features
 - Set Calibration Offsets
 - Rising and Falling Edge Triggers
