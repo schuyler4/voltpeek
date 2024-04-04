@@ -1,5 +1,5 @@
 class Application:
-    NAME:str = 'Sig Peek'
+    NAME:str = 'Volt Peek'
 
 class Window:
     BACKGROUND_COLOR:str = 'black'
@@ -28,3 +28,9 @@ class Input:
 
 class Signal:
     COLOR:str = 'blue'
+
+class Keys:
+    HORIZONTAL_LEFT:str = 'h'    
+    HORIZONTAL_RIGHT:str = 'l'
+    VERTICAL_UP:str = 'k' 
+    VERTICAL_DOWN:str = 'j' 

@@ -22,6 +22,10 @@ class Command_Input:
         command = self.input_text.get()
         self.on_command(command)
         self.input_text.set('')
+   
+    def set_command_focus(self):
+        # TODO: make it so text cannot be entered if not in command mode
+        self.input.focus_set()
 
     def __call__(self) -> None:
         self.input.pack()

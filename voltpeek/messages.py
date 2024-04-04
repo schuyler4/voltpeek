@@ -13,4 +13,5 @@ class Commands:
     TRIGGER_COMMAND:str = 'trigger'
     SIMU_TRIGGER_COMMAND:str = 'simutrigger'
     CONNECT_COMMAND:str = 'connect'
+    SCALE_COMMAND:str = 'scale'
     
