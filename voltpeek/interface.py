@@ -64,8 +64,16 @@ class User_Interface:
     # and throw an error
     @staticmethod
     def simu_trigger() -> None:
+        scope_specs = {
+            'range': {
+                'range_high':0.008289,
+                'range_low':0.4976,
+            },
+            'resolution': 256    
+            'voltage_ref': 1.0
+        }
+
         xx:list[int] = User_Interface.serial_scope.get_simulated_vector() 
-        self.scope_display.draw_signal(generate_trigger_vector())
         print(xx)
 
     def __call__(self) -> None:
