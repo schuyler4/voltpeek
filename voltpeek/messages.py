@@ -11,3 +11,6 @@ class Prompts:
 class Commands:
     EXIT_COMMAND:str = 'exit'
     TRIGGER_COMMAND:str = 'trigger'
+    SIMU_TRIGGER_COMMAND:str = 'simutrigger'
+    CONNECT_COMMAND:str = 'connect'
+    

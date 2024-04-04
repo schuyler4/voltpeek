@@ -29,7 +29,8 @@ class Serial_Scope:
             self.serial_port.flush()
             time.sleep(self.BUFFER_FLUSH_DELAY)
             print(messages.Messages.SERIAL_PORT_CONNECTION_SUCCESS)
-        except:
+        except Exception as e:
+            print(e)
             self.error = True
             print(messages.Errors.SERIAL_PORT_CONNECTION_ERROR)
 
@@ -40,9 +41,11 @@ class Serial_Scope:
         while True:
             try:
                 data_string:str = self.serial_port.readline().decode(self.DECODING_SCHEME)    
-                logging_data = True if self.DATA_START_COMMAND in data_string else logging_data
+                start_command_present = self.DATA_START_COMMAND in data_string
+                logging_data = True if start_command_present else logging_data
                 logging_data = False if self.DATA_END_COMMAND in data_string else logging_data
-                if logging_data and len(data_string) > 0: recieved_data.append(data_string)
+                if(logging_data and len(data_string) > 0 and not start_command_present): 
+                    recieved_data.append(data_string)
                 if not logging_data: break
             except:
                 self.error = True 
@@ -74,6 +77,12 @@ class Serial_Scope:
         for channel in recieved_trigger_data:
             parsed_trigger_data.append(self.parse_trigger_data_channel(channel))
         return parsed_trigger_data
+
+    def get_simulated_vector(self) -> list[int]:
+        self.serial_port.write(b'S')
+        time.sleep(self.DATA_RECIEVE_DELAY)
+        recieved_vector:list[int] = [int(x) for x in self.read_serial_data()]
+        return recieved_vector
 
     def get_time_vector(self, channel_data_length:int) -> list[float]:
         sampling_period:float = 1/self.specs['fs']  

@@ -32,10 +32,6 @@ def generate_trigger_vector() -> list[float]:
     return [sin(2*pi*(i/Fs)*FREQUENCY) for i in range(0, constants.Display.SIZE)]
 
 class User_Interface:
-    commands = {
-        messages.Commands.EXIT_COMMAND: exit
-    }
-
     def __init__(self) -> None:
         self.build_tk_root() 
         self.scope_display:Scope_Display = Scope_Display(self.root, interface_settings)
@@ -54,10 +50,30 @@ class User_Interface:
             if(key == command): self.commands[key]()
     
     def call_display(self) -> None:
-        self.scope_display.draw_signal(generate_trigger_vector())
         self.scope_display()
         self.command_input()
+
+    #TODO: show an error to the user if the scope does not connect
+    #TODO: Prevent the app from freezing during connection
+    @staticmethod
+    def connect_serial_scope() -> None:
+        User_Interface.serial_scope = Serial_Scope(115200, '/dev/ttyACM0')
+        User_Interface.serial_scope.init_serial()
+
+    #TODO: don't allow this to do anything if the scope is not connected
+    # and throw an error
+    @staticmethod
+    def simu_trigger() -> None:
+        xx:list[int] = User_Interface.serial_scope.get_simulated_vector() 
+        self.scope_display.draw_signal(generate_trigger_vector())
+        print(xx)
 
     def __call__(self) -> None:
         self.call_display()
         self.root.mainloop()
+
+    commands = {
+        messages.Commands.EXIT_COMMAND: exit,
+        messages.Commands.CONNECT_COMMAND: connect_serial_scope,
+        messages.Commands.SIMU_TRIGGER_COMMAND: simu_trigger    
+    }
