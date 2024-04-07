@@ -28,18 +28,11 @@ class Scope_Display:
                 constants.Display.SIZE, grid_spacing*i, fill=constants.Display.GRID_LINE_COLOR)
 
     def set_vector(self, vector:list[float]):
-        self.vector:list[float] = vector
-        self.draw_vector()
-
-    def update_settings(self, new_settings):
-        self.settings = new_settings
+        self.vector:list[int] = vector
         self.draw_vector()
 
     def draw_vector(self):
         self.canvas.delete('all')
         self._draw_grid()
-        pixel_amplitude:float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
-        pixel_amplitude = self.settings['vertical']/pixel_amplitude
         for i, point in enumerate(self.vector):
-            y = int(point/pixel_amplitude) + constants.Display.SIZE/2
-            self.canvas.create_line(i, y, i+1, y, fill=constants.Signal.COLOR) 
+            self.canvas.create_line(i, point, i+1, point, fill=constants.Signal.COLOR) 

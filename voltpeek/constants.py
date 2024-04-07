@@ -40,4 +40,6 @@ class Keys:
     VERTICAL_DOWN:str = 'j' 
     EXIT_COMMAND_MODE = (KeyCodes.CTRL_C, KeyCodes.ESC)
 
-
+class Vertical:
+    LARGE_STEP = 1
+    SMALL_STEP = 0.1

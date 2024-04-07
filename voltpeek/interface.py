@@ -11,6 +11,7 @@ from .scope_display import Scope_Display
 from .command_input import Command_Input
 from .readout import Readout
 from .reconstruct import reconstruct
+from .pixel_vector import quantize_vertical
 from .helpers import generate_trigger_vector
 
 class Mode(Enum):
@@ -23,22 +24,29 @@ class User_Interface:
         'horizontal':0.001 # s/div 
     }
 
+    #TODO: refactor the below two functions because they are basically the 
+    # same code twice
     def _increment_vertical(self) -> None: 
         vertical = self.interface_settings['vertical']
-        if(vertical > 1): self.interface_settings['vertical'] += 1
-        elif(vertical <= 1 and vertical > 0.1):
-            self.interface_settings['vertical'] += 0.1
+        LARGE_STEP = constants.Vertical.LARGE_STEP
+        SMALL_STEP = constants.Vertical.SMALL_STEP
+        if(vertical > LARGE_STEP): self.interface_settings['vertical'] += LARGE_STEP
+        elif(vertical <= LARGE_STEP and vertical > SMALL_STEP):
+            self.interface_settings['vertical'] += SMALL_STEP
 
     def _decrement_vertical(self) -> None: 
         vertical = self.interface_settings['vertical']
-        if(vertical > 1): self.interface_settings['vertical'] -= 1
-        elif(vertical <= 1 and vertical > 0.1):
-            self.interface_settings['vertical'] -= 0.1
+        LARGE_STEP = constants.Vertical.LARGE_STEP
+        SMALL_STEP = constants.Vertical.SMALL_STEP
+        if(vertical > LARGE_STEP): self.interface_settings['vertical'] -= LARGE_STEP
+        elif(vertical <= LARGE_STEP and vertical > SMALL_STEP):
+            self.interface_settings['vertical'] -= SMALL_STEP
 
-    scope_settings = {
-        'sample_rate': 100000000, # S/s
-        'memory_depth': 65540 # Points
-    }
+    def _increment_horizontal(self) -> None:
+        self.interface_settings['horizontal'] *= 2
+
+    def _decrement_horizontal(self) -> None:
+        self.interface_settings['horizontal'] /= 2
 
     def __init__(self) -> None:
         self.build_tk_root() 
@@ -50,6 +58,7 @@ class User_Interface:
         self.command_input()
         self.mode:Mode = Mode.COMMAND
         self.command_input.set_focus()
+        self.vv = None
 
     def build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -66,6 +75,10 @@ class User_Interface:
                     self._update_scale(self._increment_vertical)    
                 elif(event.char == constants.Keys.VERTICAL_DOWN):
                     self._update_scale(self._decrement_vertical)    
+                elif(event.char == constants.Keys.HORIZONTAL_RIGHT):
+                    self._update_scale(self._increment_horizontal)
+                elif(event.char == constants.Keys.HORIZONTAL_LEFT):
+                    self._update_scale(self._decrement_horizontal)
 
     def process_command(self, command:str) -> None:
         for key in self.get_commands():
@@ -88,7 +101,9 @@ class User_Interface:
     def _update_scale(self, arithmatic_fn: Callable[[None], None]) -> None:
         arithmatic_fn()
         self.readout.update_settings(self.interface_settings)
-        self.scope_display.update_settings(self.interface_settings)
+        if(self.vv is not None):
+            v_vertical:float = self.interface_settings['vertical']
+            self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical)) 
 
     def get_commands(self):
         return {
@@ -120,11 +135,13 @@ class User_Interface:
         xx:list[int] = self.serial_scope.get_simulated_vector() 
         vv:list[float] = reconstruct(xx, scope_specs)
         print(vv)
-        self.scope_display.set_vector(vv)
+        self.scope_display.set_vector(quantize_vertical(vv))
 
     def fake_trigger(self) -> None: 
-        t_horizontal = self.interface_settings['horizontal']
-        self.scope_display.set_vector(generate_trigger_vector(t_horizontal)) 
+        t_horizontal:float = self.interface_settings['horizontal']
+        v_vertical:float = self.interface_settings['vertical']
+        self.vv:list[float] = generate_trigger_vector(t_horizontal)
+        self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical)) 
 
     def __call__(self) -> None:
         self.call_display()
