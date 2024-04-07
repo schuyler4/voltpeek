@@ -1,7 +1,6 @@
+from typing import Callable
 from enum import Enum
-from math import sin, pi
 
-from serial import Serial
 import tkinter as tk
 
 from . import messages
@@ -10,18 +9,9 @@ from .serial_scope import Serial_Scope
 from .measurements import measure_period
 from .scope_display import Scope_Display
 from .command_input import Command_Input
+from .readout import Readout
 from .reconstruct import reconstruct
-
-# (1/Fs)*Nsamples >= Thorizontal*10
-# Ts = (Thorizontal*10)/Nsamples
-# Fs = Nsamples/(Thorizontal*10)
-def max_sample_rate(t_horizontal): 
-    return constants.Display.SIZE/(t_horizontal*constants.Display.GRID_LINE_COUNT)
-    
-def generate_trigger_vector() -> list[float]:
-    FREQUENCY = 500 # Hz
-    Fs:float = max_sample_rate(interface_settings['horizontal'])
-    return [sin(2*pi*(i/Fs)*FREQUENCY) for i in range(0, constants.Display.SIZE)]
+from .helpers import generate_trigger_vector
 
 class Mode(Enum):
     COMMAND = 0
@@ -33,6 +23,18 @@ class User_Interface:
         'horizontal':0.001 # s/div 
     }
 
+    def _increment_vertical(self) -> None: 
+        vertical = self.interface_settings['vertical']
+        if(vertical > 1): self.interface_settings['vertical'] += 1
+        elif(vertical <= 1 and vertical > 0.1):
+            self.interface_settings['vertical'] += 0.1
+
+    def _decrement_vertical(self) -> None: 
+        vertical = self.interface_settings['vertical']
+        if(vertical > 1): self.interface_settings['vertical'] -= 1
+        elif(vertical <= 1 and vertical > 0.1):
+            self.interface_settings['vertical'] -= 0.1
+
     scope_settings = {
         'sample_rate': 100000000, # S/s
         'memory_depth': 65540 # Points
@@ -42,23 +44,29 @@ class User_Interface:
         self.build_tk_root() 
         self.scope_display:Scope_Display = Scope_Display(self.root, self.interface_settings)
         self.command_input:Command_Input = Command_Input(self.root, self.process_command)
+        self.readout:Readout = Readout(self.root, self.interface_settings)
+        self.readout()
         self.scope_display()
         self.command_input()
         self.mode:Mode = Mode.COMMAND
-        self.command_input.set_command_focus()
+        self.command_input.set_focus()
 
     def build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
         self.root.title(constants.Application.NAME)
         self.root.attributes(constants.Display.LAYER, True)
         self.root.configure(bg=constants.Window.BACKGROUND_COLOR) 
+        self.root.bind('<KeyPress>', self.on_key_press)
 
-    def on_key_press(self) -> None:
-        pass
+    def on_key_press(self, event) -> None:
+        if(self.mode == Mode.ADJUST_SCALE):
+            if(event.keycode in constants.Keys.EXIT_COMMAND_MODE): self._set_command_mode()
+            else:
+                if(event.char == constants.Keys.VERTICAL_UP):
+                    self._update_scale(self._increment_vertical)    
+                elif(event.char == constants.Keys.VERTICAL_DOWN):
+                    self._update_scale(self._decrement_vertical)    
 
-    def on_key_release(self) -> None:
-        pass
-    
     def process_command(self, command:str) -> None:
         for key in self.get_commands():
             if(key == command): self.get_commands()[key]()
@@ -67,16 +75,28 @@ class User_Interface:
         self.scope_display()
         self.command_input()
 
-    def _set_adjust_scale_mode(self):
+    def _set_adjust_scale_mode(self) -> None:
         self.mode = Mode.ADJUST_SCALE
+        self.command_input.set_adjust_mode()
         self.root.focus_set()
+
+    def _set_command_mode(self) -> None:
+        self.mode = Mode.COMMAND
+        self.command_input.set_command_mode()
+        self.command_input.set_focus()
+
+    def _update_scale(self, arithmatic_fn: Callable[[None], None]) -> None:
+        arithmatic_fn()
+        self.readout.update_settings(self.interface_settings)
+        self.scope_display.update_settings(self.interface_settings)
 
     def get_commands(self):
         return {
             messages.Commands.EXIT_COMMAND: exit,
             messages.Commands.CONNECT_COMMAND: self.connect_serial_scope,
             messages.Commands.SIMU_TRIGGER_COMMAND: self.simu_trigger,    
-            messages.Commands.SCALE_COMMAND: self._set_adjust_scale_mode
+            messages.Commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
+            messages.Commands.FAKE_TRIGGER_COMMAND: self.fake_trigger
         }
             
     #TODO: show an error to the user if the scope does not connect
@@ -100,7 +120,11 @@ class User_Interface:
         xx:list[int] = self.serial_scope.get_simulated_vector() 
         vv:list[float] = reconstruct(xx, scope_specs)
         print(vv)
-        self.scope_display.draw_signal(vv)
+        self.scope_display.set_vector(vv)
+
+    def fake_trigger(self) -> None: 
+        t_horizontal = self.interface_settings['horizontal']
+        self.scope_display.set_vector(generate_trigger_vector(t_horizontal)) 
 
     def __call__(self) -> None:
         self.call_display()

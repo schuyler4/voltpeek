@@ -29,8 +29,15 @@ class Input:
 class Signal:
     COLOR:str = 'blue'
 
+class KeyCodes:
+    CTRL_C:int = 54
+    ESC:int = 9
+
 class Keys:
     HORIZONTAL_LEFT:str = 'h'    
     HORIZONTAL_RIGHT:str = 'l'
     VERTICAL_UP:str = 'k' 
     VERTICAL_DOWN:str = 'j' 
+    EXIT_COMMAND_MODE = (KeyCodes.CTRL_C, KeyCodes.ESC)
+
+
