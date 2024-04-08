@@ -43,3 +43,4 @@ class Keys:
 class Vertical:
     LARGE_STEP = 1
     SMALL_STEP = 0.1
+    MAX_STEP = 6

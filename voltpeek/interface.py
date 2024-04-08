@@ -11,7 +11,7 @@ from .scope_display import Scope_Display
 from .command_input import Command_Input
 from .readout import Readout
 from .reconstruct import reconstruct
-from .pixel_vector import quantize_vertical
+from .pixel_vector import quantize_vertical, resample_horizontal
 from .helpers import generate_trigger_vector
 
 class Mode(Enum):
@@ -30,9 +30,11 @@ class User_Interface:
         vertical = self.interface_settings['vertical']
         LARGE_STEP = constants.Vertical.LARGE_STEP
         SMALL_STEP = constants.Vertical.SMALL_STEP
-        if(vertical > LARGE_STEP): self.interface_settings['vertical'] += LARGE_STEP
-        elif(vertical <= LARGE_STEP and vertical > SMALL_STEP):
+        if(vertical >= LARGE_STEP and vertical < constants.Vertical.MAX_STEP): 
+            self.interface_settings['vertical'] += LARGE_STEP
+        elif(vertical <= LARGE_STEP and vertical >= SMALL_STEP):
             self.interface_settings['vertical'] += SMALL_STEP
+            self.interface_settings['vertical'] = round(self.interface_settings['vertical'],2)
 
     def _decrement_vertical(self) -> None: 
         vertical = self.interface_settings['vertical']
@@ -41,6 +43,7 @@ class User_Interface:
         if(vertical > LARGE_STEP): self.interface_settings['vertical'] -= LARGE_STEP
         elif(vertical <= LARGE_STEP and vertical > SMALL_STEP):
             self.interface_settings['vertical'] -= SMALL_STEP
+            self.interface_settings['vertical'] = round(self.interface_settings['vertical'],2)
 
     def _increment_horizontal(self) -> None:
         self.interface_settings['horizontal'] *= 2
@@ -102,11 +105,15 @@ class User_Interface:
         arithmatic_fn()
         self.readout.update_settings(self.interface_settings)
         if(self.vv is not None):
+            fs:int = 50000
             v_vertical:float = self.interface_settings['vertical']
-            self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical)) 
+            h_horizontal:float = self.interface_settings['horizontal']
+            vertical_encode:list[int] = quantize_vertical(self.vv, v_vertical)
+            horizontal_encode:list[int] = resample_horizontal(vertical_encode, h_horizontal, fs) 
+            print(horizontal_encode)
+            self.scope_display.set_vector(horizontal_encode) 
 
-    def get_commands(self):
-        return {
+    def get_commands(self): return {
             messages.Commands.EXIT_COMMAND: exit,
             messages.Commands.CONNECT_COMMAND: self.connect_serial_scope,
             messages.Commands.SIMU_TRIGGER_COMMAND: self.simu_trigger,    
@@ -135,12 +142,15 @@ class User_Interface:
         xx:list[int] = self.serial_scope.get_simulated_vector() 
         vv:list[float] = reconstruct(xx, scope_specs)
         print(vv)
-        self.scope_display.set_vector(quantize_vertical(vv))
+        self.scope_display.set_vector(quantize_vertical(vv, v_vertical))
 
     def fake_trigger(self) -> None: 
+        fs:int = 50000
         t_horizontal:float = self.interface_settings['horizontal']
         v_vertical:float = self.interface_settings['vertical']
         self.vv:list[float] = generate_trigger_vector(t_horizontal)
+        vertical_encoding:list[int] = quantize_vertical(self.vv, v_vertical)
+        horizontal_encoding:list[int] = resample_horizontal(vertical_encoding, t_horizontal, fs)
         self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical)) 
 
     def __call__(self) -> None:
