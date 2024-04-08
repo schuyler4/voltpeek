@@ -15,7 +15,7 @@ class Scope_Display:
         self._draw_grid()
 
     def __call__(self):
-        self.canvas.pack()
+        self.canvas.pack(padx=constants.Application.PADDING, pady=constants.Application.PADDING)
 
     def _draw_grid(self):
         grid_spacing:int = constants.Display.SIZE/constants.Display.GRID_LINE_COUNT

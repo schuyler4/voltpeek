@@ -15,7 +15,7 @@ class Command_Input:
             width=constants.Input.WIDTH, 
             bg=constants.Input.BACKGROUND_COLOR, 
             disabledbackground=constants.Input.BACKGROUND_COLOR,
-            fg=constants.Input.INSERT_COLOR, 
+            fg=constants.Input.INSERT_COLOR,
             insertbackground=constants.Input.INSERT_COLOR, 
             insertwidth=constants.Input.INSERT_WIDTH)       
         self.input.bind(constants.Input.TRIGGER_KEY, self.on_command_enter)
@@ -28,13 +28,12 @@ class Command_Input:
         else:
             self.input_text.set('')
    
-    def set_focus(self) -> None:
-        self.input.focus_set()
-
+    def set_focus(self) -> None: self.input.focus_set()
     def set_adjust_mode(self) -> None: self.input.configure(state='disabled')
 
     def set_command_mode(self) -> None: 
         self.input.configure(state='normal')
         self.input_text.set('')
 
-    def __call__(self) -> None: self.input.pack()
+    def __call__(self) -> None: 
+        self.input.pack(padx=constants.Application.PADDING, pady=constants.Application.PADDING)

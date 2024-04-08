@@ -1,5 +1,6 @@
 class Application:
     NAME:str = 'Volt Peek'
+    PADDING:int = 10
 
 class Window:
     BACKGROUND_COLOR:str = 'black'
@@ -20,11 +21,17 @@ class Display:
 
 class Input:
     HEIGHT:int = 1
-    WIDTH:int = 75
+    WIDTH:int = 65
     BACKGROUND_COLOR:str = 'black'
     INSERT_COLOR:str = 'white'
     INSERT_WIDTH:int = 10
     TRIGGER_KEY:str = '<Return>'
+
+class Readout:
+    BACKGROUND_COLOR = 'black'
+    BORDER_COLOR = 'white'
+    TEXT_COLOR = 'white'
+    BORDER_THICKNESS = 2
 
 class Signal:
     COLOR:str = 'blue'
