@@ -4,7 +4,9 @@ Voltpeek is a command based PC oscilloscope software that is still in early deve
 with the Newtscope headless oscilloscope hardware which is also still in early development.
 </p>
 
-![Application Screenshot](./picture.png)
+<p align="center">
+<img src="./picture.png" width=400>
+</p>
 
 <h3> Command Based </h3>
 <p>
