@@ -62,6 +62,7 @@ class User_Interface:
         self.mode:Mode = Mode.COMMAND
         self.command_input.set_focus()
         self.vv = None
+        self.serial_scope_connected:bool = False
 
     def build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -85,12 +86,11 @@ class User_Interface:
 
     def process_command(self, command:str) -> None:
         for key in self.get_commands():
-            if(key == command): self.get_commands()[key]()
+            if(key == command): 
+                self.get_commands()[key]()
+                return
+        self.command_input.set_error(messages.Errors.INVALID_COMMAND_ERROR)
     
-    def call_display(self) -> None:
-        self.scope_display()
-        self.command_input()
-
     def _set_adjust_scale_mode(self) -> None:
         self.mode = Mode.ADJUST_SCALE
         self.command_input.set_adjust_mode()
@@ -126,23 +126,21 @@ class User_Interface:
     def connect_serial_scope(self) -> None:
         self.serial_scope = Serial_Scope(115200, '/dev/ttyACM0')
         self.serial_scope.init_serial()
+        self.serial_scope_connected = True
 
-    #TODO: don't allow this to do anything if the scope is not connected
-    # and throw an error
     def simu_trigger(self) -> None:
-        scope_specs = {
-            'range': {
-                'range_high':0.008289,
-                'range_low':0.4976,
-            },
-            'resolution': 256,    
-            'voltage_ref': 1.0
-        }
-
-        xx:list[int] = self.serial_scope.get_simulated_vector() 
-        vv:list[float] = reconstruct(xx, scope_specs)
-        print(vv)
-        self.scope_display.set_vector(quantize_vertical(vv, v_vertical))
+        if(self.serial_scope_connected):
+            scope_specs = {
+                'range': {'range_high':0.008289, 'range_low':0.4976},
+                'resolution': 256,    
+                'voltage_ref': 1.0
+            }
+            xx:list[int] = self.serial_scope.get_simulated_vector() 
+            vv:list[float] = reconstruct(xx, scope_specs)
+            print(vv)
+            v_vertical:float = self.interface_settings['vertical']
+            self.scope_display.set_vector(quantize_vertical(vv, v_vertical))
+        else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR) 
 
     def fake_trigger(self) -> None: 
         fs:int = 50000
@@ -153,6 +151,4 @@ class User_Interface:
         horizontal_encoding:list[int] = resample_horizontal(vertical_encoding, t_horizontal, fs)
         self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical)) 
 
-    def __call__(self) -> None:
-        self.call_display()
-        self.root.mainloop()
+    def __call__(self) -> None: self.root.mainloop()

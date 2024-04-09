@@ -33,7 +33,11 @@ class Readout:
         self._horizontal_text.set(self.get_horizontal_str()) 
         vertical_label.pack()
         horizontal_label.pack()
-        self.frame.pack()
+        self.frame.grid(sticky=tk.N, 
+            row=0, 
+            column=1, 
+            padx=constants.Application.PADDING,
+            pady=constants.Application.PADDING)
 
     def update_settings(self, new_settings):
         self._settings = new_settings

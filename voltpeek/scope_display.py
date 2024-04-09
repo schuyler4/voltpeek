@@ -8,14 +8,15 @@ class Scope_Display:
         self.settings = settings
         self.frame = tk.Frame(self.master)
         self.canvas = tk.Canvas(
-            master, 
+            self.frame, 
             height=constants.Display.SIZE, 
             width=constants.Display.SIZE,  
             bg=constants.Display.BACKGROUND_COLOR)
         self._draw_grid()
 
     def __call__(self):
-        self.canvas.pack(padx=constants.Application.PADDING, pady=constants.Application.PADDING)
+        self.canvas.pack()
+        self.frame.grid(row=0, column=0, pady=constants.Application.PADDING)
 
     def _draw_grid(self):
         grid_spacing:int = constants.Display.SIZE/constants.Display.GRID_LINE_COUNT

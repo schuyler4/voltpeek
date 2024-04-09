@@ -1,5 +1,6 @@
 class Errors:
     SERIAL_PORT_CONNECTION_ERROR:str = 'Could not connect to scope serial port.'
+    SCOPE_DISCONNECTED_ERROR:str = 'No Scope is Connected.'
     INVALID_COMMAND_ERROR:str = 'Invalid Command.'
 
 class Messages:

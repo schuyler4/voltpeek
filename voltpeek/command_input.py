@@ -19,21 +19,40 @@ class Command_Input:
             insertbackground=constants.Input.INSERT_COLOR, 
             insertwidth=constants.Input.INSERT_WIDTH)       
         self.input.bind(constants.Input.TRIGGER_KEY, self.on_command_enter)
+        self.input.bind('<KeyPress>', self.on_key_press)
+        self.error:bool = False
 
     def on_command_enter(self, event) -> None:
         command = self.input_text.get()
         self.on_command(command)
         if(command == messages.Commands.SCALE_COMMAND):
             self.input_text.set(messages.Mode.ADJUST_MODE)
-        else:
-            self.input_text.set('')
+        else: self.input_text.set('')
+        if(self.error): self.display_error()
+    
+    def on_key_press(self, event) -> None:
+        if(self.error): 
+            self.error = False
+            self.set_command_mode()
    
     def set_focus(self) -> None: self.input.focus_set()
     def set_adjust_mode(self) -> None: self.input.configure(state='disabled')
 
     def set_command_mode(self) -> None: 
         self.input.configure(state='normal')
+        self.input.configure(bg=constants.Input.BACKGROUND_COLOR)
         self.input_text.set('')
 
+    def set_error(self, message:str) -> None:
+        self.error = True
+        self.error_message = message
+
+    def display_error(self) -> None: 
+        self.input.configure(bg=constants.Input.ERROR_BACKGROUND_COLOR)
+        self.input_text.set(self.error_message)
+
     def __call__(self) -> None: 
-        self.input.pack(padx=constants.Application.PADDING, pady=constants.Application.PADDING)
+        self.input.grid(row=1, 
+            column=0, 
+            pady=constants.Application.PADDING, 
+            padx=constants.Application.PADDING)
