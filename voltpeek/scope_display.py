@@ -3,9 +3,8 @@ import tkinter as tk
 from . import constants 
 
 class Scope_Display:
-    def __init__(self, master, settings):
+    def __init__(self, master):
         self.master:tk.Tk = master        
-        self.settings = settings
         self.frame = tk.Frame(self.master)
         self.canvas = tk.Canvas(
             self.frame, 
@@ -36,4 +35,7 @@ class Scope_Display:
         self.canvas.delete('all')
         self._draw_grid()
         for i, point in enumerate(self.vector):
-            self.canvas.create_line(i, point, i+1, point, fill=constants.Signal.COLOR) 
+            self.canvas.create_line(i, 
+                constants.Display.SIZE - point, 
+                i+1, constants.Display.SIZE - point, 
+                fill=constants.Signal.COLOR) 

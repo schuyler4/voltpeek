@@ -59,35 +59,30 @@ class Serial_Scope:
         self.specs['fs'] = fs
         print('sample rate: ' + str(self.specs['fs']) + 'S/s')
 
-    #TODO: Get rid of this entire method
-    def parse_trigger_data_channel(self, channel_data:str) -> list[int]:
-        integer_channel_data:list[int] = []
-        for c in channel_data: 
-            if(c == '1'):
-                integer_channel_data.append(1)
-            elif(c == '0'):
-                integer_channel_data.append(0)
-        return integer_channel_data
+    def is_digits(self, s:str) -> bool: 
+        for c in list(s): 
+            if(c in '0123456789'): return True 
+        return False
+        
+    def get_digits(self, s:str) -> str:
+        return ''.join(list(filter(lambda c: c in '0123456789', list(s)))) 
 
-    def get_scope_trigger_data(self) -> list[list[int]]:
-        self.serial_port.write(b't') 
+    def get_scope_trigger_data(self) -> list[int]:
+        self.serial_port.write(constants.Serial_Commands.TRIGGER_COMMAND) 
         time.sleep(self.DATA_RECIEVE_DELAY) 
         recieved_trigger_data:list[str] = self.read_serial_data()
-        parsed_trigger_data:list[list[int]] = []
-        for channel in recieved_trigger_data:
-            parsed_trigger_data.append(self.parse_trigger_data_channel(channel))
-        return parsed_trigger_data
+        # TODO: make this more functional
+        samples = []
+        for sample in recieved_trigger_data:
+            if(self.is_digits(sample)): samples.append(int(self.get_digits(sample)))
+        print(samples)
+        return samples
 
     def get_simulated_vector(self) -> list[int]:
-        self.serial_port.write(b'S')
+        self.serial_port.write(constants.Serial_Commands.SIMU_TRIGGER_COMMAND)
         time.sleep(self.DATA_RECIEVE_DELAY)
         recieved_vector:list[int] = [int(x) for x in self.read_serial_data()]
         return recieved_vector
 
-    def get_time_vector(self, channel_data_length:int) -> list[float]:
-        sampling_period:float = 1/self.specs['fs']  
-        print(sampling_period)
-        times:list[float] = []
-        for i in range(0, channel_data_length):
-            times.append(sampling_period*i)
-        return times
+    def toggle_range(self) -> None: 
+        self.serial_port.write(constants.Serial_Commands.RANGE_COMMAND)
