@@ -84,5 +84,8 @@ class Serial_Scope:
         recieved_vector:list[int] = [int(x) for x in self.read_serial_data()]
         return recieved_vector
 
-    def toggle_range(self) -> None: 
-        self.serial_port.write(constants.Serial_Commands.RANGE_COMMAND)
+    def request_low_range(self) -> None: 
+        self.serial_port.write(constants.Serial_Commands.LOW_RANGE_COMMAND)
+
+    def request_high_range(self) -> None:
+        self.serial_port.write(constants.Serial_Commands.HIGH_RANGE_COMMAND)

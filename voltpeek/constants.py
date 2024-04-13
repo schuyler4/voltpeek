@@ -56,10 +56,12 @@ class Vertical:
 class Serial_Commands:
     TRIGGER_COMMAND:str = b't'
     SIMU_TRIGGER_COMMAND:str = b'S'
-    RANGE_COMMAND:str = b'r' 
+    LOW_RANGE_COMMAND:str = b'r' 
+    HIGH_RANGE_COMMAND:str = b'R'
 
 class Scale:
     DEFAULT_VERTICAL_INDEX:int = 3 
-    DEFAULT_HORIZONTAL_INDEX:int = 1
+    DEFAULT_HORIZONTAL_INDEX:int = 7
+    LOW_RANGE_VERTICAL_INDEX:int = 1
     VERTICALS = (0.5, 1, 2, 5, 10, 12)
-    HORIZONTALS = (1e-6, 1e-3, 10e-3, 100e-3, 1)
+    HORIZONTALS = (1e-6, 10e-6, 20e-6, 50e-6, 100e-6, 200e-6, 500e-6, 1e-3, 10e-3, 100e-3, 1)

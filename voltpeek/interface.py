@@ -18,19 +18,29 @@ class Mode(Enum):
     COMMAND = 0
     ADJUST_SCALE = 1
 
+# TODO: Make this more OO
 class Scale:
     max_vertical_index = len(constants.Scale.VERTICALS) - 1
     max_hor_index = len(constants.Scale.HORIZONTALS) - 1
+    range_flip_index = constants.Scale.LOW_RANGE_VERTICAL_INDEX
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.vertical_index = constants.Scale.DEFAULT_VERTICAL_INDEX 
         self.horizontal_index = constants.Scale.DEFAULT_HORIZONTAL_INDEX
+        self.high_range_flip:bool = False
+        self.low_range_flip:bool = False
 
     def increment_vert(self) -> None:
-        if(self.vertical_index < self.max_vertical_index): self.vertical_index += 1     
+        if(self.vertical_index < self.max_vertical_index): 
+            self.vertical_index += 1     
+            self.high_range_flip = self.vertical_index == self.range_flip_index + 1 
+            self.low_range_flip = False 
 
     def decrement_vert(self) -> None:
-        if(self.vertical_index > 0): self.vertical_index -= 1
+        if(self.vertical_index > 0): 
+            self.vertical_index -= 1
+            self.low_range_flip = self.vertical_index == self.range_flip_index
+            self.high_range_flip = False
 
     def increment_hor(self) -> None:
         if(self.horizontal_index < self.max_hor_index): self.horizontal_index += 1
@@ -99,6 +109,12 @@ class User_Interface:
     def _update_scale(self, arithmatic_fn: Callable[[None], None]) -> None:
         arithmatic_fn()
         self.readout.update_settings(self.scale.get_vert(), self.scale.get_hor())
+        if(self.scale.low_range_flip and self.serial_scope_connected):
+            print('requesting low range')
+            self.serial_scope.request_low_range()
+        elif(self.scale.high_range_flip and self.serial_scope_connected):
+            print('requesting high range')
+            self.serial_scope.request_high_range()
         if(self.vv is not None):
             fs:int = 125000000 
             v_vertical:float = self.scale.get_vert()
@@ -122,6 +138,11 @@ class User_Interface:
         self.serial_scope = Serial_Scope(115200, '/dev/ttyACM0')
         self.serial_scope.init_serial()
         self.serial_scope_connected = True
+        low_range_index = constants.Scale.LOW_RANGE_VERTICAL_INDEX
+        if(self.scale.get_vert() <= constants.Scale.VERTICALS[low_range_index]):
+            self.serial_scope.request_low_range()
+        else:
+            self.serial_scope.request_high_range()
 
     #TODO: refactor these trigger methods that are basically the same
     def trigger(self) -> None:
@@ -131,10 +152,12 @@ class User_Interface:
                 'resolution': 256,    
                 'voltage_ref': 1.0
             }
+            fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_trigger_data()
-            self.vv:list[float] = reconstruct(xx, scope_specs)
-            v_vertical:float = self.scale.get_vertical()
-            self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical))
+            self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
+            vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
+            hh:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
+            self.scope_display.set_vector(hh)
         else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
     def simu_trigger(self) -> None:
@@ -145,9 +168,9 @@ class User_Interface:
                 'voltage_ref': 1.0
             }
             xx:list[int] = self.serial_scope.get_simulated_vector() 
-            self.vv:list[float] = reconstruct(xx, scope_specs)
+            self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
             v_vertical:float = self.scale.get_vert()
-            self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical))
+            self.scope_display.set_vector(quantize_vertical(self.vv, self.scale.get_vert()))
         else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR) 
 
     def fake_trigger(self) -> None: 
