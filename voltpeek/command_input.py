@@ -21,11 +21,16 @@ class Command_Input:
         self.input.bind(constants.Input.TRIGGER_KEY, self.on_command_enter)
         self.input.bind('<KeyPress>', self.on_key_press)
         self.error:bool = False
+        self.command_stack:list[str] = []
+        self.command_stack_pointer:int = 0
 
     def on_command_enter(self, event) -> None:
         command = self.input_text.get()
+        if(len(self.command_stack) == 0 or command != self.command_stack[0]):
+            self.command_stack.insert(0, command)
+        self.command_stack_pointer = 0
         self.on_command(command)
-        if(command == messages.Commands.SCALE_COMMAND):
+        if(command == messages.Commands.SCALE_COMMAND): 
             self.input_text.set(messages.Mode.ADJUST_MODE)
         else: self.input_text.set('')
         if(self.error): self.display_error()
@@ -42,6 +47,11 @@ class Command_Input:
         self.input.configure(state='normal')
         self.input.configure(bg=constants.Input.BACKGROUND_COLOR)
         self.input_text.set('')
+
+    def set_command_stack(self) -> None:
+        self.input_text.set(self.command_stack[self.command_stack_pointer])
+        if(self.command_stack_point < len(self.command_stack) - 1): 
+            self.command_stack_pointer += 1
 
     def set_error(self, message:str) -> None:
         self.error = True

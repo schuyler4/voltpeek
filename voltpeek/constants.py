@@ -40,6 +40,7 @@ class Signal:
 class KeyCodes:
     CTRL_C:int = 54
     ESC:int = 9
+    UP_ARROW:int = 111
 
 class Keys:
     HORIZONTAL_LEFT:str = 'h'    

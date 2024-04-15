@@ -88,6 +88,9 @@ class User_Interface:
                     self._update_scale(self.scale.increment_hor)
                 elif(event.char == constants.Keys.HORIZONTAL_LEFT):
                     self._update_scale(self.scale.decrement_hor)
+        elif(self.mode == Mode.COMMAND):
+            if(event.keycode == constants.KeyCodes.UP_ARROW):
+                self.command_input.set_command_stack()
 
     def process_command(self, command:str) -> None:
         for key in self.get_commands():
