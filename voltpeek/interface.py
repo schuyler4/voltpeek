@@ -3,16 +3,16 @@ from enum import Enum
 
 import tkinter as tk
 
-from . import messages
-from . import constants
-from .serial_scope import Serial_Scope
-from .measurements import measure_period
-from .scope_display import Scope_Display
-from .command_input import Command_Input
-from .readout import Readout
-from .reconstruct import reconstruct
-from .pixel_vector import quantize_vertical, resample_horizontal
-from .helpers import generate_trigger_vector
+from voltpeek import messages
+from voltpeek import constants
+from voltpeek.measurements import average
+from voltpeek.serial_scope import Serial_Scope
+from voltpeek.scope_display import Scope_Display
+from voltpeek.command_input import Command_Input
+from voltpeek.readout import Readout
+from voltpeek.reconstruct import reconstruct
+from voltpeek.pixel_vector import quantize_vertical, resample_horizontal
+from voltpeek.helpers import generate_trigger_vector
 
 class Mode(Enum):
     COMMAND = 0
@@ -158,6 +158,7 @@ class User_Interface:
             fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_trigger_data()
             self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
+            self.readout.set_average(average(self.vv))
             vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
             hh:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
             self.scope_display.set_vector(hh)
@@ -172,6 +173,7 @@ class User_Interface:
             }
             xx:list[int] = self.serial_scope.get_simulated_vector() 
             self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
+            self.readout.set_average(average(self.vv))
             v_vertical:float = self.scale.get_vert()
             self.scope_display.set_vector(quantize_vertical(self.vv, self.scale.get_vert()))
         else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR) 
@@ -181,6 +183,7 @@ class User_Interface:
         t_horizontal:float = self.scale.get_hor()
         v_vertical:float = self.scale.get_vert()
         self.vv:list[float] = generate_trigger_vector(t_horizontal)
+        self.readout.set_average(average(self.vv))
         vertical_encoding:list[int] = quantize_vertical(self.vv, v_vertical)
         self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical)) 
 

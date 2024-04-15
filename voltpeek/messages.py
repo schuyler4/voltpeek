@@ -23,3 +23,7 @@ class Units:
 
 class Mode:
     ADJUST_MODE:str = '-- ADJUST --'
+
+class Measurements:
+    NO_DATA:str = '----'
+    AVERAGE:str = 'average: '
