@@ -1,4 +1,4 @@
-from . import constants
+from voltpeek import constants
 from scipy.interpolate import interp1d
 
 def quantize_vertical(vv:list[float], vertical_setting:float) -> list[int]:

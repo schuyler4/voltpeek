@@ -13,6 +13,7 @@ from voltpeek.readout import Readout
 from voltpeek.reconstruct import reconstruct
 from voltpeek.pixel_vector import quantize_vertical, resample_horizontal
 from voltpeek.helpers import generate_trigger_vector
+from voltpeek.trigger import get_trigger_voltage, trigger_code
 
 class Mode(Enum):
     COMMAND = 0
@@ -79,7 +80,11 @@ class User_Interface:
 
     def on_key_press(self, event) -> None:
         if(self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL):
-            if(event.keycode in constants.Keys.EXIT_COMMAND_MODE): self._set_command_mode()
+            if(event.keycode in constants.Keys.EXIT_COMMAND_MODE): 
+                self._set_command_mode()
+                if(self.mode == Mode.ADJUST_TRIGGER_LEVEL): 
+                    # SEND TRIGGER CHANGE HERE
+                    pass
         if(self.mode == Mode.ADJUST_SCALE):
             if(event.char == constants.Keys.VERTICAL_UP):
                 self._update_scale(self.scale.increment_vert)
@@ -89,7 +94,12 @@ class User_Interface:
                 self._update_scale(self.scale.increment_hor)
             elif(event.char == constants.Keys.HORIZONTAL_LEFT):
                 self._update_scale(self.scale.decrement_hor)
-        if(self.mode == Mode.COMMAND):
+        elif(self.mode == Mode.ADJUST_TRIGGER_LEVEL):
+            if(event.char == constants.Keys.VERTICAL_UP):
+                self.scope_display.increment_trigger_level()
+            elif(event.char == constants.Keys.VERTICAL_DOWN):
+                self.scope_display.decrement_trigger_level()
+        elif(self.mode == Mode.COMMAND):
             if(event.keycode == constants.KeyCodes.UP_ARROW):
                 self.command_input.set_command_stack()
 
@@ -109,6 +119,7 @@ class User_Interface:
         self.mode = Mode.ADJUST_TRIGGER_LEVEL
         self.command_input.set_adjust_mode()
         self.root.focus_set()
+        self.scope_display.set_trigger_level(constants.Display.SIZE/2)
 
     def _set_command_mode(self) -> None:
         self.mode = Mode.COMMAND
@@ -119,10 +130,8 @@ class User_Interface:
         arithmatic_fn()
         self.readout.update_settings(self.scale.get_vert(), self.scale.get_hor())
         if(self.scale.low_range_flip and self.serial_scope_connected):
-            print('requesting low range')
             self.serial_scope.request_low_range()
         elif(self.scale.high_range_flip and self.serial_scope_connected):
-            print('requesting high range')
             self.serial_scope.request_high_range()
         if(self.vv is not None):
             fs:int = 125000000 
@@ -195,5 +204,25 @@ class User_Interface:
         self.readout.set_average(average(self.vv))
         vertical_encoding:list[int] = quantize_vertical(self.vv, v_vertical)
         self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical)) 
+    
+    def set_trigger(self) -> None: 
+        scope_specs = {
+            'range': {'range_high':0.008289, 'range_low':0.4976},
+            'offset': {'range_high':4.8288, 'range_low':0.4744},
+            'resolution': 256,    
+            'voltage_ref': 1.0
+        }
+        trigger_height:int = self.scope_display.get_trigger_level()
+        get_trigger_voltage(self.scale.get_vert(), trigger_height)
+        attenuation:float = None
+        offset:float = None
+        if(self.scale.get_vert() <= constants.Scale.VERTICALS[low_range_index]):
+            attenuation = scope_specs['range']['range_low']
+            offset = scope_specs['offset']['range_low']
+        else:
+            attenuation = scope_specs['range']['range_high']
+            offset = scope_specs['offset']['range_high']
+        code:int = trigger_code(trigger_voltage, scope_specs['voltage_reg'], attenuation, offset)
+        self.serial_scope.set_trigger_code(code)
 
     def __call__(self) -> None: self.root.mainloop()

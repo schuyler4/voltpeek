@@ -75,7 +75,6 @@ class Serial_Scope:
         samples = []
         for sample in recieved_trigger_data:
             if(self.is_digits(sample)): samples.append(int(self.get_digits(sample)))
-        print(samples)
         return samples
 
     def get_simulated_vector(self) -> list[int]:
@@ -89,3 +88,7 @@ class Serial_Scope:
 
     def request_high_range(self) -> None:
         self.serial_port.write(constants.Serial_Commands.HIGH_RANGE_COMMAND)
+
+    def set_trigger_code(self, trigger_code:int) -> None:
+        self.serial_port.write(constants.Serial_Commands.TRIGGER_LEVEL_COMMAND) 
+        self.serial_port.write(chr(trigger_code).encode('ASCII'))

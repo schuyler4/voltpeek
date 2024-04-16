@@ -56,6 +56,7 @@ class Vertical:
     MAX_STEP = 24
 
 class Serial_Commands:
+    TRIGGER_LEVEL_COMMAND:str = b'l'
     TRIGGER_COMMAND:str = b't'
     SIMU_TRIGGER_COMMAND:str = b'S'
     LOW_RANGE_COMMAND:str = b'r' 
@@ -67,3 +68,6 @@ class Scale:
     LOW_RANGE_VERTICAL_INDEX:int = 1
     VERTICALS = (0.5, 1, 2, 5, 10, 12)
     HORIZONTALS = (1e-6, 10e-6, 20e-6, 50e-6, 100e-6, 200e-6, 500e-6, 1e-3, 10e-3, 100e-3, 1)
+
+class Trigger:
+    RESOLUTION:int = 256
