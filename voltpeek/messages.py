@@ -16,6 +16,7 @@ class Commands:
     CONNECT_COMMAND:str = 'connect'
     SCALE_COMMAND:str = 'scale'
     FAKE_TRIGGER_COMMAND:str = 'faketrigger'
+    TRIGGER_LEVEL_COMMAND:str = 'triglevel'
     
 class Units:
     VERTICAL_UNIT = 'V/div'

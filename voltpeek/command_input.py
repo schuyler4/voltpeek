@@ -30,7 +30,8 @@ class Command_Input:
             self.command_stack.insert(0, command)
         self.command_stack_pointer = 0
         self.on_command(command)
-        if(command == messages.Commands.SCALE_COMMAND): 
+        if(command == messages.Commands.SCALE_COMMAND 
+            or command == messages.Commands.TRIGGER_LEVEL_COMMAND): 
             self.input_text.set(messages.Mode.ADJUST_MODE)
         else: self.input_text.set('')
         if(self.error): self.display_error()

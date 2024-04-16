@@ -17,6 +17,7 @@ from voltpeek.helpers import generate_trigger_vector
 class Mode(Enum):
     COMMAND = 0
     ADJUST_SCALE = 1
+    ADJUST_TRIGGER_LEVEL = 2
 
 # TODO: Make this more OO
 class Scale:
@@ -77,18 +78,18 @@ class User_Interface:
         self.root.bind('<KeyPress>', self.on_key_press)
 
     def on_key_press(self, event) -> None:
-        if(self.mode == Mode.ADJUST_SCALE):
+        if(self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL):
             if(event.keycode in constants.Keys.EXIT_COMMAND_MODE): self._set_command_mode()
-            else:
-                if(event.char == constants.Keys.VERTICAL_UP):
-                    self._update_scale(self.scale.increment_vert)
-                elif(event.char == constants.Keys.VERTICAL_DOWN):
-                    self._update_scale(self.scale.decrement_vert)
-                elif(event.char == constants.Keys.HORIZONTAL_RIGHT):
-                    self._update_scale(self.scale.increment_hor)
-                elif(event.char == constants.Keys.HORIZONTAL_LEFT):
-                    self._update_scale(self.scale.decrement_hor)
-        elif(self.mode == Mode.COMMAND):
+        if(self.mode == Mode.ADJUST_SCALE):
+            if(event.char == constants.Keys.VERTICAL_UP):
+                self._update_scale(self.scale.increment_vert)
+            elif(event.char == constants.Keys.VERTICAL_DOWN):
+                self._update_scale(self.scale.decrement_vert)
+            elif(event.char == constants.Keys.HORIZONTAL_RIGHT):
+                self._update_scale(self.scale.increment_hor)
+            elif(event.char == constants.Keys.HORIZONTAL_LEFT):
+                self._update_scale(self.scale.decrement_hor)
+        if(self.mode == Mode.COMMAND):
             if(event.keycode == constants.KeyCodes.UP_ARROW):
                 self.command_input.set_command_stack()
 
@@ -101,6 +102,11 @@ class User_Interface:
     
     def _set_adjust_scale_mode(self) -> None:
         self.mode = Mode.ADJUST_SCALE
+        self.command_input.set_adjust_mode()
+        self.root.focus_set()
+
+    def _set_adjust_trigger_level_mode(self) -> None:
+        self.mode = Mode.ADJUST_TRIGGER_LEVEL
         self.command_input.set_adjust_mode()
         self.root.focus_set()
 
@@ -132,7 +138,8 @@ class User_Interface:
             messages.Commands.SIMU_TRIGGER_COMMAND: self.simu_trigger,    
             messages.Commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
             messages.Commands.FAKE_TRIGGER_COMMAND: self.fake_trigger,
-            messages.Commands.TRIGGER_COMMAND: self.trigger
+            messages.Commands.TRIGGER_COMMAND: self.trigger,
+            messages.Commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode 
         }
             
     #TODO: show an error to the user if the scope does not connect
@@ -152,6 +159,7 @@ class User_Interface:
         if(self.serial_scope_connected):
             scope_specs = {
                 'range': {'range_high':0.008289, 'range_low':0.4976},
+                'offset': {'range_high':4.8288, 'range_low':0.4744},
                 'resolution': 256,    
                 'voltage_ref': 1.0
             }
@@ -168,6 +176,7 @@ class User_Interface:
         if(self.serial_scope_connected):
             scope_specs = {
                 'range': {'range_high':0.008289, 'range_low':0.4976},
+                'offset': {'range_high':0.00, 'range_low':0.00},
                 'resolution': 256,    
                 'voltage_ref': 1.0
             }

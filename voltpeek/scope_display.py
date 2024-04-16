@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from . import constants 
+from voltpeek import constants 
 
 class Scope_Display:
     def __init__(self, master):
@@ -27,15 +27,32 @@ class Scope_Display:
             self.canvas.create_line(0, grid_spacing*i, 
                 constants.Display.SIZE, grid_spacing*i, fill=constants.Display.GRID_LINE_COLOR)
 
+    # TODO: There is a bug below maybe
     def set_vector(self, vector:list[float]):
         self.vector:list[int] = vector
-        self.draw_vector()
+        self._redraw()
+        self._draw_vector()
 
-    def draw_vector(self):
+    def set_trigger_level(self, trigger_level):
+        self.trigger_level:int = trigger_level
+        self._redraw()
+        self._draw_vector()
+        self._draw_trigger_level()
+
+    def _redraw(self) -> None:
         self.canvas.delete('all')
         self._draw_grid()
+
+    def _draw_vector(self):
         for i, point in enumerate(self.vector):
             self.canvas.create_line(i, 
                 constants.Display.SIZE - point, 
                 i+1, constants.Display.SIZE - point, 
                 fill=constants.Signal.COLOR) 
+
+    def _draw_trigger_level(self):
+        self.canvas.create_line(0, 
+            trigger_level, 
+            constants.Display.SIZE, 
+            self.trigger_level,
+            fill=constants.Display.TRIGGER_LINE_COLOR)
