@@ -81,10 +81,9 @@ class User_Interface:
     def on_key_press(self, event) -> None:
         if(self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL):
             if(event.keycode in constants.Keys.EXIT_COMMAND_MODE): 
+                if(self.mode == Mode.ADJUST_TRIGGER_LEVEL and self.serial_scope_connected): 
+                    self.set_trigger()
                 self._set_command_mode()
-                if(self.mode == Mode.ADJUST_TRIGGER_LEVEL): 
-                    # SEND TRIGGER CHANGE HERE
-                    pass
         if(self.mode == Mode.ADJUST_SCALE):
             if(event.char == constants.Keys.VERTICAL_UP):
                 self._update_scale(self.scale.increment_vert)
@@ -146,8 +145,9 @@ class User_Interface:
             messages.Commands.CONNECT_COMMAND: self.connect_serial_scope,
             messages.Commands.SIMU_TRIGGER_COMMAND: self.simu_trigger,    
             messages.Commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
+            messages.Commands.TRIGGER_COMMAND: self.trigger, 
             messages.Commands.FAKE_TRIGGER_COMMAND: self.fake_trigger,
-            messages.Commands.TRIGGER_COMMAND: self.trigger,
+            messages.Commands.FORCE_TRIGGER_COMMAND: self.force_trigger,
             messages.Commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode 
         }
             
@@ -164,6 +164,23 @@ class User_Interface:
             self.serial_scope.request_high_range()
 
     #TODO: refactor these trigger methods that are basically the same
+    def force_trigger(self) -> None:
+        if(self.serial_scope_connected):
+            scope_specs = {
+                'range': {'range_high':0.008289, 'range_low':0.4976},
+                'offset': {'range_high':4.8288, 'range_low':0.4744},
+                'resolution': 256,    
+                'voltage_ref': 1.0
+            }
+            fs:int = 125000000 
+            xx:list[int] = self.serial_scope.get_scope_force_trigger_data()
+            self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
+            self.readout.set_average(average(self.vv))
+            vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
+            hh:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
+            self.scope_display.set_vector(hh)
+        else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
+
     def trigger(self) -> None:
         if(self.serial_scope_connected):
             scope_specs = {
@@ -174,6 +191,7 @@ class User_Interface:
             }
             fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_trigger_data()
+            print(xx)
             self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
             self.readout.set_average(average(self.vv))
             vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
@@ -213,16 +231,19 @@ class User_Interface:
             'voltage_ref': 1.0
         }
         trigger_height:int = self.scope_display.get_trigger_level()
-        get_trigger_voltage(self.scale.get_vert(), trigger_height)
+        trigger_voltage = get_trigger_voltage(self.scale.get_vert(), trigger_height)
+        print(trigger_voltage)
         attenuation:float = None
         offset:float = None
-        if(self.scale.get_vert() <= constants.Scale.VERTICALS[low_range_index]):
+        if(self.scale.get_vert() <= 
+            constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX]):
             attenuation = scope_specs['range']['range_low']
             offset = scope_specs['offset']['range_low']
         else:
             attenuation = scope_specs['range']['range_high']
             offset = scope_specs['offset']['range_high']
-        code:int = trigger_code(trigger_voltage, scope_specs['voltage_reg'], attenuation, offset)
+        code:int = trigger_code(trigger_voltage, scope_specs['voltage_ref'], attenuation, offset)
+        print(code)
         self.serial_scope.set_trigger_code(code)
 
     def __call__(self) -> None: self.root.mainloop()

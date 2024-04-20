@@ -58,6 +58,7 @@ class Vertical:
 class Serial_Commands:
     TRIGGER_LEVEL_COMMAND:str = b'l'
     TRIGGER_COMMAND:str = b't'
+    FORCE_TRIGGER_COMMAND:str = b'f'
     SIMU_TRIGGER_COMMAND:str = b'S'
     LOW_RANGE_COMMAND:str = b'r' 
     HIGH_RANGE_COMMAND:str = b'R'

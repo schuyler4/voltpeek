@@ -46,8 +46,11 @@ class Serial_Scope:
                 logging_data = False if self.DATA_END_COMMAND in data_string else logging_data
                 if(logging_data and len(data_string) > 0 and not start_command_present): 
                     recieved_data.append(data_string)
-                if not logging_data: break
+                if not logging_data:
+                    print('stop logging')
+                    break
             except:
+                print('data recieve error')
                 self.error = True 
         return recieved_data
 
@@ -67,8 +70,20 @@ class Serial_Scope:
     def get_digits(self, s:str) -> str:
         return ''.join(list(filter(lambda c: c in '0123456789', list(s)))) 
 
+    # TODO: Refactor these methods that are basically the same
     def get_scope_trigger_data(self) -> list[int]:
         self.serial_port.write(constants.Serial_Commands.TRIGGER_COMMAND) 
+        time.sleep(self.DATA_RECIEVE_DELAY) 
+        recieved_trigger_data:list[str] = self.read_serial_data()
+        print('made it out of loop')
+        # TODO: make this more functional
+        samples = []
+        for sample in recieved_trigger_data:
+            if(self.is_digits(sample)): samples.append(int(self.get_digits(sample)))
+        return samples
+
+    def get_scope_force_trigger_data(self) -> list[int]:
+        self.serial_port.write(constants.Serial_Commands.FORCE_TRIGGER_COMMAND) 
         time.sleep(self.DATA_RECIEVE_DELAY) 
         recieved_trigger_data:list[str] = self.read_serial_data()
         # TODO: make this more functional
@@ -91,4 +106,6 @@ class Serial_Scope:
 
     def set_trigger_code(self, trigger_code:int) -> None:
         self.serial_port.write(constants.Serial_Commands.TRIGGER_LEVEL_COMMAND) 
-        self.serial_port.write(chr(trigger_code).encode('ASCII'))
+        self.serial_port.write(bytes(str(trigger_code) + '\0', 'utf-8')) 
+        #self.serial_port.write((str(trigger_code) + '\0').encode('UTF-8'))
+        print('requested trigger code set')
