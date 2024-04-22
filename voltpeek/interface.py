@@ -20,6 +20,12 @@ class Mode(Enum):
     ADJUST_SCALE = 1
     ADJUST_TRIGGER_LEVEL = 2
 
+class Scope_Status(Enum):
+    DISCONNECTED = 0
+    NEUTRAL = 1
+    ARMED = 2
+    TRIGGERED = 3
+
 # TODO: Make this more OO
 class Scale:
     max_vertical_index = len(constants.Scale.VERTICALS) - 1
@@ -57,6 +63,8 @@ class Scale:
         return constants.Scale.HORIZONTALS[self.horizontal_index]
 
 class User_Interface:
+    def _update_scope_status(self): self.readout.set_status(self.scope_status.name)
+    
     def __init__(self) -> None:
         self.scale = Scale()
         self.build_tk_root() 
@@ -70,6 +78,8 @@ class User_Interface:
         self.command_input.set_focus()
         self.vv = None
         self.serial_scope_connected:bool = False
+        self.scope_status:Scope_Status = Scope_Status.DISCONNECTED
+        self._update_scope_status()
 
     def build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -162,10 +172,14 @@ class User_Interface:
             self.serial_scope.request_low_range()
         else:
             self.serial_scope.request_high_range()
+        self.scope_status:Scope_Status = Scope_Status.NEUTRAL
+        self._update_scope_status()
 
     #TODO: refactor these trigger methods that are basically the same
     def force_trigger(self) -> None:
         if(self.serial_scope_connected):
+            self.scope_status:Scope_Status = Scope_Status.ARMED
+            self._update_scope_status()
             scope_specs = {
                 'range': {'range_high':0.008289, 'range_low':0.4976},
                 'offset': {'range_high':4.8288, 'range_low':0.4744},
@@ -179,10 +193,14 @@ class User_Interface:
             vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
             hh:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
             self.scope_display.set_vector(hh)
+            self.scope_status:Scope_Status = Scope_Status.TRIGGERED
+            self._update_scope_status()
         else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
     def trigger(self) -> None:
         if(self.serial_scope_connected):
+            self.scope_status:Scope_Status = Scope_Status.ARMED
+            self._update_scope_status()
             scope_specs = {
                 'range': {'range_high':0.008289, 'range_low':0.4976},
                 'offset': {'range_high':4.8288, 'range_low':0.4744},
@@ -197,6 +215,8 @@ class User_Interface:
             vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
             hh:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
             self.scope_display.set_vector(hh)
+            self.scope_status:Scope_Status = Scope_Status.TRIGGERED
+            self._update_scope_status()
         else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
     def simu_trigger(self) -> None:

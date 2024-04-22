@@ -12,9 +12,14 @@ class Readout:
             bg=constants.Readout.BACKGROUND_COLOR,
             highlightbackground=constants.Readout.BORDER_COLOR,
             highlightthickness=constants.Readout.BORDER_THICKNESS)
+        self.status_frame:tk.Frame = tk.Frame(self.frame, 
+            bg=constants.Readout.BACKGROUND_COLOR,
+            highlightbackground=constants.Readout.BORDER_COLOR,
+            highlightthickness=constants.Readout.BORDER_THICKNESS)
         self._vertical_text:tk.StringVar = tk.StringVar() 
         self._horizontal_text:tk.StringVar = tk.StringVar()
         self._average_text:tk.StringVar = tk.StringVar()
+        self._status_text:tk.StringVar = tk.StringVar()
 
     def get_vertical_str(self) -> str:
         return str(self._vertical_setting) + ' ' + messages.Units.VERTICAL_UNIT
@@ -35,9 +40,15 @@ class Readout:
             textvariable=self._average_text,
             bg=constants.Readout.BACKGROUND_COLOR,
             fg=constants.Readout.TEXT_COLOR)
+        status_label:tk.Label = tk.Label(self.status_frame, 
+            textvariable=self._status_text,
+            bg=constants.Readout.BACKGROUND_COLOR,
+            fg=constants.Readout.TEXT_COLOR)
         self._vertical_text.set(self.get_vertical_str())  
         self._horizontal_text.set(self.get_horizontal_str()) 
         self._average_text.set(messages.Measurements.AVERAGE + messages.Measurements.NO_DATA)
+        self.status_frame.pack()
+        status_label.pack()
         vertical_label.pack()
         horizontal_label.pack()
         average_label.pack()
@@ -55,3 +66,6 @@ class Readout:
 
     def set_average(self, average:float) -> None:
         self._average_text.set(messages.Measurements.AVERAGE + str(average))
+
+    def set_status(self, status_str:str) -> None:
+        self._status_text.set(status_str)
