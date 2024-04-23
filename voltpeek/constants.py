@@ -18,6 +18,7 @@ class Display:
     GRID_LINE_COUNT:int = 10
     GRID_LINE_COLOR:str = 'grey'
     TRIGGER_LINE_COLOR:str = 'white'
+    CURSOR_COLOR = 'red'
     LAYER:str = '-topmost'
 
 class Input:

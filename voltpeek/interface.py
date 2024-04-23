@@ -14,6 +14,7 @@ from voltpeek.reconstruct import reconstruct
 from voltpeek.pixel_vector import quantize_vertical, resample_horizontal
 from voltpeek.helpers import generate_trigger_vector
 from voltpeek.trigger import get_trigger_voltage, trigger_code
+from voltpeek.cursors import Cursors
 
 class Mode(Enum):
     COMMAND = 0
@@ -79,6 +80,7 @@ class User_Interface:
         self.vv = None
         self.serial_scope_connected:bool = False
         self.scope_status:Scope_Status = Scope_Status.DISCONNECTED
+        self.cursors = Cursors()
         self._update_scope_status()
 
     def build_tk_root(self) -> None:
@@ -158,7 +160,11 @@ class User_Interface:
             messages.Commands.TRIGGER_COMMAND: self.trigger, 
             messages.Commands.FAKE_TRIGGER_COMMAND: self.fake_trigger,
             messages.Commands.FORCE_TRIGGER_COMMAND: self.force_trigger,
-            messages.Commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode 
+            messages.Commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
+            messages.Commands.TOGGLE_CURS:self.toggle_cursors, 
+            messages.Commands.TOGGLE_HCURS:self.toggle_horizontal_cursors, 
+            messages.Commands.TOGGLE_VCURS:self.toggle_vertical_cursors,
+            messages.Commands.NEXT_CURS:self.cursors.next_cursor
         }
             
     #TODO: show an error to the user if the scope does not connect
@@ -265,5 +271,17 @@ class User_Interface:
         code:int = trigger_code(trigger_voltage, scope_specs['voltage_ref'], attenuation, offset)
         print(code)
         self.serial_scope.set_trigger_code(code)
+
+    def toggle_cursors(self) -> None:
+        self.cursors.toggle() 
+        self.scope_display.set_cursors(self.cursors)
+
+    def toggle_horizontal_cursors(self) -> None:
+        self.cursors.toggle_hor()
+        self.scope_display.set_cursors(self.cursors)
+
+    def toggle_vertical_cursors(self) -> None:
+        self.cursors.toggle_vert()
+        self.scope_display.set_cursors(self.cursors)
 
     def __call__(self) -> None: self.root.mainloop()

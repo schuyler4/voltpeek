@@ -1,6 +1,7 @@
 import tkinter as tk
 
 from voltpeek import constants 
+from voltpeek.cursors import Cursors
 
 #TODO: Make this more OO
 class Scope_Display:
@@ -60,9 +61,21 @@ class Scope_Display:
             self.canvas.create_line(i, constants.Display.SIZE - point, i+1, 
                 constants.Display.SIZE - point, fill=constants.Signal.COLOR) 
 
+    def _draw_horizontal_line(self, position, color):
+        self.canvas.create_line(0, position, constants.Display.SIZE, position,
+            fill=color)
+
+    def _draw_vertical_line(self, position, color):
+        self.canvas.create_line(position, 0, position, constants.Display.SIZE, fill=color)
+
     def _draw_trigger_level(self):
-        self.canvas.create_line(0, 
-            self.trigger_level, 
-            constants.Display.SIZE, 
-            self.trigger_level,
-            fill=constants.Display.TRIGGER_LINE_COLOR)
+        self._draw_horizontal_line(self.trigger_level, constants.Display.TRIGGER_LINE_COLOR)
+
+    def set_cursors(self, cursors:Cursors):
+        self._redraw()
+        if(cursors.hor_visible):
+            self._draw_horizontal_line(cursors.hor1_pos, constants.Display.CURSOR_COLOR)  
+            self._draw_horizontal_line(cursors.hor2_pos, constants.Display.CURSOR_COLOR)
+        if(cursors.vert_visible):
+            self._draw_vertical_line(cursors.vert1_pos, constants.Display.CURSOR_COLOR)
+            self._draw_vertical_line(cursors.vert2_pos, constants.Display.CURSOR_COLOR)

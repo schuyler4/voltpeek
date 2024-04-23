@@ -18,6 +18,11 @@ class Commands:
     SCALE_COMMAND:str = 'scale'
     FAKE_TRIGGER_COMMAND:str = 'faketrigger'
     TRIGGER_LEVEL_COMMAND:str = 'triglevel'
+    TOGGLE_CURS:str = 'togglecurs'
+    TOGGLE_HCURS:str = 'togglehcurs'
+    TOGGLE_VCURS:str = 'togglevcurs'
+    ADJUST_CURS:str = 'adjustcurs'
+    NEXT_CURS:str = 'nextcurs'
     
 class Units:
     VERTICAL_UNIT = 'V/div'
