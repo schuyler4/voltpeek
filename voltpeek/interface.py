@@ -188,12 +188,13 @@ class User_Interface:
             self._update_scope_status()
             scope_specs = {
                 'range': {'range_high':0.008289, 'range_low':0.4976},
-                'offset': {'range_high':4.8288, 'range_low':0.4744},
+                'offset': {'range_high':0.5402, 'range_low':0.5406},
                 'resolution': 256,    
                 'voltage_ref': 1.0
             }
             fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_force_trigger_data()
+            print(xx)
             self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
             self.readout.set_average(average(self.vv))
             vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
@@ -209,7 +210,7 @@ class User_Interface:
             self._update_scope_status()
             scope_specs = {
                 'range': {'range_high':0.008289, 'range_low':0.4976},
-                'offset': {'range_high':4.8288, 'range_low':0.4744},
+                'offset': {'range_high':0.0, 'range_low':0.0},
                 'resolution': 256,    
                 'voltage_ref': 1.0
             }

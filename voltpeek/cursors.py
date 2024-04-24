@@ -21,44 +21,44 @@ class Cursors:
         self._selected_cursor = Selected_Cursor.HOR1
 
     @property
-    def hor1_pos(self): return self._hor1_pos
+    def hor1_pos(self) -> None: return self._hor1_pos
     @property
-    def hor2_pos(self): return self._hor2_pos
+    def hor2_pos(self) -> None: return self._hor2_pos
     @property
-    def vert1_pos(self): return self._vert1_pos
+    def vert1_pos(self) -> None: return self._vert1_pos
     @property
-    def vert2_pos(self): return self._vert2_pos
+    def vert2_pos(self) -> None: return self._vert2_pos
     @property
-    def hor_visible(self): return self._hor_visible
+    def hor_visible(self) -> None: return self._hor_visible
     @property
-    def vert_visible(self): return self._vert_visible
+    def vert_visible(self) -> None: return self._vert_visible
 
-    def increment_hor1(self): 
+    def increment_hor1(self) -> None: 
         if(self._hor1_pos < constants.Display.SIZE): self._hor1_pos += 1 
-    def decrement_hor1(self): 
+    def decrement_hor1(self) -> None: 
         if(self._hor1_pos > 0): self.hor1_pos -= 1
-    def increment_hor2(self): 
+    def increment_hor2(self) -> None: 
         if(self._hor2_pos < constants.Display.SIZE): self._hor1_pos += 1
-    def decrement_hor2(self): 
+    def decrement_hor2(self) -> None: 
         if(self._hor2_pos > 0): self.hor2_pos -= 1
-    def increment_vert1(self): 
+    def increment_vert1(self) -> None: 
         if(self._vert1_pos < constants.Display.SIZE): self._vert1_pos += 1
-    def decrement_vert2(self): 
+    def decrement_vert2(self) -> None: 
         if(self._vert2_pos > 0): self.vert2_pos -= 1
 
-    def toggle_hor(self): 
+    def toggle_hor(self) -> None: 
         self._hor_visible = not self._hor_visible
         self._selected_cursor = Selected_Cursor.HOR1 
-    def toggle_vert(self): 
+    def toggle_vert(self) -> None: 
         self._vert_visible = not self._vert_visible
         self._selected_cursor = Selected_Cursor.VERT1 
-    def toggle(self):
+    def toggle(self) -> None:
         self._hor_visible = not self._hor_visible
         self._vert_visible = not self._vert_visible
         self._selected_cursor = Selected_Cursor.HOR1
         print(self._selected_cursor)
 
-    def next_cursor(self): 
+    def next_cursor(self) -> None: 
         print(self._selected_cursor)
         if(self._selected_cursor.value < self.CURSOR_COUNT - 1 
             and self._hor_visible and self._vert_visible): 
