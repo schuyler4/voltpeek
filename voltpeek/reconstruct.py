@@ -4,7 +4,7 @@ from voltpeek import constants
 # resampling
 
 def inverse_quantize(code:int, resolution:float, voltage_ref:float) -> float:
-    return float((voltage_ref/resolution)*code)
+    return float((voltage_ref/resolution)*code) - 6e-3
 
 def zero(x:float, voltage_ref:float) -> float: return x - 0.5 
 
@@ -25,5 +25,5 @@ def reconstruct(xx:list[int], specs, vertical_setting:float) -> list[float]:
     for x in xx:
         adc_input = inverse_quantize(x, specs['resolution'], specs['voltage_ref'])
         zeroed = zero(adc_input, specs['voltage_ref'])
-        reconstructed_signal.append(reamplify(zeroed, attenuation) - offset)
+        reconstructed_signal.append(reamplify(zeroed, attenuation))
     return reconstructed_signal     
