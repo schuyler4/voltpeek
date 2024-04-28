@@ -20,6 +20,7 @@ class Mode(Enum):
     COMMAND = 0
     ADJUST_SCALE = 1
     ADJUST_TRIGGER_LEVEL = 2
+    ADJUST_CURSORS = 3
 
 class Scope_Status(Enum):
     DISCONNECTED = 0
@@ -91,7 +92,8 @@ class User_Interface:
         self.root.bind('<KeyPress>', self.on_key_press)
 
     def on_key_press(self, event) -> None:
-        if(self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL):
+        if(self.mode == Mode.ADJUST_SCALE 
+           or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS):
             if(event.keycode in constants.Keys.EXIT_COMMAND_MODE): 
                 if(self.mode == Mode.ADJUST_TRIGGER_LEVEL and self.serial_scope_connected): 
                     self.set_trigger()
@@ -110,6 +112,15 @@ class User_Interface:
                 self.scope_display.increment_trigger_level()
             elif(event.char == constants.Keys.VERTICAL_DOWN):
                 self.scope_display.decrement_trigger_level()
+        elif(self.mode == Mode.ADJUST_CURSORS):
+            if(event.char == constants.Keys.VERTICAL_UP):
+                self._update_cursor(self.cursors.decrement_hor)
+            elif(event.char == constants.Keys.VERTICAL_DOWN):
+                self._update_cursor(self.cursors.increment_hor)
+            elif(event.char == constants.Keys.HORIZONTAL_RIGHT):
+                self._update_cursor(self.cursors.increment_vert)
+            elif(event.char == constants.Keys.HORIZONTAL_LEFT):
+                self._update_cursor(self.cursors.decrement_vert)
         elif(self.mode == Mode.COMMAND):
             if(event.keycode == constants.KeyCodes.UP_ARROW):
                 self.command_input.set_command_stack()
@@ -125,6 +136,13 @@ class User_Interface:
         self.mode = Mode.ADJUST_SCALE
         self.command_input.set_adjust_mode()
         self.root.focus_set()
+
+    def _set_adjust_cursor_mode(self) -> None:
+        # TODO: Fix bug when cursors are not visible
+        if(self.cursors.hor_visible or self.cursors.vert_visible):
+            self.mode = Mode.ADJUST_CURSORS  
+            self.command_input.set_adjust_mode()
+            self.root.focus_set()
 
     def _set_adjust_trigger_level_mode(self) -> None:
         self.mode = Mode.ADJUST_TRIGGER_LEVEL
@@ -152,6 +170,10 @@ class User_Interface:
             horizontal_encode:list[int] = resample_horizontal(vertical_encode, h_horizontal, fs) 
             self.scope_display.set_vector(horizontal_encode) 
 
+    def _update_cursor(self, arithmatic_fn: Callable[[None], None]) -> None:
+        arithmatic_fn()
+        self.scope_display.set_cursors(self.cursors)
+
     def get_commands(self): return {
             messages.Commands.EXIT_COMMAND: exit,
             messages.Commands.CONNECT_COMMAND: self.connect_serial_scope,
@@ -161,10 +183,11 @@ class User_Interface:
             messages.Commands.FAKE_TRIGGER_COMMAND: self.fake_trigger,
             messages.Commands.FORCE_TRIGGER_COMMAND: self.force_trigger,
             messages.Commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
-            messages.Commands.TOGGLE_CURS:self.toggle_cursors, 
-            messages.Commands.TOGGLE_HCURS:self.toggle_horizontal_cursors, 
-            messages.Commands.TOGGLE_VCURS:self.toggle_vertical_cursors,
-            messages.Commands.NEXT_CURS:self.cursors.next_cursor
+            messages.Commands.TOGGLE_CURS: self.toggle_cursors, 
+            messages.Commands.TOGGLE_HCURS: self.toggle_horizontal_cursors, 
+            messages.Commands.TOGGLE_VCURS: self.toggle_vertical_cursors,
+            messages.Commands.NEXT_CURS: self.cursors.next_cursor, 
+            messages.Commands.ADJUST_CURS: self._set_adjust_cursor_mode
         }
             
     #TODO: show an error to the user if the scope does not connect

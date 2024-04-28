@@ -20,6 +20,10 @@ class Readout:
         self._horizontal_text:tk.StringVar = tk.StringVar()
         self._average_text:tk.StringVar = tk.StringVar()
         self._status_text:tk.StringVar = tk.StringVar()
+        self.cursor_frame:tk.Frame = tk.Frame(self.frame, 
+            bg=constants.Readout.BACKGROUND_COLOR,
+            highlightbackground=constants.Readout.BORDER_COLOR,
+            highlightthickness=constants.Readout.BORDER_THICKNESS)
 
     def get_vertical_str(self) -> str:
         return str(self._vertical_setting) + ' ' + messages.Units.VERTICAL_UNIT
@@ -69,3 +73,9 @@ class Readout:
 
     def set_status(self, status_str:str) -> None:
         self._status_text.set(status_str)
+
+    def enable_cursor_readout(self) -> None:
+        self.cursor_frame.pack() 
+
+    def disable_cursor_readout(self) -> None:
+        self.cursor_frame.pack_forget()
