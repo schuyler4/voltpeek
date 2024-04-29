@@ -87,7 +87,6 @@ class User_Interface:
     def build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
         self.root.title(constants.Application.NAME)
-        self.root.attributes(constants.Display.LAYER, True)
         self.root.configure(bg=constants.Window.BACKGROUND_COLOR) 
         self.root.bind('<KeyPress>', self.on_key_press)
 
@@ -296,16 +295,38 @@ class User_Interface:
         print(code)
         self.serial_scope.set_trigger_code(code)
 
+    def get_cursor_dict(self, horizontal:bool, vertical:bool) -> None:
+        h1:str = self.cursors.get_hor1_voltage(self.scale.get_hor()) if horizontal else ''
+        h2:str = self.cursors.get_hor2_voltage(self.scale.get_hor()) if horizontal else '' 
+        hdelta:str = self.cursors.get_delta_voltage(self.scale.get_hor()) if horizontal else ''
+        v1:str = self.cursors.get_vert1_time(self.scale.get_vert()) if vertical else ''
+        v2:str = self.cursors.get_vert2_time(self.scale.get_vert()) if vertical else ''
+        vdelta:str = self.cursors.get_delta_time(self.scale.get_vert()) if vertical else ''
+        return { 'horizontal 1': h1, 'horizontal 2': h2, 'horizontal delta': hdelta, 
+                 'vertical 1': v1, 'vertical 2': v2, 'vertical delta': vdelta }
+    
     def toggle_cursors(self) -> None:
         self.cursors.toggle() 
         self.scope_display.set_cursors(self.cursors)
+        if self.cursors.hor_visible or self.cursors.vert_visible: 
+            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
+                                                                 self.cursors.vert_visible))     
+        else: self.readout.disable_cursor_readout()
 
     def toggle_horizontal_cursors(self) -> None:
         self.cursors.toggle_hor()
         self.scope_display.set_cursors(self.cursors)
+        if self.cursors.hor_visible:
+            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
+                                                                 self.cursors.vert_visible))     
+        else: self.readout.disable_cursor_readout()
 
     def toggle_vertical_cursors(self) -> None:
         self.cursors.toggle_vert()
         self.scope_display.set_cursors(self.cursors)
+        if self.cursors.vert_visible:
+            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
+                                                                 self.cursors.vert_visible))     
+        else: self.readout.disable_cursor_readout()
 
     def __call__(self) -> None: self.root.mainloop()

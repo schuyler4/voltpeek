@@ -102,7 +102,7 @@ class Cursors:
 
     def next_cursor(self) -> None: 
         if(self._selected_cursor.value < self.CURSOR_COUNT - 1 
-            and self._hor_visible and self._vert_visible): 
+           and self._hor_visible and self._vert_visible): 
             self._selected_cursor = Selected_Cursor(self._selected_cursor.value + 1)        
         elif(self._hor_visible and self._selected_cursor.value < 1):
             self._selected_cursor = Selected_Cursor(self._selected_cursor.value + 1)        
@@ -113,30 +113,30 @@ class Cursors:
         elif(self._vert_visible):
             self._selected_cursor = Selected_Cursor.VERT1
 
-    def _get_hor_voltage(vertical_setting:float, cursor_height:int) -> float:
+    def _get_hor_voltage(self, vertical_setting:float, cursor_height:int) -> float:
         pixel_amplitude:float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
         pixel_resolution:float = vertical_setting/pixel_amplitude
         return int(cursor_height/pixel_resolution) + constants.Display.SIZE/2
 
-    def _get_vert_time(horizontal_setting:float, cursor_offset:int):
+    def _get_vert_time(self, horizontal_setting:float, cursor_offset:int):
         pixel_offset:float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
         pixel_resolution:float = horizontal_setting/pixel_offset
         return int(cursor_offset/pixel_resolution)
 
-    def get_hor1_voltage(vertical_setting:float) -> float:
-        return self._get_hor_voltage(vertical_settings, self._hor1_pos)
+    def get_hor1_voltage(self, vertical_setting:float) -> float:
+        return self._get_hor_voltage(vertical_setting, self._hor1_pos)
 
-    def get_hor2_voltage(vertical_setting:float) -> float:
-        return self._get_hor_voltage(vertical_settings, self._hor2_pos)
+    def get_hor2_voltage(self, vertical_setting:float) -> float:
+        return self._get_hor_voltage(vertical_setting, self._hor2_pos)
 
-    def get_delta_voltage(vertical_setting:float):
+    def get_delta_voltage(self, vertical_setting:float):
         return self.get_hor1_voltage(vertical_setting) - self.get_hor2_voltage(vertical_setting)
 
-    def get_vert1_time(horizontal_setting:float):
+    def get_vert1_time(self, horizontal_setting:float):
         return self._get_vert_time(horizontal_setting, self._vert1_pos)
 
-    def get_vert2_time(horizontal_setting:float):
+    def get_vert2_time(self, horizontal_setting:float):
         return self._get_vert_time(horizontal_setting, self._vert2_pos)
 
-    def get_delta_time(horizontal_setting:float):
+    def get_delta_time(self, horizontal_setting:float):
         return self.get_vert1_time(horizontal_setting) - self.get_vert2_time(horizontal_setting)

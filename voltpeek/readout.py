@@ -20,17 +20,25 @@ class Readout:
         self._horizontal_text:tk.StringVar = tk.StringVar()
         self._average_text:tk.StringVar = tk.StringVar()
         self._status_text:tk.StringVar = tk.StringVar()
-        self.cursor_frame:tk.Frame = tk.Frame(self.frame, 
+        self._cursor_frame:tk.Frame = tk.Frame(self.frame, 
             bg=constants.Readout.BACKGROUND_COLOR,
             highlightbackground=constants.Readout.BORDER_COLOR,
             highlightthickness=constants.Readout.BORDER_THICKNESS)
+        self._cursor_text = {
+            'horizontal 1': tk.StringVar(),
+            'horizontal 2': tk.StringVar(),
+            'horizontal delta': tk.StringVar(),
+            'vertical 1': tk.StringVar(),
+            'vertical 2': tk.StringVar(),
+            'vertical delta': tk.StringVar()
+        }
 
     def get_vertical_str(self) -> str:
         return str(self._vertical_setting) + ' ' + messages.Units.VERTICAL_UNIT
 
     def get_horizontal_str(self) -> str:
         return str(self._horizontal_setting) + ' ' + messages.Units.HORIZONTAL_UNIT
-      
+
     def __call__(self) -> None:
         vertical_label:tk.Label = tk.Label(self.frame, 
             textvariable=self._vertical_text,
@@ -74,8 +82,10 @@ class Readout:
     def set_status(self, status_str:str) -> None:
         self._status_text.set(status_str)
 
-    def enable_cursor_readout(self) -> None:
-        self.cursor_frame.pack() 
+    def enable_cursor_readout(self, cursor_data) -> None:
+        for key in cursor_data:
+            self._cursor_text[key].set(cursor_data[key])
+        self._cursor_frame.pack() 
 
     def disable_cursor_readout(self) -> None:
-        self.cursor_frame.pack_forget()
+        self._cursor_frame.pack_forget()
