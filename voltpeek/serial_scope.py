@@ -46,9 +46,7 @@ class Serial_Scope:
                 logging_data = False if self.DATA_END_COMMAND in data_string else logging_data
                 if(logging_data and len(data_string) > 0 and not start_command_present): 
                     recieved_data.append(data_string)
-                if not logging_data:
-                    print('stop logging')
-                    break
+                if not logging_data: break
             except:
                 print('data recieve error')
                 self.error = True 

@@ -13,6 +13,7 @@ class Commands:
     EXIT_COMMAND:str = 'exit'
     FORCE_TRIGGER_COMMAND:str = 'ftrigger'
     TRIGGER_COMMAND:str = 'trigger'
+    AUTO_TRIGGER_COMMAND:str = 'atrigger'
     SIMU_TRIGGER_COMMAND:str = 'simutrigger'
     CONNECT_COMMAND:str = 'connect'
     SCALE_COMMAND:str = 'scale'

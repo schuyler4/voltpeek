@@ -1,5 +1,7 @@
 from typing import Callable
 from enum import Enum
+import threading
+import time
 
 import tkinter as tk
 
@@ -24,9 +26,10 @@ class Mode(Enum):
 
 class Scope_Status(Enum):
     DISCONNECTED = 0
-    NEUTRAL = 1
-    ARMED = 2
-    TRIGGERED = 3
+    CONNECTING = 1
+    NEUTRAL = 2
+    ARMED = 3
+    TRIGGERED = 4
 
 # TODO: Make this more OO
 class Scale:
@@ -188,22 +191,27 @@ class User_Interface:
             messages.Commands.TOGGLE_HCURS: self.toggle_horizontal_cursors, 
             messages.Commands.TOGGLE_VCURS: self.toggle_vertical_cursors,
             messages.Commands.NEXT_CURS: self.cursors.next_cursor, 
-            messages.Commands.ADJUST_CURS: self._set_adjust_cursor_mode
+            messages.Commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
+            messages.Commands.AUTO_TRIGGER_COMMAND: self.start_auto_trigger
         }
             
     #TODO: show an error to the user if the scope does not connect
-    #TODO: Prevent the app from freezing during connection
     def connect_serial_scope(self) -> None:
+        def connect_worker():
+            self.serial_scope.init_serial()
+            self.serial_scope_connected = True
+            low_range_index = constants.Scale.LOW_RANGE_VERTICAL_INDEX
+            if(self.scale.get_vert() <= constants.Scale.VERTICALS[low_range_index]):
+                self.serial_scope.request_low_range()
+            else:
+                self.serial_scope.request_high_range()
+            self.scope_status = Scope_Status.NEUTRAL
+            self._update_scope_status()
         self.serial_scope = Serial_Scope(115200, '/dev/ttyACM0')
-        self.serial_scope.init_serial()
-        self.serial_scope_connected = True
-        low_range_index = constants.Scale.LOW_RANGE_VERTICAL_INDEX
-        if(self.scale.get_vert() <= constants.Scale.VERTICALS[low_range_index]):
-            self.serial_scope.request_low_range()
-        else:
-            self.serial_scope.request_high_range()
-        self.scope_status:Scope_Status = Scope_Status.NEUTRAL
+        self.scope_status = Scope_Status.CONNECTING
         self._update_scope_status()
+        connect_thread:threading.Thread = threading.Thread(target=connect_worker)
+        connect_thread.start()
 
     #TODO: refactor these trigger methods that are basically the same
     def force_trigger(self) -> None:
@@ -219,14 +227,24 @@ class User_Interface:
             fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_force_trigger_data()
             print(xx)
-            self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
-            self.readout.set_average(average(self.vv))
-            vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
-            hh:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
-            self.scope_display.set_vector(hh)
-            self.scope_status:Scope_Status = Scope_Status.TRIGGERED
-            self._update_scope_status()
+            if(len(xx) > 0):
+                self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
+                self.readout.set_average(average(self.vv))
+                vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
+                hh:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
+                self.scope_display.set_vector(hh)
+                self.scope_status:Scope_Status = Scope_Status.TRIGGERED
+                self._update_scope_status()
         else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
+
+    def auto_trigger(self) -> None:
+        if(self.serial_scope_connected):
+            while(1):
+                self.force_trigger() 
+
+    def start_auto_trigger(self) -> None:
+        auto_trigger_thread:threading.Thread = threading.Thread(target=self.auto_trigger)
+        auto_trigger_thread.start()
 
     def trigger(self) -> None:
         if(self.serial_scope_connected):
