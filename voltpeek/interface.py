@@ -14,7 +14,7 @@ from voltpeek.reconstruct import reconstruct
 from voltpeek.pixel_vector import quantize_vertical, resample_horizontal
 from voltpeek.helpers import generate_trigger_vector
 from voltpeek.trigger import get_trigger_voltage, trigger_code
-from voltpeek.cursors import Cursors
+from voltpeek.cursors import Cursors, Cursor_Data
 
 class Mode(Enum):
     COMMAND = 0
@@ -171,6 +171,8 @@ class User_Interface:
 
     def _update_cursor(self, arithmatic_fn: Callable[[None], None]) -> None:
         arithmatic_fn()
+        self.readout.update_cursors(self.get_cursor_dict(self.cursors.hor_visible, 
+                                                        self.cursors.vert_visible))
         self.scope_display.set_cursors(self.cursors)
 
     def get_commands(self): return {
@@ -295,15 +297,14 @@ class User_Interface:
         print(code)
         self.serial_scope.set_trigger_code(code)
 
-    def get_cursor_dict(self, horizontal:bool, vertical:bool) -> None:
-        h1:str = self.cursors.get_hor1_voltage(self.scale.get_hor()) if horizontal else ''
-        h2:str = self.cursors.get_hor2_voltage(self.scale.get_hor()) if horizontal else '' 
-        hdelta:str = self.cursors.get_delta_voltage(self.scale.get_hor()) if horizontal else ''
-        v1:str = self.cursors.get_vert1_time(self.scale.get_vert()) if vertical else ''
-        v2:str = self.cursors.get_vert2_time(self.scale.get_vert()) if vertical else ''
-        vdelta:str = self.cursors.get_delta_time(self.scale.get_vert()) if vertical else ''
-        return { 'horizontal 1': h1, 'horizontal 2': h2, 'horizontal delta': hdelta, 
-                 'vertical 1': v1, 'vertical 2': v2, 'vertical delta': vdelta }
+    def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
+        h1:str = self.cursors.get_hor1_voltage(self.scale.get_vert()) if horizontal else ''
+        h2:str = self.cursors.get_hor2_voltage(self.scale.get_vert()) if horizontal else '' 
+        hdelta:str = self.cursors.get_delta_voltage(self.scale.get_vert()) if horizontal else ''
+        v1:str = self.cursors.get_vert1_time(self.scale.get_hor()) if vertical else ''
+        v2:str = self.cursors.get_vert2_time(self.scale.get_hor()) if vertical else ''
+        vdelta:str = self.cursors.get_delta_time(self.scale.get_hor()) if vertical else ''
+        return { 'h1': h1, 'h2': h2, 'hdelta': hdelta, 'v1': v1, 'v2': v2, 'vdelta': vdelta }
     
     def toggle_cursors(self) -> None:
         self.cursors.toggle() 

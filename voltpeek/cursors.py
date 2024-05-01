@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import TypedDict
 
 from voltpeek import constants
 
@@ -7,6 +8,14 @@ class Selected_Cursor(Enum):
     HOR2 = 1
     VERT1 = 2
     VERT2 = 3
+
+class Cursor_Data(TypedDict):
+    h1:str
+    h2:str
+    hdelta:str
+    v1:str
+    v2:str
+    vdelta:str
 
 class Cursors:
     CURSOR_COUNT = 4
@@ -21,22 +30,22 @@ class Cursors:
         self._selected_cursor = Selected_Cursor.HOR1
 
     @property
-    def hor1_pos(self) -> None: return self._hor1_pos
+    def hor1_pos(self) -> int: return self._hor1_pos
 
     @property
-    def hor2_pos(self) -> None: return self._hor2_pos
+    def hor2_pos(self) -> int: return self._hor2_pos
 
     @property
-    def vert1_pos(self) -> None: return self._vert1_pos
+    def vert1_pos(self) -> int: return self._vert1_pos
 
     @property
-    def vert2_pos(self) -> None: return self._vert2_pos
+    def vert2_pos(self) -> int: return self._vert2_pos
 
     @property
-    def hor_visible(self) -> None: return self._hor_visible
+    def hor_visible(self) -> bool: return self._hor_visible
 
     @property
-    def vert_visible(self) -> None: return self._vert_visible
+    def vert_visible(self) -> bool: return self._vert_visible
 
     def _increment_hor1(self) -> None: 
         if(self._hor1_pos < constants.Display.SIZE): self._hor1_pos += 1 
@@ -114,14 +123,17 @@ class Cursors:
             self._selected_cursor = Selected_Cursor.VERT1
 
     def _get_hor_voltage(self, vertical_setting:float, cursor_height:int) -> float:
-        pixel_amplitude:float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        pixel_amplitude:int = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
         pixel_resolution:float = vertical_setting/pixel_amplitude
-        return int(cursor_height/pixel_resolution) + constants.Display.SIZE/2
+        corrected_height:int = constants.Display.SIZE - cursor_height
+        voltage:float = float((corrected_height-(constants.Display.SIZE/2))*pixel_resolution)
+        return voltage 
 
-    def _get_vert_time(self, horizontal_setting:float, cursor_offset:int):
+    def _get_vert_time(self, horizontal_setting:float, cursor_offset:int) -> float:
         pixel_offset:float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
         pixel_resolution:float = horizontal_setting/pixel_offset
-        return int(cursor_offset/pixel_resolution)
+        time:float = float(cursor_offset*pixel_resolution) 
+        return time 
 
     def get_hor1_voltage(self, vertical_setting:float) -> float:
         return self._get_hor_voltage(vertical_setting, self._hor1_pos)

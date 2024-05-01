@@ -1,11 +1,22 @@
 import time
 
-from serial import Serial 
+import asyncio
+import serial_asyncio
 
 from . import messages
 from . import constants
 
-class Serial_Scope:
+class Async_Serial_Scope(asyncio.Protocol):
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def connection_lost(self, exc):
+        self.transport.loop.stop()
+
+    def data_recieved(self, data):
+        print(data)
+
+class Serial_Scope(asyncio.Protocol):
     DECODING_SCHEME:str = constants.Serial_Protocol.DECODING_SCHEME
     DATA_START_COMMAND:str = constants.Serial_Protocol.DATA_START_COMMAND 
     DATA_END_COMMAND:str = constants.Serial_Protocol.DATA_END_COMMAND
@@ -53,14 +64,6 @@ class Serial_Scope:
                 print('data recieve error')
                 self.error = True 
         return recieved_data
-
-    def get_scope_specs(self):
-        self.serial_port.write(b's')
-        time.sleep(self.DATA_RECIEVE_DELAY)
-        recieved_specs:list[str] = self.read_serial_data()
-        fs = int(''.join(c for c in recieved_specs[0] if c.isdigit()))
-        self.specs['fs'] = fs
-        print('sample rate: ' + str(self.specs['fs']) + 'S/s')
 
     def is_digits(self, s:str) -> bool: 
         for c in list(s): 
