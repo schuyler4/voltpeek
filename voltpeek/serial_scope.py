@@ -1,22 +1,11 @@
 import time
 
-import asyncio
-import serial_asyncio
+from serial import Serial
 
 from . import messages
 from . import constants
 
-class Async_Serial_Scope(asyncio.Protocol):
-    def connection_made(self, transport):
-        self.transport = transport
-
-    def connection_lost(self, exc):
-        self.transport.loop.stop()
-
-    def data_recieved(self, data):
-        print(data)
-
-class Serial_Scope(asyncio.Protocol):
+class Serial_Scope:
     DECODING_SCHEME:str = constants.Serial_Protocol.DECODING_SCHEME
     DATA_START_COMMAND:str = constants.Serial_Protocol.DATA_START_COMMAND 
     DATA_END_COMMAND:str = constants.Serial_Protocol.DATA_END_COMMAND
