@@ -1,7 +1,6 @@
 from typing import Callable
 from enum import Enum
-import threading
-import time
+from threading import Thread
 
 import tkinter as tk
 
@@ -86,6 +85,8 @@ class User_Interface:
         self.scope_status:Scope_Status = Scope_Status.DISCONNECTED
         self.cursors = Cursors()
         self._update_scope_status()
+        self.connect_thread:Thread = Thread()
+        self.trigger_thread:Thread = Thread()
 
     def build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -210,8 +211,8 @@ class User_Interface:
         self.serial_scope = Serial_Scope(115200, '/dev/ttyACM0')
         self.scope_status = Scope_Status.CONNECTING
         self._update_scope_status()
-        connect_thread:threading.Thread = threading.Thread(target=connect_worker)
-        connect_thread.start()
+        self.connect_thread = Thread(target=connect_worker)
+        self.connect_thread.start()
 
     #TODO: refactor these trigger methods that are basically the same
     def force_trigger(self) -> None:
@@ -239,12 +240,11 @@ class User_Interface:
     def auto_trigger(self) -> None:
         count = 0
         if(self.serial_scope_connected):
-            while(1):
-                self.force_trigger() 
+            while(1): self.force_trigger() 
 
     def start_auto_trigger(self) -> None:
-        trigger_thread:threading.Thread = threading.Thread(target=self.auto_trigger)
-        trigger_thread.start()
+        self.trigger_thread = Thread(target=self.auto_trigger)
+        self.trigger_thread.start()
 
     def trigger(self) -> None:
         if(self.serial_scope_connected):

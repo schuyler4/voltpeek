@@ -41,7 +41,6 @@ class Serial_Scope:
         while True:
             try:
                 data_string:str = self.serial_port.readline().decode(self.DECODING_SCHEME)    
-                print(data_string)
                 start_command_present = self.DATA_START_COMMAND in data_string
                 logging_data = True if start_command_present else logging_data
                 logging_data = False if self.DATA_END_COMMAND in data_string else logging_data
