@@ -58,8 +58,12 @@ class Scope_Display:
     def _draw_vector(self):
         self._redraw()
         for i, point in enumerate(self.vector):
-            self.canvas.create_line(i, constants.Display.SIZE - point, i+1, 
+            self.canvas.create_line(i-1, constants.Display.SIZE - point, i+2, 
                 constants.Display.SIZE - point, fill=constants.Signal.COLOR) 
+            self.canvas.create_line(i-1, constants.Display.SIZE - point + 1, i+2, 
+                constants.Display.SIZE - point + 1, fill=constants.Signal.COLOR) 
+            self.canvas.create_line(i-1, constants.Display.SIZE - point - 1, i+2, 
+                constants.Display.SIZE - point-1, fill=constants.Signal.COLOR) 
 
     def _draw_horizontal_line(self, position, color):
         self.canvas.create_line(0, position, constants.Display.SIZE, position,

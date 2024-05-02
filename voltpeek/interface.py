@@ -12,7 +12,7 @@ from voltpeek.scope_display import Scope_Display
 from voltpeek.command_input import Command_Input
 from voltpeek.readout import Readout
 from voltpeek.reconstruct import reconstruct
-from voltpeek.pixel_vector import quantize_vertical, resample_horizontal
+from voltpeek.pixel_vector import quantize_vertical, resample_horizontal, FIR_filter
 from voltpeek.helpers import generate_trigger_vector
 from voltpeek.trigger import get_trigger_voltage, trigger_code
 from voltpeek.cursors import Cursors, Cursor_Data
@@ -238,8 +238,10 @@ class User_Interface:
                 self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
                 self.readout.set_average(average(self.vv))
                 vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
-                hh:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
-                self.scope_display.set_vector(hh)
+                filtered_signal:list[float] = FIR_filter(vertical_encode)
+                print(filtered_signal)
+                h:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
+                self.scope_display.set_vector(h)
                 self.scope_status:Scope_Status = Scope_Status.TRIGGERED
                 self._update_scope_status()
         else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
