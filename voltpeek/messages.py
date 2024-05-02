@@ -24,6 +24,7 @@ class Commands:
     TOGGLE_VCURS:str = 'togglevcurs'
     ADJUST_CURS:str = 'adjustcurs'
     NEXT_CURS:str = 'nextcurs'
+    STOP:str = 'stop'
     
 class Units:
     VERTICAL_UNIT = 'V/div'

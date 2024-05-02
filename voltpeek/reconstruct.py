@@ -25,5 +25,5 @@ def reconstruct(xx:list[int], specs, vertical_setting:float) -> list[float]:
     for x in xx:
         adc_input = inverse_quantize(x, specs['resolution'], specs['voltage_ref'])
         zeroed = zero(adc_input, specs['voltage_ref'])
-        reconstructed_signal.append(reamplify(zeroed, attenuation))
+        reconstructed_signal.append(reamplify(zeroed, attenuation) + offset)
     return reconstructed_signal     

@@ -1,6 +1,6 @@
 from typing import Callable
 from enum import Enum
-from threading import Thread
+from threading import Thread, Event
 
 import tkinter as tk
 
@@ -85,6 +85,7 @@ class User_Interface:
         self.scope_status:Scope_Status = Scope_Status.DISCONNECTED
         self.cursors = Cursors()
         self._update_scope_status()
+        self.auto_trigger_running:Event = Event()
         self.connect_thread:Thread = Thread()
         self.trigger_thread:Thread = Thread()
 
@@ -179,8 +180,13 @@ class User_Interface:
                                                         self.cursors.vert_visible))
         self.scope_display.set_cursors(self.cursors)
 
+    def exit(self) -> None:
+        if self.auto_trigger_running.is_set(): 
+            self.auto_trigger_running.clear()
+        exit()
+
     def get_commands(self): return {
-            messages.Commands.EXIT_COMMAND: exit,
+            messages.Commands.EXIT_COMMAND: self.exit,
             messages.Commands.CONNECT_COMMAND: self.connect_serial_scope,
             messages.Commands.SIMU_TRIGGER_COMMAND: self.simu_trigger,    
             messages.Commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
@@ -193,7 +199,8 @@ class User_Interface:
             messages.Commands.TOGGLE_VCURS: self.toggle_vertical_cursors,
             messages.Commands.NEXT_CURS: self.cursors.next_cursor, 
             messages.Commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
-            messages.Commands.AUTO_TRIGGER_COMMAND: self.start_auto_trigger
+            messages.Commands.AUTO_TRIGGER_COMMAND: self.start_auto_trigger, 
+            messages.Commands.STOP: self.stop_auto_trigger
         }
             
     #TODO: show an error to the user if the scope does not connect
@@ -221,7 +228,7 @@ class User_Interface:
             self._update_scope_status()
             scope_specs = {
                 'range': {'range_high':0.008289, 'range_low':0.4976},
-                'offset': {'range_high':0.5402, 'range_low':0.5406},
+                'offset': {'range_high':-3.96, 'range_low':0.5406},
                 'resolution': 256,    
                 'voltage_ref': 1.0
             }
@@ -240,11 +247,17 @@ class User_Interface:
     def auto_trigger(self) -> None:
         count = 0
         if(self.serial_scope_connected):
-            while(1): self.force_trigger() 
+            while(self.auto_trigger_running.is_set()): self.force_trigger() 
 
     def start_auto_trigger(self) -> None:
+        self.auto_trigger_running.set()
         self.trigger_thread = Thread(target=self.auto_trigger)
         self.trigger_thread.start()
+     
+    def stop_auto_trigger(self) -> None: 
+        self.auto_trigger_running.clear()
+        self.scope_status:Scope_Status = Scope_Status.NEUTRAL
+        self._update_scope_status()
 
     def trigger(self) -> None:
         if(self.serial_scope_connected):
@@ -252,7 +265,7 @@ class User_Interface:
             self._update_scope_status()
             scope_specs = {
                 'range': {'range_high':0.008289, 'range_low':0.4976},
-                'offset': {'range_high':0.0, 'range_low':0.0},
+                'offset': {'range_high':3.9726, 'range_low':0.0},
                 'resolution': 256,    
                 'voltage_ref': 1.0
             }
@@ -272,7 +285,7 @@ class User_Interface:
         if(self.serial_scope_connected):
             scope_specs = {
                 'range': {'range_high':0.008289, 'range_low':0.4976},
-                'offset': {'range_high':0.00, 'range_low':0.00},
+                'offset': {'range_high':3.9726, 'range_low':0.00},
                 'resolution': 256,    
                 'voltage_ref': 1.0
             }
