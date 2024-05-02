@@ -226,7 +226,6 @@ class User_Interface:
             }
             fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_force_trigger_data()
-            print(xx)
             if(len(xx) > 0):
                 self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
                 self.readout.set_average(average(self.vv))
@@ -238,13 +237,14 @@ class User_Interface:
         else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
     def auto_trigger(self) -> None:
+        count = 0
         if(self.serial_scope_connected):
             while(1):
                 self.force_trigger() 
 
     def start_auto_trigger(self) -> None:
-        auto_trigger_thread:threading.Thread = threading.Thread(target=self.auto_trigger)
-        auto_trigger_thread.start()
+        trigger_thread:threading.Thread = threading.Thread(target=self.auto_trigger)
+        trigger_thread.start()
 
     def trigger(self) -> None:
         if(self.serial_scope_connected):
