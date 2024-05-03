@@ -97,5 +97,7 @@ class Serial_Scope:
     def set_trigger_code(self, trigger_code:int) -> None:
         self.serial_port.write(constants.Serial_Commands.TRIGGER_LEVEL_COMMAND) 
         self.serial_port.write(bytes(str(trigger_code) + '\0', 'utf-8')) 
-        #self.serial_port.write((str(trigger_code) + '\0').encode('UTF-8'))
-        print('requested trigger code set')
+
+    def set_clock_div(self, clock_div:int) -> None:
+        self.serial_port.write(constants.Serial_Commands.CLOCK_DIV_COMMAND) 
+        self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 

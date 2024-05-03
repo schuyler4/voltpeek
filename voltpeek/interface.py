@@ -16,6 +16,7 @@ from voltpeek.pixel_vector import quantize_vertical, resample_horizontal, FIR_fi
 from voltpeek.helpers import generate_trigger_vector
 from voltpeek.trigger import get_trigger_voltage, trigger_code
 from voltpeek.cursors import Cursors, Cursor_Data
+from voltpeek.scope_specs import scope_specs
 
 class Mode(Enum):
     COMMAND = 0
@@ -65,6 +66,9 @@ class Scale:
     
     def get_hor(self) -> float:
         return constants.Scale.HORIZONTALS[self.horizontal_index]
+
+    def get_max_sample_rate(self, memory_depth:int) -> float:
+        pass
 
 class User_Interface:
     def _update_scope_status(self): self.readout.set_status(self.scope_status.name)
@@ -226,12 +230,6 @@ class User_Interface:
         if(self.serial_scope_connected):
             self.scope_status:Scope_Status = Scope_Status.ARMED
             self._update_scope_status()
-            scope_specs = {
-                'range': {'range_high':0.008289, 'range_low':0.4976},
-                'offset': {'range_high':-3.96, 'range_low':0.5406},
-                'resolution': 256,    
-                'voltage_ref': 1.0
-            }
             fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_force_trigger_data()
             if(len(xx) > 0):
@@ -239,7 +237,6 @@ class User_Interface:
                 self.readout.set_average(average(self.vv))
                 vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
                 filtered_signal:list[float] = FIR_filter(vertical_encode)
-                print(filtered_signal)
                 h:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
                 self.scope_display.set_vector(h)
                 self.scope_status:Scope_Status = Scope_Status.TRIGGERED
@@ -265,12 +262,6 @@ class User_Interface:
         if(self.serial_scope_connected):
             self.scope_status:Scope_Status = Scope_Status.ARMED
             self._update_scope_status()
-            scope_specs = {
-                'range': {'range_high':0.008289, 'range_low':0.4976},
-                'offset': {'range_high':3.9726, 'range_low':0.0},
-                'resolution': 256,    
-                'voltage_ref': 1.0
-            }
             fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_trigger_data()
             print(xx)
@@ -285,12 +276,6 @@ class User_Interface:
 
     def simu_trigger(self) -> None:
         if(self.serial_scope_connected):
-            scope_specs = {
-                'range': {'range_high':0.008289, 'range_low':0.4976},
-                'offset': {'range_high':3.9726, 'range_low':0.00},
-                'resolution': 256,    
-                'voltage_ref': 1.0
-            }
             xx:list[int] = self.serial_scope.get_simulated_vector() 
             self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
             self.readout.set_average(average(self.vv))
@@ -308,12 +293,6 @@ class User_Interface:
         self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical)) 
     
     def set_trigger(self) -> None: 
-        scope_specs = {
-            'range': {'range_high':0.008289, 'range_low':0.4976},
-            'offset': {'range_high':4.8288, 'range_low':0.4744},
-            'resolution': 256,    
-            'voltage_ref': 1.0
-        }
         trigger_height:int = self.scope_display.get_trigger_level()
         trigger_voltage = get_trigger_voltage(self.scale.get_vert(), trigger_height)
         print(trigger_voltage)
@@ -321,10 +300,10 @@ class User_Interface:
         offset:float = None
         if(self.scale.get_vert() <= 
             constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX]):
-            attenuation = scope_specs['range']['range_low']
+            attenuation = scope_specs['attenuation']['range_low']
             offset = scope_specs['offset']['range_low']
         else:
-            attenuation = scope_specs['range']['range_high']
+            attenuation = scope_specs['attenuation']['range_high']
             offset = scope_specs['offset']['range_high']
         code:int = trigger_code(trigger_voltage, scope_specs['voltage_ref'], attenuation, offset)
         print(code)

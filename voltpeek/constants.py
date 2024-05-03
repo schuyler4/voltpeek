@@ -63,6 +63,7 @@ class Serial_Commands:
     SIMU_TRIGGER_COMMAND:str = b'S'
     LOW_RANGE_COMMAND:str = b'r' 
     HIGH_RANGE_COMMAND:str = b'R'
+    CLOCK_DIV_COMMAND:str = b'c'
 
 class Scale:
     DEFAULT_VERTICAL_INDEX:int = 4 

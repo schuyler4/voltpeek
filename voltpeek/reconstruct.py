@@ -15,10 +15,10 @@ def reconstruct(xx:list[int], specs, vertical_setting:float) -> list[float]:
     attenuation:float = None
     offset:float = None
     if(vertical_setting <= constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX]):
-        attenuation = specs['range']['range_low']
+        attenuation = specs['attenuation']['range_low']
         offset = specs['offset']['range_low']
     else: 
-        attenuation = specs['range']['range_high']
+        attenuation = specs['attenuation']['range_high']
         offset = specs['offset']['range_high']
     # TODO: Make this more functional
     reconstructed_signal:list[float] = []
