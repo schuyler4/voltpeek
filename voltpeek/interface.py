@@ -42,6 +42,8 @@ class Scale:
         self.horizontal_index = constants.Scale.DEFAULT_HORIZONTAL_INDEX
         self.high_range_flip:bool = False
         self.low_range_flip:bool = False
+        self._clock_div:int = 1
+        self._fs:int = 125000000
 
     def increment_vert(self) -> None:
         if(self.vertical_index < self.max_vertical_index): 
@@ -61,14 +63,30 @@ class Scale:
     def decrement_hor(self) -> None:
         if(self.horizontal_index > 0): self.horizontal_index -= 1
 
-    def get_vert(self) -> float:
-        return constants.Scale.VERTICALS[self.vertical_index]
-    
-    def get_hor(self) -> float:
-        return constants.Scale.HORIZONTALS[self.horizontal_index]
+    @property
+    def fs(self) -> int: return self._fs
 
+    @property
+    def clock_div(self) -> int: return self._clock_div
+
+    def get_vert(self) -> float: return constants.Scale.VERTICALS[self.vertical_index]
+    
+    def get_hor(self) -> float: return constants.Scale.HORIZONTALS[self.horizontal_index]
+
+    # TODO: possibly move these methods so they can be exposed to scripting API
     def get_max_sample_rate(self, memory_depth:int) -> float:
-        pass
+        return memory_depth/(self.get_hor()*constants.Display.GRID_LINE_COUNT)  
+
+    def find_lowest_clock_division(self, sample_rate:float, base_clock:float) -> int:
+        for div in range(1, 65540):
+            if base_clock/div <= sample_rate:
+                return div
+        return None
+
+    def update_sample_rate(self, base_clock:float, memory_depth:int) -> float:
+        max_sample_rate:float = self.get_max_sample_rate(memory_depth)
+        self._clock_div = self.find_lowest_clock_division(max_sample_rate, base_clock)
+        self._fs = int(base_clock/self._clock_div)
 
 class User_Interface:
     def _update_scope_status(self): self.readout.set_status(self.scope_status.name)
@@ -92,6 +110,7 @@ class User_Interface:
         self.auto_trigger_running:Event = Event()
         self.connect_thread:Thread = Thread()
         self.trigger_thread:Thread = Thread()
+        self._update_fs()
 
     def build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -163,25 +182,34 @@ class User_Interface:
         self.command_input.set_command_mode()
         self.command_input.set_focus()
 
+    def _update_fs(self):
+        self.scale.update_sample_rate(scope_specs['sample_rate'], scope_specs['memory_depth'])
+        self.readout.set_fs(self.scale.fs)
+        if self.serial_scope_connected:
+            self.serial_scope.set_clock_div(self.scale.clock_div)
+        print(self.scale.fs)
+        print(self.scale.clock_div)
+
     def _update_scale(self, arithmatic_fn: Callable[[None], None]) -> None:
         arithmatic_fn()
         self.readout.update_settings(self.scale.get_vert(), self.scale.get_hor())
-        if(self.scale.low_range_flip and self.serial_scope_connected):
+        if self.scale.low_range_flip and self.serial_scope_connected:
             self.serial_scope.request_low_range()
-        elif(self.scale.high_range_flip and self.serial_scope_connected):
+        elif self.scale.high_range_flip and self.serial_scope_connected:
             self.serial_scope.request_high_range()
-        if(self.vv is not None):
+        if self.vv is not None:
             fs:int = 125000000 
             v_vertical:float = self.scale.get_vert()
             h_horizontal:float = self.scale.get_hor()
             vertical_encode:list[int] = quantize_vertical(self.vv, v_vertical)
             horizontal_encode:list[int] = resample_horizontal(vertical_encode, h_horizontal, fs) 
             self.scope_display.set_vector(horizontal_encode) 
+        self._update_fs()
 
     def _update_cursor(self, arithmatic_fn: Callable[[None], None]) -> None:
         arithmatic_fn()
         self.readout.update_cursors(self.get_cursor_dict(self.cursors.hor_visible, 
-                                                        self.cursors.vert_visible))
+                                                         self.cursors.vert_visible))
         self.scope_display.set_cursors(self.cursors)
 
     def exit(self) -> None:
@@ -219,6 +247,7 @@ class User_Interface:
                 self.serial_scope.request_high_range()
             self.scope_status = Scope_Status.NEUTRAL
             self._update_scope_status()
+            self._update_fs()
         self.serial_scope = Serial_Scope(115200, '/dev/ttyACM0')
         self.scope_status = Scope_Status.CONNECTING
         self._update_scope_status()
@@ -230,14 +259,14 @@ class User_Interface:
         if(self.serial_scope_connected):
             self.scope_status:Scope_Status = Scope_Status.ARMED
             self._update_scope_status()
-            fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_force_trigger_data()
             if(len(xx) > 0):
                 self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
                 self.readout.set_average(average(self.vv))
                 vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
                 filtered_signal:list[float] = FIR_filter(vertical_encode)
-                h:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
+                h:list[int] = resample_horizontal(vertical_encode, 
+                                                  self.scale.get_hor(), self.scale.fs) 
                 self.scope_display.set_vector(h)
                 self.scope_status:Scope_Status = Scope_Status.TRIGGERED
                 self._update_scope_status()

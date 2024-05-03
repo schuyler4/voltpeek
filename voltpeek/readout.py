@@ -22,6 +22,7 @@ class Readout:
         self._horizontal_text:tk.StringVar = tk.StringVar()
         self._average_text:tk.StringVar = tk.StringVar()
         self._status_text:tk.StringVar = tk.StringVar()
+        self._fs_text:tk.StringVar = tk.StringVar()
         self._cursor_frame:tk.Frame = tk.Frame(self.frame, 
             bg=constants.Readout.BACKGROUND_COLOR,
             highlightbackground=constants.Readout.BORDER_COLOR,
@@ -50,6 +51,10 @@ class Readout:
             textvariable=self._horizontal_text,
             bg=constants.Readout.BACKGROUND_COLOR,
             fg=constants.Readout.TEXT_COLOR)
+        fs_label:tk.Label = tk.Label(self.frame, 
+            textvariable=self._fs_text,
+            bg=constants.Readout.BACKGROUND_COLOR,
+            fg=constants.Readout.TEXT_COLOR)
         average_label:tk.Label = tk.Label(self.frame, 
             textvariable=self._average_text,
             bg=constants.Readout.BACKGROUND_COLOR,
@@ -69,6 +74,7 @@ class Readout:
         status_label.pack()
         vertical_label.pack()
         horizontal_label.pack()
+        fs_label.pack()
         average_label.pack()
         for label in cursor_labels:
             label.pack()
@@ -88,12 +94,12 @@ class Readout:
     def set_average(self, average:float) -> None:
         self._average_text.set(messages.Measurements.AVERAGE + str(average))
 
-    def set_status(self, status_str:str) -> None:
-        self._status_text.set(status_str)
+    def set_fs(self, fs:float) -> None: self._fs_text.set('fs:' + str(fs) + 'S/s')
+
+    def set_status(self, status_str:str) -> None: self._status_text.set(status_str)
 
     def enable_cursor_readout(self, cursor_data) -> None:
         self.update_cursors(cursor_data)
         self._cursor_frame.pack() 
 
-    def disable_cursor_readout(self) -> None:
-        self._cursor_frame.pack_forget()
+    def disable_cursor_readout(self) -> None: self._cursor_frame.pack_forget()
