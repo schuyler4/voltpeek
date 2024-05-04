@@ -13,10 +13,10 @@ class Serial_Scope:
     BUFFER_FLUSH_DELAY:float = constants.Serial_Protocol.BUFFER_FLUSH_DELAY
 
     def __init__(self, baudrate, port):
-        self.baudrate:int = baudrate
-        self.port:str = port
-        self.error:bool = False
-    
+        self.baudrate: int = baudrate
+        self.port: str = port
+        self.error: bool = False
+
     def init_serial(self):
         try:
             self.serial_port:Serial = Serial()

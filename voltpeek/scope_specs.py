@@ -18,7 +18,7 @@ class ScopeSpecs(TypedDict):
 
 scope_specs:ScopeSpecs = {
     'attenuation': {'range_high':0.008289, 'range_low':0.4976},
-    'offset': {'range_high':0.00, 'range_low':0.00},
+    'offset': {'range_high':-4.09, 'range_low':0.00},
     'resolution': 256,    
     'voltage_ref': 1.0,
     'sample_rate': 125e6, 

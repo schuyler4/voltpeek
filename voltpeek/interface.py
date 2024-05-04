@@ -257,9 +257,11 @@ class User_Interface:
     #TODO: refactor these trigger methods that are basically the same
     def force_trigger(self) -> None:
         if(self.serial_scope_connected):
+            print('triggered')
             self.scope_status:Scope_Status = Scope_Status.ARMED
             self._update_scope_status()
             xx:list[int] = self.serial_scope.get_scope_force_trigger_data()
+            print(xx)
             if(len(xx) > 0):
                 self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
                 self.readout.set_average(average(self.vv))
@@ -270,7 +272,8 @@ class User_Interface:
                 self.scope_display.set_vector(h)
                 self.scope_status:Scope_Status = Scope_Status.TRIGGERED
                 self._update_scope_status()
-        else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
+        else: 
+            self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
     def auto_trigger(self) -> None:
         count = 0
@@ -352,7 +355,7 @@ class User_Interface:
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.hor_visible or self.cursors.vert_visible: 
             self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
-                                                                 self.cursors.vert_visible))     
+                                                                    self.cursors.vert_visible))     
         else: self.readout.disable_cursor_readout()
 
     def toggle_horizontal_cursors(self) -> None:
@@ -360,7 +363,7 @@ class User_Interface:
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.hor_visible:
             self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
-                                                                 self.cursors.vert_visible))     
+                                                                    self.cursors.vert_visible))     
         else: self.readout.disable_cursor_readout()
 
     def toggle_vertical_cursors(self) -> None:
@@ -368,7 +371,7 @@ class User_Interface:
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.vert_visible:
             self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
-                                                                 self.cursors.vert_visible))     
+                                                                    self.cursors.vert_visible))     
         else: self.readout.disable_cursor_readout()
 
     def __call__(self) -> None: self.root.mainloop()
