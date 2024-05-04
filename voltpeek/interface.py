@@ -14,7 +14,7 @@ from voltpeek.readout import Readout
 from voltpeek.reconstruct import reconstruct
 from voltpeek.pixel_vector import quantize_vertical, resample_horizontal, FIR_filter
 from voltpeek.helpers import generate_trigger_vector
-from voltpeek.trigger import get_trigger_voltage, trigger_code
+from voltpeek.trigger import Trigger, TriggerType, get_trigger_voltage, trigger_code
 from voltpeek.cursors import Cursors, Cursor_Data
 from voltpeek.scope_specs import scope_specs
 
@@ -40,10 +40,10 @@ class Scale:
     def __init__(self) -> None:
         self.vertical_index = constants.Scale.DEFAULT_VERTICAL_INDEX 
         self.horizontal_index = constants.Scale.DEFAULT_HORIZONTAL_INDEX
-        self.high_range_flip:bool = False
-        self.low_range_flip:bool = False
-        self._clock_div:int = 1
-        self._fs:int = 125000000
+        self.high_range_flip: bool = False
+        self.low_range_flip: bool = False
+        self._clock_div: int = 1
+        self._fs: int = 125000000
 
     def increment_vert(self) -> None:
         if(self.vertical_index < self.max_vertical_index): 
@@ -74,17 +74,17 @@ class Scale:
     def get_hor(self) -> float: return constants.Scale.HORIZONTALS[self.horizontal_index]
 
     # TODO: possibly move these methods so they can be exposed to scripting API
-    def get_max_sample_rate(self, memory_depth:int) -> float:
+    def get_max_sample_rate(self, memory_depth: int) -> float:
         return memory_depth/(self.get_hor()*constants.Display.GRID_LINE_COUNT)  
 
-    def find_lowest_clock_division(self, sample_rate:float, base_clock:float) -> int:
+    def find_lowest_clock_division(self, sample_rate: float, base_clock: float) -> int:
         for div in range(1, 65540):
             if base_clock/div <= sample_rate:
                 return div
         return None
 
-    def update_sample_rate(self, base_clock:float, memory_depth:int) -> float:
-        max_sample_rate:float = self.get_max_sample_rate(memory_depth)
+    def update_sample_rate(self, base_clock: float, memory_depth: int) -> float:
+        max_sample_rate: float = self.get_max_sample_rate(memory_depth)
         self._clock_div = self.find_lowest_clock_division(max_sample_rate, base_clock)
         self._fs = int(base_clock/self._clock_div)
 
@@ -92,25 +92,29 @@ class User_Interface:
     def _update_scope_status(self): self.readout.set_status(self.scope_status.name)
     
     def __init__(self) -> None:
-        self.scale = Scale()
+        self.scale: Scale = Scale()
+        self.trigger: Trigger = Trigger()
+        self.cursors = Cursors()
+
         self.build_tk_root() 
-        self.scope_display:Scope_Display = Scope_Display(self.root)
-        self.command_input:Command_Input = Command_Input(self.root, self.process_command)
-        self.readout:Readout = Readout(self.root, self.scale.get_vert(), self.scale.get_hor())
+        self.scope_display: Scope_Display = Scope_Display(self.root)
+        self.command_input: Command_Input = Command_Input(self.root, self.process_command)
+        self.readout: Readout = Readout(self.root, self.scale.get_vert(), self.scale.get_hor())
         self.readout()
         self.scope_display()
         self.command_input()
-        self.mode:Mode = Mode.COMMAND
+
+        self.mode: Mode = Mode.COMMAND
         self.command_input.set_focus()
         self.vv = None
-        self.serial_scope_connected:bool = False
-        self.scope_status:Scope_Status = Scope_Status.DISCONNECTED
-        self.cursors = Cursors()
+        self.serial_scope_connected: bool = False
+        self.scope_status: Scope_Status = Scope_Status.DISCONNECTED
         self._update_scope_status()
         self.auto_trigger_running:Event = Event()
         self.connect_thread:Thread = Thread()
         self.trigger_thread:Thread = Thread()
         self._update_fs()
+        self._set_trigger_rising_edge()
 
     def build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -232,7 +236,9 @@ class User_Interface:
             messages.Commands.NEXT_CURS: self.cursors.next_cursor, 
             messages.Commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
             messages.Commands.AUTO_TRIGGER_COMMAND: self.start_auto_trigger, 
-            messages.Commands.STOP: self.stop_auto_trigger
+            messages.Commands.STOP: self.stop_auto_trigger,
+            messages.Commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
+            messages.Commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge
         }
             
     #TODO: show an error to the user if the scope does not connect
@@ -355,23 +361,34 @@ class User_Interface:
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.hor_visible or self.cursors.vert_visible: 
             self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
-                                                                    self.cursors.vert_visible))     
-        else: self.readout.disable_cursor_readout()
+                                                                    self.cursors.vert_visible))   
+        else: 
+            self.readout.disable_cursor_readout()
 
     def toggle_horizontal_cursors(self) -> None:
         self.cursors.toggle_hor()
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.hor_visible:
             self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
-                                                                    self.cursors.vert_visible))     
-        else: self.readout.disable_cursor_readout()
+                                                                    self.cursors.vert_visible))  
+        else: 
+            self.readout.disable_cursor_readout()
 
     def toggle_vertical_cursors(self) -> None:
         self.cursors.toggle_vert()
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.vert_visible:
             self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
-                                                                    self.cursors.vert_visible))     
-        else: self.readout.disable_cursor_readout()
+                                                                    self.cursors.vert_visible))   
+        else: 
+            self.readout.disable_cursor_readout()
+
+    def _set_trigger_rising_edge(self) -> None:
+        self.trigger.trigger_type = TriggerType.RISING_EDGE
+        self.readout.set_trigger_type(self.trigger.trigger_type)
+
+    def _set_trigger_falling_edge(self) -> None:
+        self.trigger.trigger_type = TriggerType.FALLING_EDGE
+        self.readout.set_trigger_type(self.trigger.trigger_type)
 
     def __call__(self) -> None: self.root.mainloop()
