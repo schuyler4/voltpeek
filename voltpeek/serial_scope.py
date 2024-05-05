@@ -1,25 +1,45 @@
 import time
 
 from serial import Serial
+from serial.tools import list_ports
 
 from . import messages
 from . import constants
 
 class Serial_Scope:
-    DECODING_SCHEME:str = constants.Serial_Protocol.DECODING_SCHEME
-    DATA_START_COMMAND:str = constants.Serial_Protocol.DATA_START_COMMAND 
-    DATA_END_COMMAND:str = constants.Serial_Protocol.DATA_END_COMMAND
-    DATA_RECIEVE_DELAY:float = constants.Serial_Protocol.DATA_RECIEVE_DELAY
-    BUFFER_FLUSH_DELAY:float = constants.Serial_Protocol.BUFFER_FLUSH_DELAY
+    DECODING_SCHEME: str = constants.Serial_Protocol.DECODING_SCHEME
+    DATA_START_COMMAND: str = constants.Serial_Protocol.DATA_START_COMMAND 
+    DATA_END_COMMAND: str = constants.Serial_Protocol.DATA_END_COMMAND
+    DATA_RECIEVE_DELAY: float = constants.Serial_Protocol.DATA_RECIEVE_DELAY
+    BUFFER_FLUSH_DELAY: float = constants.Serial_Protocol.BUFFER_FLUSH_DELAY
+    PICO_VID: int = 0x2E8A
 
-    def __init__(self, baudrate, port):
+    def __init__(self, baudrate: int, port: str=None):
         self.baudrate: int = baudrate
-        self.port: str = port
+        self.port = None
         self.error: bool = False
 
+    def pico_connected(self) -> bool:
+        ports = list_ports.comports()
+        for port in ports:
+            if port.vid == self.PICO_VID:
+                return True
+        return False
+    
+    def find_pico_serial_port(self) -> str:
+        ports = list_ports.comports()
+        for port in ports:
+            if port.vid == self.PICO_VID:
+                return port.device
+        return None
+
     def init_serial(self):
+        print('called')
         try:
-            self.serial_port:Serial = Serial()
+            if self.port is None:
+                self.port = self.find_pico_serial_port() 
+            # TODO: raise an error if the port stays none
+            self.serial_port: Serial = Serial()
             self.serial_port.baudrate = self.baudrate
             self.serial_port.port = self.port
             self.serial_port.timeout = self.BUFFER_FLUSH_DELAY
@@ -37,7 +57,7 @@ class Serial_Scope:
     def read_serial_data(self) -> list[str]:
         logging_data:bool = False
         recieved_data:list[str] = []
-        #TODO: Add a timeout error
+        #TODO: Add a timeout error, maybe
         while True:
             try:
                 data_string:str = self.serial_port.readline().decode(self.DECODING_SCHEME)    

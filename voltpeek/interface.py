@@ -254,11 +254,15 @@ class User_Interface:
             self.scope_status = Scope_Status.NEUTRAL
             self._update_scope_status()
             self._update_fs()
-        self.serial_scope = Serial_Scope(115200, '/dev/ttyACM0')
-        self.scope_status = Scope_Status.CONNECTING
-        self._update_scope_status()
-        self.connect_thread = Thread(target=connect_worker)
-        self.connect_thread.start()
+
+        self.serial_scope = Serial_Scope(115200)
+        if self.serial_scope.pico_connected():
+            self.scope_status = Scope_Status.CONNECTING
+            self._update_scope_status()
+            self.connect_thread = Thread(target=connect_worker)
+            self.connect_thread.start()
+        else:
+            self.command_input.set_error('NewtScope is not connected.')
 
     #TODO: refactor these trigger methods that are basically the same
     def force_trigger(self) -> None:
@@ -284,7 +288,8 @@ class User_Interface:
     def auto_trigger(self) -> None:
         count = 0
         if(self.serial_scope_connected):
-            while(self.auto_trigger_running.is_set()): self.force_trigger() 
+            while(self.auto_trigger_running.is_set()): 
+                self.force_trigger() 
 
     def start_auto_trigger(self) -> None:
         self.auto_trigger_running.set()
