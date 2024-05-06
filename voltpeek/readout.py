@@ -10,8 +10,8 @@ class Readout:
     AVERAGE_STRING: str = 'average:'
     BACKGROUND_COLOR: str = 'black'
 
-    def __init__(self, master, vertical_setting: float, horizontal_setting: float) -> None:
-        self.master:tk.Tk = master
+    def __init__(self, master: tk.Tk, vertical_setting: float, horizontal_setting: float) -> None:
+        self.master: tk.Tk = master
         self._vertical_setting: float = vertical_setting
         self._horizontal_setting: float = horizontal_setting
         self.frame:tk.Frame = tk.Frame(self.master, 

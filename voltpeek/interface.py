@@ -6,6 +6,7 @@ import tkinter as tk
 
 from voltpeek import messages
 from voltpeek import constants
+from voltpeek import commands
 from voltpeek.measurements import average
 from voltpeek.serial_scope import Serial_Scope
 from voltpeek.scope_display import Scope_Display
@@ -88,7 +89,7 @@ class Scale:
         self._clock_div = self.find_lowest_clock_division(max_sample_rate, base_clock)
         self._fs = int(base_clock/self._clock_div)
 
-class User_Interface:
+class UserInterface:
     def _update_scope_status(self): self.readout.set_status(self.scope_status.name)
     
     def __init__(self) -> None:
@@ -222,23 +223,23 @@ class User_Interface:
         exit()
 
     def get_commands(self): return {
-            messages.Commands.EXIT_COMMAND: self.exit,
-            messages.Commands.CONNECT_COMMAND: self.connect_serial_scope,
-            messages.Commands.SIMU_TRIGGER_COMMAND: self.simu_trigger,    
-            messages.Commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
-            messages.Commands.TRIGGER_COMMAND: self.trigger, 
-            messages.Commands.FAKE_TRIGGER_COMMAND: self.fake_trigger,
-            messages.Commands.FORCE_TRIGGER_COMMAND: self.force_trigger,
-            messages.Commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
-            messages.Commands.TOGGLE_CURS: self.toggle_cursors, 
-            messages.Commands.TOGGLE_HCURS: self.toggle_horizontal_cursors, 
-            messages.Commands.TOGGLE_VCURS: self.toggle_vertical_cursors,
-            messages.Commands.NEXT_CURS: self.cursors.next_cursor, 
-            messages.Commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
-            messages.Commands.AUTO_TRIGGER_COMMAND: self.start_auto_trigger, 
-            messages.Commands.STOP: self.stop_auto_trigger,
-            messages.Commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
-            messages.Commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge
+            commands.EXIT_COMMAND: self.exit,
+            commands.CONNECT_COMMAND: self.connect_serial_scope,
+            commands.SIMU_TRIGGER_COMMAND: self.simu_trigger,    
+            commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
+            commands.TRIGGER_COMMAND: self.trigger, 
+            commands.FAKE_TRIGGER_COMMAND: self.fake_trigger,
+            commands.FORCE_TRIGGER_COMMAND: self.force_trigger,
+            commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
+            commands.TOGGLE_CURS: self.toggle_cursors, 
+            commands.TOGGLE_HCURS: self.toggle_horizontal_cursors, 
+            commands.TOGGLE_VCURS: self.toggle_vertical_cursors,
+            commands.NEXT_CURS: self.cursors.next_cursor, 
+            commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
+            commands.AUTO_TRIGGER_COMMAND: self.start_auto_trigger, 
+            commands.STOP: self.stop_auto_trigger,
+            commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
+            commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge
         }
             
     #TODO: show an error to the user if the scope does not connect

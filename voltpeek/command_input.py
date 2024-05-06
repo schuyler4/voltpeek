@@ -2,8 +2,9 @@ from typing import Callable
 
 import tkinter as tk
 
-from . import constants
-from . import messages
+from voltpeek import constants
+from voltpeek import messages
+from voltpeek import commands
 
 class Command_Input:
     def __init__(self, master:tk.Tk, on_command: Callable[[str], None]) -> None:
@@ -26,19 +27,19 @@ class Command_Input:
 
     def on_command_enter(self, event) -> None:
         command = self.input_text.get()
-        if(len(self.command_stack) == 0 or command != self.command_stack[0]):
+        if len(self.command_stack) == 0 or command != self.command_stack[0]:
             self.command_stack.insert(0, command)
         self.command_stack_pointer = 0
         self.on_command(command)
-        if(command == messages.Commands.SCALE_COMMAND 
-           or command == messages.Commands.TRIGGER_LEVEL_COMMAND
-           or command == messages.Commands.ADJUST_CURS): 
+        if command in commands.ADJUST_COMMANDS: 
             self.input_text.set(messages.Mode.ADJUST_MODE)
-        else: self.input_text.set('')
-        if(self.error): self.display_error()
+        else: 
+            self.input_text.set('')
+        if self.error: 
+            self.display_error()
     
     def on_key_press(self, event) -> None:
-        if(self.error): 
+        if self.error: 
             self.error = False
             self.set_command_mode()
    
