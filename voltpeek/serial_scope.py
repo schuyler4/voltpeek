@@ -34,7 +34,6 @@ class Serial_Scope:
         return None
 
     def init_serial(self):
-        print('called')
         try:
             if self.port is None:
                 self.port = self.find_pico_serial_port() 
@@ -42,7 +41,7 @@ class Serial_Scope:
             self.serial_port: Serial = Serial()
             self.serial_port.baudrate = self.baudrate
             self.serial_port.port = self.port
-            self.serial_port.timeout = self.BUFFER_FLUSH_DELAY
+            self.serial_port.timeout = 0
             self.serial_port.open()
             # Delays are required around the serial buffer flush
             time.sleep(self.BUFFER_FLUSH_DELAY)
