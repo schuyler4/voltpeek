@@ -9,14 +9,19 @@ from voltpeek import constants
 from voltpeek import commands
 from voltpeek.measurements import average
 from voltpeek.serial_scope import Serial_Scope
+
 from voltpeek.scope_display import Scope_Display
 from voltpeek.command_input import Command_Input
 from voltpeek.readout import Readout
+from voltpeek.info_panel import InfoPanel
+
 from voltpeek.reconstruct import reconstruct
 from voltpeek.pixel_vector import quantize_vertical, resample_horizontal, FIR_filter
 from voltpeek.helpers import generate_trigger_vector
+
 from voltpeek.trigger import Trigger, TriggerType, get_trigger_voltage, trigger_code
 from voltpeek.cursors import Cursors, Cursor_Data
+
 from voltpeek.scope_specs import scope_specs
 
 class Mode(Enum):
@@ -93,17 +98,21 @@ class UserInterface:
     def _update_scope_status(self): self.readout.set_status(self.scope_status.name)
     
     def __init__(self) -> None:
+        self._build_tk_root()
+
         self.scale: Scale = Scale()
         self.trigger: Trigger = Trigger()
         self.cursors = Cursors()
 
-        self.build_tk_root() 
         self.scope_display: Scope_Display = Scope_Display(self.root)
         self.command_input: Command_Input = Command_Input(self.root, self.process_command)
         self.readout: Readout = Readout(self.root, self.scale.get_vert(), self.scale.get_hor())
+        self.info_panel: InfoPanel = InfoPanel(self.root)
+
         self.readout()
         self.scope_display()
         self.command_input()
+        self.info_panel()
 
         self.mode: Mode = Mode.COMMAND
         self.command_input.set_focus()
@@ -117,20 +126,22 @@ class UserInterface:
         self._update_fs()
         self._set_trigger_rising_edge()
 
-    def build_tk_root(self) -> None:
+    def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
         self.root.title(constants.Application.NAME)
         self.root.configure(bg=constants.Window.BACKGROUND_COLOR) 
         self.root.bind('<KeyPress>', self.on_key_press)
 
     def on_key_press(self, event) -> None:
+        if self.info_panel.visible and event.keycode != constants.KeyCodes.ENTER:
+            self.info_panel.hide() 
         if(self.mode == Mode.ADJUST_SCALE 
            or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS):
             if(event.keycode in constants.Keys.EXIT_COMMAND_MODE): 
                 if(self.mode == Mode.ADJUST_TRIGGER_LEVEL and self.serial_scope_connected): 
                     self.set_trigger()
                 self._set_command_mode()
-        if(self.mode == Mode.ADJUST_SCALE):
+        if self.mode == Mode.ADJUST_SCALE:
             if(event.char == constants.Keys.VERTICAL_UP):
                 self._update_scale(self.scale.increment_vert)
             elif(event.char == constants.Keys.VERTICAL_DOWN):
@@ -216,7 +227,7 @@ class UserInterface:
         self.readout.update_cursors(self.get_cursor_dict(self.cursors.hor_visible, 
                                                          self.cursors.vert_visible))
         self.scope_display.set_cursors(self.cursors)
-
+    
     def exit(self) -> None:
         if self.auto_trigger_running.is_set(): 
             self.auto_trigger_running.clear()
@@ -239,7 +250,8 @@ class UserInterface:
             commands.AUTO_TRIGGER_COMMAND: self.start_auto_trigger, 
             commands.STOP: self.stop_auto_trigger,
             commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
-            commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge
+            commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge,
+            commands.HELP: self.info_panel.show  
         }
             
     #TODO: show an error to the user if the scope does not connect
@@ -316,7 +328,8 @@ class UserInterface:
             self.scope_display.set_vector(hh)
             self.scope_status:Scope_Status = Scope_Status.TRIGGERED
             self._update_scope_status()
-        else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
+        else: 
+            self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
     def simu_trigger(self) -> None:
         if(self.serial_scope_connected):
@@ -325,7 +338,8 @@ class UserInterface:
             self.readout.set_average(average(self.vv))
             v_vertical:float = self.scale.get_vert()
             self.scope_display.set_vector(quantize_vertical(self.vv, self.scale.get_vert()))
-        else: self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR) 
+        else: 
+            self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR) 
 
     def fake_trigger(self) -> None: 
         fs:int = 50000

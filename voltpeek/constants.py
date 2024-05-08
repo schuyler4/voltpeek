@@ -40,9 +40,10 @@ class Signal:
     COLOR:str = 'blue'
 
 class KeyCodes:
-    CTRL_C:int = 54
-    ESC:int = 9
-    UP_ARROW:int = 111
+    CTRL_C: int = 54
+    ESC: int = 9
+    UP_ARROW: int = 111
+    ENTER: int = 36
 
 class Keys:
     HORIZONTAL_LEFT:str = 'h'    

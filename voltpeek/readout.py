@@ -14,7 +14,7 @@ class Readout:
         self.master: tk.Tk = master
         self._vertical_setting: float = vertical_setting
         self._horizontal_setting: float = horizontal_setting
-        self.frame:tk.Frame = tk.Frame(self.master, 
+        self.frame: tk.Frame = tk.Frame(self.master, 
             bg=self.BACKGROUND_COLOR,
             highlightbackground=constants.Readout.BORDER_COLOR,
             highlightthickness=constants.Readout.BORDER_THICKNESS)
