@@ -1,4 +1,5 @@
 import time
+import binascii
 
 from serial import Serial
 from serial.tools import list_ports
@@ -71,6 +72,13 @@ class Serial_Scope:
                 self.error = True 
         return recieved_data
 
+    def read_glob_data(self) -> str:
+        self.serial_port.write(constants.Serial_Commands.FORCE_TRIGGER_COMMAND) 
+        codes = []
+        while(len(codes) < 20000): 
+            codes += list(self.serial_port.read(self.serial_port.inWaiting()))
+        return codes
+
     def is_digits(self, s:str) -> bool: 
         for c in list(s): 
             if(c in '0123456789'): return True 
@@ -94,12 +102,8 @@ class Serial_Scope:
     def get_scope_force_trigger_data(self) -> list[int]:
         self.serial_port.write(constants.Serial_Commands.FORCE_TRIGGER_COMMAND) 
         time.sleep(self.DATA_RECIEVE_DELAY) 
-        recieved_trigger_data:list[str] = self.read_serial_data()
-        # TODO: make this more functional
-        samples = []
-        for sample in recieved_trigger_data:
-            if(self.is_digits(sample)): samples.append(int(self.get_digits(sample)))
-        return samples
+        recieved_trigger_data:list[int] = self.read_glob_data()
+        return recieved_trigger_data 
 
     def get_simulated_vector(self) -> list[int]:
         self.serial_port.write(constants.Serial_Commands.SIMU_TRIGGER_COMMAND)

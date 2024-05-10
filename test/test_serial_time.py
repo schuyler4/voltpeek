@@ -12,6 +12,6 @@ serial_scope.init_serial()
 
 start_time = time.time()
 
-data = serial_scope.get_scope_force_trigger_data()
+data = serial_scope.read_glob_data()
 
 print(time.time() - start_time)

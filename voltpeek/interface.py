@@ -120,9 +120,9 @@ class UserInterface:
         self.serial_scope_connected: bool = False
         self.scope_status: Scope_Status = Scope_Status.DISCONNECTED
         self._update_scope_status()
-        self.auto_trigger_running:Event = Event()
-        self.connect_thread:Thread = Thread()
-        self.trigger_thread:Thread = Thread()
+        self.auto_trigger_running: Event = Event()
+        self.connect_thread: Thread = Thread()
+        self.trigger_thread: Thread = Thread()
         self._update_fs()
         self._set_trigger_rising_edge()
 
@@ -137,7 +137,7 @@ class UserInterface:
             self.info_panel.hide() 
         if(self.mode == Mode.ADJUST_SCALE 
            or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS):
-            if(event.keycode in constants.Keys.EXIT_COMMAND_MODE): 
+            if event.keycode in constants.Keys.EXIT_COMMAND_MODE: 
                 if(self.mode == Mode.ADJUST_TRIGGER_LEVEL and self.serial_scope_connected): 
                     self.set_trigger()
                 self._set_command_mode()
@@ -284,12 +284,11 @@ class UserInterface:
             self.scope_status:Scope_Status = Scope_Status.ARMED
             self._update_scope_status()
             xx:list[int] = self.serial_scope.get_scope_force_trigger_data()
-            print(xx)
             if(len(xx) > 0):
-                self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
+                filtered_signal:list[float] = FIR_filter(xx) 
+                self.vv:list[float] = reconstruct(filtered_signal, scope_specs, self.scale.get_vert())
                 self.readout.set_average(average(self.vv))
                 vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
-                filtered_signal:list[float] = FIR_filter(vertical_encode)
                 h:list[int] = resample_horizontal(vertical_encode, 
                                                   self.scale.get_hor(), self.scale.fs) 
                 self.scope_display.set_vector(h)
