@@ -15,12 +15,12 @@ from voltpeek.command_input import Command_Input
 from voltpeek.readout import Readout
 from voltpeek.info_panel import InfoPanel
 
-from voltpeek.reconstruct import reconstruct
-from voltpeek.pixel_vector import quantize_vertical, resample_horizontal, FIR_filter
+from voltpeek.reconstruct import reconstruct, quantize_vertical, resample_horizontal, FIR_filter
 from voltpeek.helpers import generate_trigger_vector
 
 from voltpeek.trigger import Trigger, TriggerType, get_trigger_voltage, trigger_code
 from voltpeek.cursors import Cursors, Cursor_Data
+from voltpeek.scale import Scale
 
 from voltpeek.scope_specs import scope_specs
 
@@ -37,63 +37,6 @@ class Scope_Status(Enum):
     ARMED = 3
     TRIGGERED = 4
 
-# TODO: Make this more OO
-class Scale:
-    max_vertical_index = len(constants.Scale.VERTICALS) - 1
-    max_hor_index = len(constants.Scale.HORIZONTALS) - 1
-    range_flip_index = constants.Scale.LOW_RANGE_VERTICAL_INDEX
-
-    def __init__(self) -> None:
-        self.vertical_index = constants.Scale.DEFAULT_VERTICAL_INDEX 
-        self.horizontal_index = constants.Scale.DEFAULT_HORIZONTAL_INDEX
-        self.high_range_flip: bool = False
-        self.low_range_flip: bool = False
-        self._clock_div: int = 1
-        self._fs: int = 125000000
-
-    def increment_vert(self) -> None:
-        if(self.vertical_index < self.max_vertical_index): 
-            self.vertical_index += 1     
-            self.high_range_flip = self.vertical_index == self.range_flip_index + 1 
-            self.low_range_flip = False 
-
-    def decrement_vert(self) -> None:
-        if(self.vertical_index > 0): 
-            self.vertical_index -= 1
-            self.low_range_flip = self.vertical_index == self.range_flip_index
-            self.high_range_flip = False
-
-    def increment_hor(self) -> None:
-        if(self.horizontal_index < self.max_hor_index): self.horizontal_index += 1
-
-    def decrement_hor(self) -> None:
-        if(self.horizontal_index > 0): self.horizontal_index -= 1
-
-    @property
-    def fs(self) -> int: return self._fs
-
-    @property
-    def clock_div(self) -> int: return self._clock_div
-
-    def get_vert(self) -> float: return constants.Scale.VERTICALS[self.vertical_index]
-    
-    def get_hor(self) -> float: return constants.Scale.HORIZONTALS[self.horizontal_index]
-
-    # TODO: possibly move these methods so they can be exposed to scripting API
-    def get_max_sample_rate(self, memory_depth: int) -> float:
-        return memory_depth/(self.get_hor()*constants.Display.GRID_LINE_COUNT)  
-
-    def find_lowest_clock_division(self, sample_rate: float, base_clock: float) -> int:
-        for div in range(1, 65540):
-            if base_clock/div <= sample_rate:
-                return div
-        return None
-
-    def update_sample_rate(self, base_clock: float, memory_depth: int) -> float:
-        max_sample_rate: float = self.get_max_sample_rate(memory_depth)
-        self._clock_div = self.find_lowest_clock_division(max_sample_rate, base_clock)
-        self._fs = int(base_clock/self._clock_div)
-
 class UserInterface:
     def _update_scope_status(self): self.readout.set_status(self.scope_status.name)
     
@@ -106,7 +49,7 @@ class UserInterface:
 
         self.scope_display: Scope_Display = Scope_Display(self.root)
         self.command_input: Command_Input = Command_Input(self.root, self.process_command)
-        self.readout: Readout = Readout(self.root, self.scale.get_vert(), self.scale.get_hor())
+        self.readout: Readout = Readout(self.root, self.scale.vert, self.scale.hor)
         self.info_panel: InfoPanel = InfoPanel(self.root)
 
         self.readout()
@@ -208,15 +151,15 @@ class UserInterface:
 
     def _update_scale(self, arithmatic_fn: Callable[[None], None]) -> None:
         arithmatic_fn()
-        self.readout.update_settings(self.scale.get_vert(), self.scale.get_hor())
+        self.readout.update_settings(self.scale.vert, self.scale.hor)
         if self.scale.low_range_flip and self.serial_scope_connected:
             self.serial_scope.request_low_range()
         elif self.scale.high_range_flip and self.serial_scope_connected:
             self.serial_scope.request_high_range()
         if self.vv is not None:
             fs:int = 125000000 
-            v_vertical:float = self.scale.get_vert()
-            h_horizontal:float = self.scale.get_hor()
+            v_vertical:float = self.scale.vert
+            h_horizontal:float = self.scale.hor
             vertical_encode:list[int] = quantize_vertical(self.vv, v_vertical)
             horizontal_encode:list[int] = resample_horizontal(vertical_encode, h_horizontal, fs) 
             self.scope_display.set_vector(horizontal_encode) 
@@ -260,7 +203,7 @@ class UserInterface:
             self.serial_scope.init_serial()
             self.serial_scope_connected = True
             low_range_index = constants.Scale.LOW_RANGE_VERTICAL_INDEX
-            if(self.scale.get_vert() <= constants.Scale.VERTICALS[low_range_index]):
+            if(self.scale.vert <= constants.Scale.VERTICALS[low_range_index]):
                 self.serial_scope.request_low_range()
             else:
                 self.serial_scope.request_high_range()
@@ -286,11 +229,11 @@ class UserInterface:
             xx:list[int] = self.serial_scope.get_scope_force_trigger_data()
             if(len(xx) > 0):
                 filtered_signal:list[float] = FIR_filter(xx) 
-                self.vv:list[float] = reconstruct(filtered_signal, scope_specs, self.scale.get_vert())
+                self.vv:list[float] = reconstruct(filtered_signal, scope_specs, self.scale.vert)
                 self.readout.set_average(average(self.vv))
-                vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
+                vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
                 h:list[int] = resample_horizontal(vertical_encode, 
-                                                  self.scale.get_hor(), self.scale.fs) 
+                                                  self.scale.hor, self.scale.fs) 
                 self.scope_display.set_vector(h)
                 self.scope_status:Scope_Status = Scope_Status.TRIGGERED
                 self._update_scope_status()
@@ -320,10 +263,10 @@ class UserInterface:
             fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_trigger_data()
             print(xx)
-            self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
+            self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.vert)
             self.readout.set_average(average(self.vv))
-            vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.get_vert())
-            hh:list[int] = resample_horizontal(vertical_encode, self.scale.get_hor(), fs) 
+            vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
+            hh:list[int] = resample_horizontal(vertical_encode, self.scale.hor, fs) 
             self.scope_display.set_vector(hh)
             self.scope_status:Scope_Status = Scope_Status.TRIGGERED
             self._update_scope_status()
@@ -333,17 +276,17 @@ class UserInterface:
     def simu_trigger(self) -> None:
         if(self.serial_scope_connected):
             xx:list[int] = self.serial_scope.get_simulated_vector() 
-            self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.get_vert())
+            self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.vert)
             self.readout.set_average(average(self.vv))
-            v_vertical:float = self.scale.get_vert()
-            self.scope_display.set_vector(quantize_vertical(self.vv, self.scale.get_vert()))
+            v_vertical:float = self.scale.vert
+            self.scope_display.set_vector(quantize_vertical(self.vv, self.scale.vert))
         else: 
             self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR) 
 
     def fake_trigger(self) -> None: 
         fs:int = 50000
-        t_horizontal:float = self.scale.get_hor()
-        v_vertical:float = self.scale.get_vert()
+        t_horizontal:float = self.scale.hor
+        v_vertical:float = self.scale.vert
         self.vv:list[float] = generate_trigger_vector(t_horizontal)
         self.readout.set_average(average(self.vv))
         vertical_encoding:list[int] = quantize_vertical(self.vv, v_vertical)
@@ -351,11 +294,11 @@ class UserInterface:
     
     def set_trigger(self) -> None: 
         trigger_height:int = self.scope_display.get_trigger_level()
-        trigger_voltage = get_trigger_voltage(self.scale.get_vert(), trigger_height)
+        trigger_voltage = get_trigger_voltage(self.scale.vert, trigger_height)
         print(trigger_voltage)
         attenuation:float = None
         offset:float = None
-        if(self.scale.get_vert() <= 
+        if(self.scale.vert <= 
             constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX]):
             attenuation = scope_specs['attenuation']['range_low']
             offset = scope_specs['offset']['range_low']
@@ -367,12 +310,12 @@ class UserInterface:
         self.serial_scope.set_trigger_code(code)
 
     def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
-        h1:str = self.cursors.get_hor1_voltage(self.scale.get_vert()) if horizontal else ''
-        h2:str = self.cursors.get_hor2_voltage(self.scale.get_vert()) if horizontal else '' 
-        hdelta:str = self.cursors.get_delta_voltage(self.scale.get_vert()) if horizontal else ''
-        v1:str = self.cursors.get_vert1_time(self.scale.get_hor()) if vertical else ''
-        v2:str = self.cursors.get_vert2_time(self.scale.get_hor()) if vertical else ''
-        vdelta:str = self.cursors.get_delta_time(self.scale.get_hor()) if vertical else ''
+        h1:str = self.cursors.get_hor1_voltage(self.scale.vert) if horizontal else ''
+        h2:str = self.cursors.get_hor2_voltage(self.scale.vert) if horizontal else '' 
+        hdelta:str = self.cursors.get_delta_voltage(self.scale.vert) if horizontal else ''
+        v1:str = self.cursors.get_vert1_time(self.scale.hor) if vertical else ''
+        v2:str = self.cursors.get_vert2_time(self.scale.hor) if vertical else ''
+        vdelta:str = self.cursors.get_delta_time(self.scale.hor) if vertical else ''
         return { 'h1': h1, 'h2': h2, 'hdelta': hdelta, 'v1': v1, 'v2': v2, 'vdelta': vdelta }
     
     def toggle_cursors(self) -> None:
