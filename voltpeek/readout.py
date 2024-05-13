@@ -1,6 +1,5 @@
 import tkinter as tk
 
-from voltpeek import messages
 from voltpeek import constants
 
 from voltpeek.cursors import Cursor_Data
@@ -18,7 +17,7 @@ class Readout:
             bg=self.BACKGROUND_COLOR,
             highlightbackground=constants.Readout.BORDER_COLOR,
             highlightthickness=constants.Readout.BORDER_THICKNESS)
-        self.status_frame:tk.Frame = tk.Frame(self.frame, 
+        self.status_frame: tk.Frame = tk.Frame(self.frame, 
             bg=self.BACKGROUND_COLOR,
             highlightbackground=constants.Readout.BORDER_COLOR,
             highlightthickness=constants.Readout.BORDER_THICKNESS)
@@ -28,11 +27,12 @@ class Readout:
         self._status_text: tk.StringVar = tk.StringVar()
         self._fs_text: tk.StringVar = tk.StringVar()
         self._trigger_text: tk.StringVar = tk.StringVar()
+        self._probe_text: tk.StringVar = tk.StringVar()
         self._cursor_frame: tk.Frame = tk.Frame(self.frame, 
             bg=self.BACKGROUND_COLOR,
             highlightbackground=constants.Readout.BORDER_COLOR,
             highlightthickness=constants.Readout.BORDER_THICKNESS)
-        self._cursor_text:Cursor_Data = {
+        self._cursor_text = {
             'h1': tk.StringVar(),
             'h2': tk.StringVar(),
             'hdelta': tk.StringVar(),
@@ -71,6 +71,9 @@ class Readout:
         trigger_label: tk.Label = tk.Label(self.frame, textvariable=self._trigger_text, 
                                            bg=self.BACKGROUND_COLOR, 
                                            fg=constants.Readout.TEXT_COLOR) 
+        probe_label: tk.Label = tk.Label(self.frame, textvariable=self._probe_text, 
+                                           bg=self.BACKGROUND_COLOR, 
+                                           fg=constants.Readout.TEXT_COLOR) 
         cursor_labels: list[tk.Label] = [tk.Label(self._cursor_frame, 
             textvariable=self._cursor_text[key],
             bg=self.BACKGROUND_COLOR,
@@ -78,13 +81,16 @@ class Readout:
         self._vertical_text.set(self.get_vertical_str())  
         self._horizontal_text.set(self.get_horizontal_str()) 
         self._average_text.set(self.AVERAGE_STRING + '----')
+
         self.status_frame.pack()
         status_label.pack()
         vertical_label.pack()
         horizontal_label.pack()
         fs_label.pack()
         trigger_label.pack()
+        probe_label.pack()
         average_label.pack()
+
         for label in cursor_labels:
             label.pack()
         self.frame.grid(sticky=tk.N, row=0, column=1, padx=constants.Application.PADDING,
@@ -107,6 +113,9 @@ class Readout:
     def set_fs(self, fs: float) -> None: self._fs_text.set('fs:' + str(fs) + 'S/s')
 
     def set_status(self, status_str: str) -> None: self._status_text.set(status_str)
+
+    def set_probe(self, probe_div: int) -> None:
+        self._probe_text.set('Probe: ' + str(probe_div) + 'X')
 
     def enable_cursor_readout(self, cursor_data: Cursor_Data) -> None:
         self.update_cursors(cursor_data)

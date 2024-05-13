@@ -3,18 +3,15 @@ from voltpeek import constants
 from scipy.interpolate import interp1d
 import numpy as np
 
-# TODO: refactor this so it holds the whole reconstruction including the 
-# resampling
-
-def inverse_quantize(code:int, resolution:float, voltage_ref:float) -> float:
+def inverse_quantize(code: int, resolution: float, voltage_ref: float) -> float:
     return float((voltage_ref/resolution)*code) - 6e-3
 
-def zero(x:float, voltage_ref:float) -> float: return x - 0.5 
+def zero(x: float, voltage_ref: float) -> float: return x - 0.5 
 
-def reamplify(x:float, attenuator_range:float) -> float: 
+def reamplify(x: float, attenuator_range: float) -> float: 
     return x*(1/attenuator_range)
 
-def quantize_vertical(vv:list[float], vertical_setting:float) -> list[int]:
+def quantize_vertical(vv: list[float], vertical_setting: float) -> list[int]:
     pixel_amplitude:float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
     pixel_resolution:float = vertical_setting/pixel_amplitude
     return [int(v/pixel_resolution) + (constants.Display.SIZE/2) for v in vv] 

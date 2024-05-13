@@ -58,13 +58,13 @@ class Vertical:
     MAX_STEP = 24
 
 class Serial_Commands:
-    TRIGGER_LEVEL_COMMAND:str = b'l'
-    TRIGGER_COMMAND:str = b't'
-    FORCE_TRIGGER_COMMAND:str = b'f'
-    SIMU_TRIGGER_COMMAND:str = b'S'
-    LOW_RANGE_COMMAND:str = b'r' 
-    HIGH_RANGE_COMMAND:str = b'R'
-    CLOCK_DIV_COMMAND:str = b'c'
+    TRIGGER_LEVEL_COMMAND: bytes = b'l'
+    TRIGGER_COMMAND: bytes = b't'
+    FORCE_TRIGGER_COMMAND: bytes = b'f'
+    SIMU_TRIGGER_COMMAND: bytes = b'S'
+    LOW_RANGE_COMMAND: bytes = b'r' 
+    HIGH_RANGE_COMMAND: bytes = b'R'
+    CLOCK_DIV_COMMAND: bytes = b'c'
 
 class Scale:
     DEFAULT_VERTICAL_INDEX:int = 5 

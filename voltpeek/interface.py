@@ -38,14 +38,12 @@ class Scope_Status(Enum):
     TRIGGERED = 4
 
 class UserInterface:
-    def _update_scope_status(self): self.readout.set_status(self.scope_status.name)
-    
     def __init__(self) -> None:
         self._build_tk_root()
 
         self.scale: Scale = Scale()
         self.trigger: Trigger = Trigger()
-        self.cursors = Cursors()
+        self.cursors: Cursors = Cursors()
 
         self.scope_display: Scope_Display = Scope_Display(self.root)
         self.command_input: Command_Input = Command_Input(self.root, self.process_command)
@@ -67,6 +65,7 @@ class UserInterface:
         self.connect_thread: Thread = Thread()
         self.trigger_thread: Thread = Thread()
         self._update_fs()
+        self._update_scope_probe()
         self._set_trigger_rising_edge()
 
     def _build_tk_root(self) -> None:
@@ -124,7 +123,7 @@ class UserInterface:
         self.root.focus_set()
 
     def _set_adjust_cursor_mode(self) -> None:
-        # TODO: Fix bug when cursors are not visible
+        # TODO: Fix bug where cursors are not visible
         if(self.cursors.hor_visible or self.cursors.vert_visible):
             self.mode = Mode.ADJUST_CURSORS  
             self.command_input.set_adjust_mode()
@@ -141,6 +140,14 @@ class UserInterface:
         self.command_input.set_command_mode()
         self.command_input.set_focus()
 
+    def _set_probe(self, probe_div):
+        self.scale.probe_div = probe_div
+        self.readout.set_probe(self.scale.probe_div)
+    
+    def _update_scope_status(self) -> None: self.readout.set_status(self.scope_status.name)
+
+    def _update_scope_probe(self) -> None: self.readout.set_probe(self.scale.probe_div)
+
     def _update_fs(self):
         self.scale.update_sample_rate(scope_specs['sample_rate'], scope_specs['memory_depth'])
         self.readout.set_fs(self.scale.fs)
@@ -149,7 +156,7 @@ class UserInterface:
         print(self.scale.fs)
         print(self.scale.clock_div)
 
-    def _update_scale(self, arithmatic_fn: Callable[[None], None]) -> None:
+    def _update_scale(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
         self.readout.update_settings(self.scale.vert, self.scale.hor)
         if self.scale.low_range_flip and self.serial_scope_connected:
@@ -165,7 +172,7 @@ class UserInterface:
             self.scope_display.set_vector(horizontal_encode) 
         self._update_fs()
 
-    def _update_cursor(self, arithmatic_fn: Callable[[None], None]) -> None:
+    def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
         self.readout.update_cursors(self.get_cursor_dict(self.cursors.hor_visible, 
                                                          self.cursors.vert_visible))
@@ -194,7 +201,9 @@ class UserInterface:
             commands.STOP: self.stop_auto_trigger,
             commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
             commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge,
-            commands.HELP: self.info_panel.show  
+            commands.HELP: self.info_panel.show,
+            commands.PROBE_1: lambda: self._set_probe(1),
+            commands.PROBE_10: lambda: self._set_probe(10)
         }
             
     #TODO: show an error to the user if the scope does not connect

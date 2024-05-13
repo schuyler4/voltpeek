@@ -14,10 +14,12 @@ TOGGLE_HCURS: str = 'togglehcurs'
 TOGGLE_VCURS: str = 'togglevcurs'
 ADJUST_CURS: str = 'adjustcurs'
 NEXT_CURS: str = 'nextcurs'
+PROBE_1: str = 'probe1'
+PROBE_10: str = 'probe10'
 STOP: str = 'stop'
 HELP: str = 'help'
 
-ADJUST_COMMANDS: tuple[str] = (SCALE_COMMAND, TRIGGER_LEVEL_COMMAND, ADJUST_CURS)
+ADJUST_COMMANDS: tuple[str, str, str] = (SCALE_COMMAND, TRIGGER_LEVEL_COMMAND, ADJUST_CURS)
 
 COMMAND_DOCS = {
     EXIT_COMMAND: 'Exit the program.',
@@ -34,5 +36,7 @@ COMMAND_DOCS = {
     TOGGLE_VCURS: 'Toggle the vertical cursors.',
     ADJUST_CURS: 'Adjust the selected cursor.', 
     NEXT_CURS: 'Increment the selected cursor.',
+    PROBE_1: 'Change to a 1x probe.',
+    PROBE_10: 'Change to a 10x probe.', 
     STOP: 'Freeze NewtScope triggering.' 
 }
