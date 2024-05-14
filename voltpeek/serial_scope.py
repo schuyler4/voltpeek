@@ -56,55 +56,19 @@ class Serial_Scope:
             self.error = True
             print(messages.Errors.SERIAL_PORT_CONNECTION_ERROR)
 
-    def read_serial_data(self) -> list[str]:
-        logging_data:bool = False
-        recieved_data:list[str] = []
-        #TODO: Add a timeout error, maybe
-        while True:
-            try:
-                data_string:str = self.serial_port.readline().decode(self.DECODING_SCHEME)    
-                start_command_present = self.DATA_START_COMMAND in data_string
-                logging_data = True if start_command_present else logging_data
-                logging_data = False if self.DATA_END_COMMAND in data_string else logging_data
-                if(logging_data and len(data_string) > 0 and not start_command_present): 
-                    recieved_data.append(data_string)
-                if not logging_data: break
-            except:
-                print('data recieve error')
-                self.error = True 
-        return recieved_data
-
     def read_glob_data(self) -> str:
-        self.serial_port.write(constants.Serial_Commands.FORCE_TRIGGER_COMMAND) 
         codes: list[str] = []
         while(len(codes) < self.POINT_COUNT): 
             codes += list(self.serial_port.read(self.serial_port.inWaiting()))
         return codes
 
-    def is_digits(self, s:str) -> bool: 
-        for c in list(s): 
-            if(c in '0123456789'): return True 
-        return False
-        
-    def get_digits(self, s:str) -> str:
-        return ''.join(list(filter(lambda c: c in '0123456789', list(s)))) 
-
-    # TODO: Refactor these methods that are basically the same
     def get_scope_trigger_data(self) -> list[int]:
         self.serial_port.write(constants.Serial_Commands.TRIGGER_COMMAND) 
-        time.sleep(self.DATA_RECIEVE_DELAY) 
-        recieved_trigger_data:list[str] = self.read_serial_data()
-        print('made it out of loop')
-        # TODO: make this more functional
-        samples = []
-        for sample in recieved_trigger_data:
-            if(self.is_digits(sample)): samples.append(int(self.get_digits(sample)))
-        return samples
+        return self.read_glob_data()
 
     def get_scope_force_trigger_data(self) -> list[int]:
         self.serial_port.write(constants.Serial_Commands.FORCE_TRIGGER_COMMAND) 
-        recieved_trigger_data: list[int] = self.read_glob_data()
-        return recieved_trigger_data 
+        return self.read_glob_data()
 
     def request_low_range(self) -> None: 
         self.serial_port.write(constants.Serial_Commands.LOW_RANGE_COMMAND)
