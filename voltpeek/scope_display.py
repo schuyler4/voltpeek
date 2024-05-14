@@ -1,11 +1,12 @@
+from typing import Optional
+
 import tkinter as tk
 
 from voltpeek import constants 
 from voltpeek.cursors import Cursors
 
-#TODO: Make this more OO
 class Scope_Display:
-    def __init__(self, master):
+    def __init__(self, master) -> None:
         self.master:tk.Tk = master        
         self.frame = tk.Frame(self.master)
         self.canvas = tk.Canvas(
@@ -14,14 +15,14 @@ class Scope_Display:
             width=constants.Display.SIZE,  
             bg=constants.Display.BACKGROUND_COLOR)
         self._draw_grid()
-        self.vector = None
+        self.vector:Optional[list[int]] = None
 
     def __call__(self):
         self.canvas.pack()
         self.frame.grid(row=0, column=0, pady=constants.Application.PADDING)
 
-    def _draw_grid(self):
-        grid_spacing:int = constants.Display.SIZE/constants.Display.GRID_LINE_COUNT
+    def _draw_grid(self) -> None:
+        grid_spacing:int = int(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
         for i in range(1, constants.Display.GRID_LINE_COUNT+1):
             # Draw Vertical Grid Lines
             self.canvas.create_line(grid_spacing*i, 0, grid_spacing*i, 
@@ -30,8 +31,8 @@ class Scope_Display:
             self.canvas.create_line(0, grid_spacing*i, 
                 constants.Display.SIZE, grid_spacing*i, fill=constants.Display.GRID_LINE_COLOR)
 
-    def set_vector(self, vector:list[float]):
-        self.vector:list[int] = vector
+    def set_vector(self, vector:list[int]):
+        self.vector = vector
         self._redraw()
         self._draw_vector()
 

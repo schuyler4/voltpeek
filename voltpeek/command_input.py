@@ -53,7 +53,7 @@ class Command_Input:
 
     def set_command_stack(self) -> None:
         self.input_text.set(self.command_stack[self.command_stack_pointer])
-        if(self.command_stack_point < len(self.command_stack) - 1): 
+        if(self.command_stack_pointer < len(self.command_stack) - 1): 
             self.command_stack_pointer += 1
 
     def clear_input(self) -> None:

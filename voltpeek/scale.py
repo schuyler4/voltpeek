@@ -1,3 +1,5 @@
+from typing import Optional
+
 from voltpeek import constants
 
 class Scale:
@@ -15,8 +17,8 @@ class Scale:
         self._horizontal_index = self.DEFAULT_HORIZONTAL_INDEX
         self._high_range_flip: bool = False
         self._low_range_flip: bool = False
-        self._clock_div: int = 1
-        self._fs: int = 125000000
+        self._clock_div: Optional[int] = 1
+        self._fs: Optional[int] = 125000000
         self._probe_div: int = 1
 
     def increment_vert(self) -> None:
@@ -40,10 +42,10 @@ class Scale:
             self._horizontal_index -= 1
 
     @property
-    def fs(self) -> int: return self._fs
+    def fs(self) -> Optional[int]: return self._fs
 
     @property
-    def clock_div(self) -> int: return self._clock_div
+    def clock_div(self) -> Optional[int]: return self._clock_div
 
     @property
     def high_range_flip(self) -> bool: return self._high_range_flip
@@ -70,7 +72,7 @@ class Scale:
     def get_max_sample_rate(self, memory_depth: int) -> float:
         return memory_depth/(self.hor*constants.Display.GRID_LINE_COUNT)  
 
-    def find_lowest_clock_division(self, sample_rate: float, base_clock: float) -> int:
+    def find_lowest_clock_division(self, sample_rate: float, base_clock: float) -> Optional[int]:
         for div in range(1, 65540):
             if base_clock/div <= sample_rate:
                 return div
@@ -79,4 +81,5 @@ class Scale:
     def update_sample_rate(self, base_clock: float, memory_depth: int) -> None:
         max_sample_rate: float = self.get_max_sample_rate(memory_depth)
         self._clock_div = self.find_lowest_clock_division(max_sample_rate, base_clock)
-        self._fs = int(base_clock/self._clock_div)
+        if self._clock_div is not None:
+            self._fs = int(base_clock/self._clock_div)

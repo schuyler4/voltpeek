@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional, Sequence
 from enum import Enum
 from threading import Thread, Event
 
@@ -16,7 +16,6 @@ from voltpeek.readout import Readout
 from voltpeek.info_panel import InfoPanel
 
 from voltpeek.reconstruct import reconstruct, quantize_vertical, resample_horizontal, FIR_filter
-from voltpeek.helpers import generate_trigger_vector
 
 from voltpeek.trigger import Trigger, TriggerType, get_trigger_voltage, trigger_code
 from voltpeek.cursors import Cursors, Cursor_Data
@@ -42,7 +41,7 @@ class UserInterface:
         self._build_tk_root()
 
         self.scale: Scale = Scale()
-        self.trigger: Trigger = Trigger()
+        self.scope_trigger: Trigger = Trigger()
         self.cursors: Cursors = Cursors()
 
         self.scope_display: Scope_Display = Scope_Display(self.root)
@@ -57,9 +56,9 @@ class UserInterface:
 
         self.mode: Mode = Mode.COMMAND
         self.command_input.set_focus()
-        self.vv = None
+        self.vv:Optional[list[float]] = None
         self.serial_scope_connected: bool = False
-        self.scope_status: Scope_Status = Scope_Status.DISCONNECTED
+        self.scope_status = Scope_Status.DISCONNECTED
         self._update_scope_status()
         self.auto_trigger_running: Event = Event()
         self.connect_thread: Thread = Thread()
@@ -164,11 +163,11 @@ class UserInterface:
         elif self.scale.high_range_flip and self.serial_scope_connected:
             self.serial_scope.request_high_range()
         if self.vv is not None:
-            fs:int = 125000000 
-            v_vertical:float = self.scale.vert
-            h_horizontal:float = self.scale.hor
-            vertical_encode:list[int] = quantize_vertical(self.vv, v_vertical)
-            horizontal_encode:list[int] = resample_horizontal(vertical_encode, h_horizontal, fs) 
+            fs: int = 125000000 
+            v_vertical: float = self.scale.vert
+            h_horizontal: float = self.scale.hor
+            vertical_encode: list[int] = quantize_vertical(self.vv, v_vertical)
+            horizontal_encode: list[int] = resample_horizontal(vertical_encode, h_horizontal, fs) 
             self.scope_display.set_vector(horizontal_encode) 
         self._update_fs()
 
@@ -186,10 +185,8 @@ class UserInterface:
     def get_commands(self): return {
             commands.EXIT_COMMAND: self.exit,
             commands.CONNECT_COMMAND: self.connect_serial_scope,
-            commands.SIMU_TRIGGER_COMMAND: self.simu_trigger,    
             commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
             commands.TRIGGER_COMMAND: self.trigger, 
-            commands.FAKE_TRIGGER_COMMAND: self.fake_trigger,
             commands.FORCE_TRIGGER_COMMAND: self.force_trigger,
             commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
             commands.TOGGLE_CURS: self.toggle_cursors, 
@@ -206,8 +203,8 @@ class UserInterface:
             commands.PROBE_10: lambda: self._set_probe(10)
         }
             
-    #TODO: show an error to the user if the scope does not connect
     def connect_serial_scope(self) -> None:
+
         def connect_worker():
             self.serial_scope.init_serial()
             self.serial_scope_connected = True
@@ -232,25 +229,23 @@ class UserInterface:
     #TODO: refactor these trigger methods that are basically the same
     def force_trigger(self) -> None:
         if(self.serial_scope_connected):
-            print('triggered')
-            self.scope_status:Scope_Status = Scope_Status.ARMED
+            self.scope_status = Scope_Status.ARMED
             self._update_scope_status()
-            xx:list[int] = self.serial_scope.get_scope_force_trigger_data()
+            xx: list[int] = self.serial_scope.get_scope_force_trigger_data()
             if(len(xx) > 0):
-                filtered_signal:list[float] = FIR_filter(xx) 
-                self.vv:list[float] = reconstruct(filtered_signal, scope_specs, self.scale.vert)
+                filtered_signal: list[float] = FIR_filter(xx) 
+                self.vv = reconstruct(filtered_signal, scope_specs, self.scale.vert)
                 self.readout.set_average(average(self.vv))
                 vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
                 h:list[int] = resample_horizontal(vertical_encode, 
                                                   self.scale.hor, self.scale.fs) 
                 self.scope_display.set_vector(h)
-                self.scope_status:Scope_Status = Scope_Status.TRIGGERED
+                self.scope_status = Scope_Status.TRIGGERED
                 self._update_scope_status()
         else: 
             self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
     def auto_trigger(self) -> None:
-        count = 0
         if(self.serial_scope_connected):
             while(self.auto_trigger_running.is_set()): 
                 self.force_trigger() 
@@ -262,12 +257,12 @@ class UserInterface:
      
     def stop_auto_trigger(self) -> None: 
         self.auto_trigger_running.clear()
-        self.scope_status:Scope_Status = Scope_Status.NEUTRAL
+        self.scope_status = Scope_Status.NEUTRAL
         self._update_scope_status()
 
     def trigger(self) -> None:
         if(self.serial_scope_connected):
-            self.scope_status:Scope_Status = Scope_Status.ARMED
+            self.scope_status = Scope_Status.ARMED
             self._update_scope_status()
             fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_trigger_data()
@@ -277,36 +272,17 @@ class UserInterface:
             vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
             hh:list[int] = resample_horizontal(vertical_encode, self.scale.hor, fs) 
             self.scope_display.set_vector(hh)
-            self.scope_status:Scope_Status = Scope_Status.TRIGGERED
+            self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
         else: 
             self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
-    def simu_trigger(self) -> None:
-        if(self.serial_scope_connected):
-            xx:list[int] = self.serial_scope.get_simulated_vector() 
-            self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.vert)
-            self.readout.set_average(average(self.vv))
-            v_vertical:float = self.scale.vert
-            self.scope_display.set_vector(quantize_vertical(self.vv, self.scale.vert))
-        else: 
-            self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR) 
-
-    def fake_trigger(self) -> None: 
-        fs:int = 50000
-        t_horizontal:float = self.scale.hor
-        v_vertical:float = self.scale.vert
-        self.vv:list[float] = generate_trigger_vector(t_horizontal)
-        self.readout.set_average(average(self.vv))
-        vertical_encoding:list[int] = quantize_vertical(self.vv, v_vertical)
-        self.scope_display.set_vector(quantize_vertical(self.vv, v_vertical)) 
-    
     def set_trigger(self) -> None: 
         trigger_height:int = self.scope_display.get_trigger_level()
         trigger_voltage = get_trigger_voltage(self.scale.vert, trigger_height)
         print(trigger_voltage)
-        attenuation:float = None
-        offset:float = None
+        attenuation: Optional[float] = None
+        offset: Optional[float] = None
         if(self.scale.vert <= 
             constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX]):
             attenuation = scope_specs['attenuation']['range_low']
@@ -315,7 +291,6 @@ class UserInterface:
             attenuation = scope_specs['attenuation']['range_high']
             offset = scope_specs['offset']['range_high']
         code:int = trigger_code(trigger_voltage, scope_specs['voltage_ref'], attenuation, offset)
-        print(code)
         self.serial_scope.set_trigger_code(code)
 
     def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
@@ -355,11 +330,11 @@ class UserInterface:
             self.readout.disable_cursor_readout()
 
     def _set_trigger_rising_edge(self) -> None:
-        self.trigger.trigger_type = TriggerType.RISING_EDGE
-        self.readout.set_trigger_type(self.trigger.trigger_type)
+        self.scope_trigger.trigger_type = TriggerType.RISING_EDGE
+        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
 
     def _set_trigger_falling_edge(self) -> None:
-        self.trigger.trigger_type = TriggerType.FALLING_EDGE
-        self.readout.set_trigger_type(self.trigger.trigger_type)
+        self.scope_trigger.trigger_type = TriggerType.FALLING_EDGE
+        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
 
     def __call__(self) -> None: self.root.mainloop()

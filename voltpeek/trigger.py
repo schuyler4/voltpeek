@@ -24,7 +24,7 @@ class Trigger:
     def trigger_height(self) -> int: return self._trigger_height
 
     @property
-    def trigger_type(self) -> int: return self._trigger_type
+    def trigger_type(self) -> TriggerType: return self._trigger_type
 
     @trigger_type.setter
     def trigger_type(self, trigger_type: TriggerType):

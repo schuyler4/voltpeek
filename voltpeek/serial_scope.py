@@ -1,5 +1,6 @@
+from typing import Optional
+
 import time
-import binascii
 
 from serial import Serial
 from serial.tools import list_ports
@@ -14,10 +15,11 @@ class Serial_Scope:
     DATA_RECIEVE_DELAY: float = constants.Serial_Protocol.DATA_RECIEVE_DELAY
     BUFFER_FLUSH_DELAY: float = constants.Serial_Protocol.BUFFER_FLUSH_DELAY
     PICO_VID: int = 0x2E8A
+    POINT_COUNT: int = 20000
 
-    def __init__(self, baudrate: int, port: str=None):
+    def __init__(self, baudrate: int, port: Optional[str]=None):
         self.baudrate: int = baudrate
-        self.port = None
+        self.port: Optional[str] = None
         self.error: bool = False
 
     def pico_connected(self) -> bool:
@@ -27,14 +29,14 @@ class Serial_Scope:
                 return True
         return False
     
-    def find_pico_serial_port(self) -> str:
+    def find_pico_serial_port(self) -> Optional[str]:
         ports = list_ports.comports()
         for port in ports:
             if port.vid == self.PICO_VID:
                 return port.device
         return None
 
-    def init_serial(self):
+    def init_serial(self) -> None:
         try:
             if self.port is None:
                 self.port = self.find_pico_serial_port() 
@@ -74,8 +76,8 @@ class Serial_Scope:
 
     def read_glob_data(self) -> str:
         self.serial_port.write(constants.Serial_Commands.FORCE_TRIGGER_COMMAND) 
-        codes = []
-        while(len(codes) < 20000): 
+        codes: list[str] = []
+        while(len(codes) < self.POINT_COUNT): 
             codes += list(self.serial_port.read(self.serial_port.inWaiting()))
         return codes
 
@@ -101,15 +103,8 @@ class Serial_Scope:
 
     def get_scope_force_trigger_data(self) -> list[int]:
         self.serial_port.write(constants.Serial_Commands.FORCE_TRIGGER_COMMAND) 
-        time.sleep(self.DATA_RECIEVE_DELAY) 
-        recieved_trigger_data:list[int] = self.read_glob_data()
+        recieved_trigger_data: list[int] = self.read_glob_data()
         return recieved_trigger_data 
-
-    def get_simulated_vector(self) -> list[int]:
-        self.serial_port.write(constants.Serial_Commands.SIMU_TRIGGER_COMMAND)
-        time.sleep(self.DATA_RECIEVE_DELAY)
-        recieved_vector:list[int] = [int(x) for x in self.read_serial_data()]
-        return recieved_vector
 
     def request_low_range(self) -> None: 
         self.serial_port.write(constants.Serial_Commands.LOW_RANGE_COMMAND)

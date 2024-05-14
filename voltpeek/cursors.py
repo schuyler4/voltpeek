@@ -123,7 +123,7 @@ class Cursors:
             self._selected_cursor = Selected_Cursor.VERT1
 
     def _get_hor_voltage(self, vertical_setting: float, cursor_height: int) -> float:
-        pixel_amplitude: int = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        pixel_amplitude: float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
         pixel_resolution: float = vertical_setting/pixel_amplitude
         corrected_height: int = constants.Display.SIZE - cursor_height
         voltage: float = float((corrected_height-(constants.Display.SIZE/2))*pixel_resolution)
