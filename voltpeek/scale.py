@@ -6,15 +6,15 @@ class Scale:
     VERTICALS = (0.1, 0.2, 0.5, 1, 2, 5, 10, 12)
     HORIZONTALS = (1e-6, 10e-6, 20e-6, 50e-6, 100e-6, 200e-6, 500e-6, 1e-3, 10e-3, 100e-3, 1)
     PROBE_DIVISIONS = (1, 10)
-    MAX_VERTICAL_INDEX = len(VERTICALS) - 1
-    MAX_HOR_INDEX = len(HORIZONTALS) - 1
-    RANGE_FLIP_INDEX = 1 
-    DEFAULT_VERTICAL_INDEX:int = 5 
-    DEFAULT_HORIZONTAL_INDEX:int = 7
+    MAX_VERTICAL_INDEX: int = len(VERTICALS) - 1
+    MAX_HOR_INDEX: int = len(HORIZONTALS) - 1
+    RANGE_FLIP_INDEX: int = 1 
+    DEFAULT_VERTICAL_INDEX: int = 5 
+    DEFAULT_HORIZONTAL_INDEX: int = 7
 
     def __init__(self) -> None:
-        self._vertical_index = self.DEFAULT_VERTICAL_INDEX
-        self._horizontal_index = self.DEFAULT_HORIZONTAL_INDEX
+        self._vertical_index: int = self.DEFAULT_VERTICAL_INDEX
+        self._horizontal_index: int = self.DEFAULT_HORIZONTAL_INDEX
         self._high_range_flip: bool = False
         self._low_range_flip: bool = False
         self._clock_div: Optional[int] = 1

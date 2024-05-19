@@ -232,6 +232,7 @@ class UserInterface:
             self.scope_status = Scope_Status.ARMED
             self._update_scope_status()
             xx: list[int] = self.serial_scope.get_scope_force_trigger_data()
+            print(average(xx))
             if(len(xx) > 0):
                 filtered_signal: list[float] = FIR_filter(xx) 
                 self.vv = reconstruct(filtered_signal, scope_specs, self.scale.vert)
@@ -266,7 +267,6 @@ class UserInterface:
             self._update_scope_status()
             fs:int = 125000000 
             xx:list[int] = self.serial_scope.get_scope_trigger_data()
-            print(xx)
             self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.vert)
             self.readout.set_average(average(self.vv))
             vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
