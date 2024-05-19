@@ -163,7 +163,7 @@ class UserInterface:
         elif self.scale.high_range_flip and self.serial_scope_connected:
             self.serial_scope.request_high_range()
         if self.vv is not None:
-            fs: int = 125000000 
+            fs: int = 625000000   
             v_vertical: float = self.scale.vert
             h_horizontal: float = self.scale.hor
             vertical_encode: list[int] = quantize_vertical(self.vv, v_vertical)
@@ -232,7 +232,6 @@ class UserInterface:
             self.scope_status = Scope_Status.ARMED
             self._update_scope_status()
             xx: list[int] = self.serial_scope.get_scope_force_trigger_data()
-            print(average(xx))
             if(len(xx) > 0):
                 filtered_signal: list[float] = FIR_filter(xx) 
                 self.vv = reconstruct(filtered_signal, scope_specs, self.scale.vert)

@@ -18,7 +18,7 @@ class Scale:
         self._high_range_flip: bool = False
         self._low_range_flip: bool = False
         self._clock_div: Optional[int] = 1
-        self._fs: Optional[int] = 125000000
+        self._fs: Optional[int] = 62500000
         self._probe_div: int = 1
 
     def increment_vert(self) -> None:
@@ -70,7 +70,7 @@ class Scale:
 
     # TODO: possibly move these methods so they can be exposed to scripting API
     def get_max_sample_rate(self, memory_depth: int) -> float:
-        return memory_depth/(self.hor*constants.Display.GRID_LINE_COUNT)  
+        return (memory_depth/(self.hor*constants.Display.GRID_LINE_COUNT))/2 
 
     def find_lowest_clock_division(self, sample_rate: float, base_clock: float) -> Optional[int]:
         for div in range(1, 65540):
