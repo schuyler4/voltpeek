@@ -60,7 +60,7 @@ class UserInterface:
         self.serial_scope_connected: bool = False
         self.scope_status = Scope_Status.DISCONNECTED
         self._update_scope_status()
-        self.auto_trigger_running: Event = Event()
+        self.trigger_running: Event = Event()
         self.connect_thread: Thread = Thread()
         self.trigger_thread: Thread = Thread()
         self._update_fs()
@@ -178,11 +178,12 @@ class UserInterface:
         self.scope_display.set_cursors(self.cursors)
     
     def exit(self) -> None:
-        if self.auto_trigger_running.is_set(): 
-            self.auto_trigger_running.clear()
+        if self.trigger_running.is_set(): 
+            self.trigger_running.clear()
         exit()
 
-    def get_commands(self): return {
+    def get_commands(self): 
+        return {
             commands.EXIT_COMMAND: self.exit,
             commands.CONNECT_COMMAND: self.connect_serial_scope,
             commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
@@ -195,6 +196,8 @@ class UserInterface:
             commands.NEXT_CURS: self.cursors.next_cursor, 
             commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
             commands.AUTO_TRIGGER_COMMAND: self.start_auto_trigger, 
+            commands.NORMAL_TRIGGER_COMMAND: self.start_normal_trigger,
+            commands.SINGLE_TRIGGER_COMMAND: self.start_single_trigger,
             commands.STOP: self.stop_auto_trigger,
             commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
             commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge,
@@ -226,55 +229,67 @@ class UserInterface:
         else:
             self.command_input.set_error('NewtScope is not connected.')
 
-    #TODO: refactor these trigger methods that are basically the same
+    def display_signal(self, xx: list[int]) -> None:
+        if(len(xx) > 0):
+            filtered_signal: list[float] = FIR_filter(xx) 
+            self.vv = reconstruct(filtered_signal, scope_specs, self.scale.vert)
+            self.readout.set_average(average(self.vv))
+            vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
+            h:list[int] = resample_horizontal(vertical_encode, self.scale.hor, self.scale.fs) 
+            self.scope_display.set_vector(h)
+            self.scope_status = Scope_Status.TRIGGERED
+            self._update_scope_status()
+
+    # TODO: Refactor these trigger methods that are basically the same.
     def force_trigger(self) -> None:
         if(self.serial_scope_connected):
             self.scope_status = Scope_Status.ARMED
             self._update_scope_status()
-            xx: list[int] = self.serial_scope.get_scope_force_trigger_data()
-            if(len(xx) > 0):
-                filtered_signal: list[float] = FIR_filter(xx) 
-                self.vv = reconstruct(filtered_signal, scope_specs, self.scale.vert)
-                self.readout.set_average(average(self.vv))
-                vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
-                h:list[int] = resample_horizontal(vertical_encode, 
-                                                  self.scale.hor, self.scale.fs) 
-                self.scope_display.set_vector(h)
-                self.scope_status = Scope_Status.TRIGGERED
-                self._update_scope_status()
+            self.display_signal(self.serial_scope.get_scope_force_trigger_data())
         else: 
             self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
-
-    def auto_trigger(self) -> None:
-        if(self.serial_scope_connected):
-            while(self.auto_trigger_running.is_set()): 
-                self.force_trigger() 
-
-    def start_auto_trigger(self) -> None:
-        self.auto_trigger_running.set()
-        self.trigger_thread = Thread(target=self.auto_trigger)
-        self.trigger_thread.start()
-     
-    def stop_auto_trigger(self) -> None: 
-        self.auto_trigger_running.clear()
-        self.scope_status = Scope_Status.NEUTRAL
-        self._update_scope_status()
 
     def trigger(self) -> None:
         if(self.serial_scope_connected):
             self.scope_status = Scope_Status.ARMED
             self._update_scope_status()
-            fs:int = 125000000 
-            xx:list[int] = self.serial_scope.get_scope_trigger_data()
-            self.vv:list[float] = reconstruct(xx, scope_specs, self.scale.vert)
-            self.readout.set_average(average(self.vv))
-            vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
-            hh:list[int] = resample_horizontal(vertical_encode, self.scale.hor, fs) 
-            self.scope_display.set_vector(hh)
-            self.scope_status = Scope_Status.TRIGGERED
-            self._update_scope_status()
-        else: 
+            self.display_signal(self.serial_scope.get_scope_trigger_data())
+        else:
             self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
+
+    def auto_trigger(self) -> None:
+        if(self.serial_scope_connected):
+            while(self.trigger_running.is_set()): 
+                self.force_trigger() 
+
+    def single_trigger(self) -> None:
+        if(self.serial_scope_connected):
+            self.trigger()
+    
+    def normal_trigger(self) -> None:
+        if(self.serial_scope_connected):
+            while(self.trigger_running.is_set()):
+                self.trigger()
+
+    def start_auto_trigger(self) -> None:
+        self.trigger_running.set()
+        self.trigger_thread = Thread(target=self.auto_trigger)
+        self.trigger_thread.start()
+
+    def start_normal_trigger(self) -> None:
+        self.trigger_running.set()
+        self.trigger_thread = Thread(target=self.normal_trigger)
+        self.trigger_thread.start()
+
+    def start_single_trigger(self) -> None:
+        self.trigger_running.set()
+        self.trigger_thread = Thread(target=self.single_trigger)
+        self.trigger_thread.start()
+
+    def stop_auto_trigger(self) -> None: 
+        self.trigger_running.clear()
+        self.scope_status = Scope_Status.NEUTRAL
+        self._update_scope_status()
 
     def set_trigger(self) -> None: 
         trigger_height:int = self.scope_display.get_trigger_level()
