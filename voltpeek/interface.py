@@ -1,3 +1,6 @@
+#DEBUG
+import matplotlib.pyplot as plt
+#DEBUG
 from typing import Callable, Optional, Sequence
 from enum import Enum
 from threading import Thread, Event
@@ -182,6 +185,10 @@ class UserInterface:
             self.trigger_running.clear()
         exit()
 
+    def show_raw_data(self) -> None:
+        plt.plot(self.nn, self.xx)
+        plt.show()
+
     def get_commands(self): 
         return {
             commands.EXIT_COMMAND: self.exit,
@@ -203,7 +210,8 @@ class UserInterface:
             commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge,
             commands.HELP: self.info_panel.show,
             commands.PROBE_1: lambda: self._set_probe(1),
-            commands.PROBE_10: lambda: self._set_probe(10)
+            commands.PROBE_10: lambda: self._set_probe(10),
+            'rawdata':self.show_raw_data
         }
             
     def connect_serial_scope(self) -> None:
@@ -217,6 +225,7 @@ class UserInterface:
             else:
                 self.serial_scope.request_high_range()
             self.scope_status = Scope_Status.NEUTRAL
+            self.serial_scope.set_clock_div(self.scale.clock_div)
             self._update_scope_status()
             self._update_fs()
 
@@ -245,7 +254,10 @@ class UserInterface:
         if(self.serial_scope_connected):
             self.scope_status = Scope_Status.ARMED
             self._update_scope_status()
-            self.display_signal(self.serial_scope.get_scope_force_trigger_data())
+            xx = self.serial_scope.get_scope_force_trigger_data()
+            self.display_signal(xx)
+            self.xx = xx
+            self.nn = [n for n in range(0, len(xx))]
         else: 
             self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
@@ -253,7 +265,10 @@ class UserInterface:
         if(self.serial_scope_connected):
             self.scope_status = Scope_Status.ARMED
             self._update_scope_status()
-            self.display_signal(self.serial_scope.get_scope_trigger_data())
+            xx: list[int] = self.serial_scope.get_scope_trigger_data()
+            self.xx = xx
+            self.nn = [n for n in range(0, len(xx))]
+            self.display_signal(xx)
         else:
             self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
@@ -294,7 +309,6 @@ class UserInterface:
     def set_trigger(self) -> None: 
         trigger_height:int = self.scope_display.get_trigger_level()
         trigger_voltage = get_trigger_voltage(self.scale.vert, trigger_height)
-        print(trigger_voltage)
         attenuation: Optional[float] = None
         offset: Optional[float] = None
         if(self.scale.vert <= 
@@ -305,6 +319,7 @@ class UserInterface:
             attenuation = scope_specs['attenuation']['range_high']
             offset = scope_specs['offset']['range_high']
         code:int = trigger_code(trigger_voltage, scope_specs['voltage_ref'], attenuation, offset)
+        print(code)
         self.serial_scope.set_trigger_code(code)
 
     def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
