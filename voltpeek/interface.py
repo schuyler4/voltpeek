@@ -194,8 +194,6 @@ class UserInterface:
             commands.EXIT_COMMAND: self.exit,
             commands.CONNECT_COMMAND: self.connect_serial_scope,
             commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
-            commands.TRIGGER_COMMAND: self.trigger, 
-            commands.FORCE_TRIGGER_COMMAND: self.force_trigger,
             commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
             commands.TOGGLE_CURS: self.toggle_cursors, 
             commands.TOGGLE_HCURS: self.toggle_horizontal_cursors, 
@@ -225,7 +223,6 @@ class UserInterface:
             else:
                 self.serial_scope.request_high_range()
             self.scope_status = Scope_Status.NEUTRAL
-            self.serial_scope.set_clock_div(self.scale.clock_div)
             self._update_scope_status()
             self._update_fs()
 
@@ -249,42 +246,33 @@ class UserInterface:
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
 
-    # TODO: Refactor these trigger methods that are basically the same.
-    def force_trigger(self) -> None:
-        if(self.serial_scope_connected):
+    def _trigger(self, force: bool = False) -> None:
+        if self.serial_scope_connected:
             self.scope_status = Scope_Status.ARMED
             self._update_scope_status()
-            xx = self.serial_scope.get_scope_force_trigger_data()
+            if force:
+                xx: list[int] = self.serial_scope.get_scope_force_trigger_data()
+            else:
+                xx: list[int] = self.serial_scope.get_scope_trigger_data()
             self.display_signal(xx)
             self.xx = xx
             self.nn = [n for n in range(0, len(xx))]
-        else: 
-            self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
-
-    def trigger(self) -> None:
-        if(self.serial_scope_connected):
-            self.scope_status = Scope_Status.ARMED
-            self._update_scope_status()
-            xx: list[int] = self.serial_scope.get_scope_trigger_data()
-            self.xx = xx
-            self.nn = [n for n in range(0, len(xx))]
-            self.display_signal(xx)
         else:
             self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
     def auto_trigger(self) -> None:
         if(self.serial_scope_connected):
             while(self.trigger_running.is_set()): 
-                self.force_trigger() 
+                self._trigger(force=True) 
 
     def single_trigger(self) -> None:
         if(self.serial_scope_connected):
-            self.trigger()
+            self._trigger()
     
     def normal_trigger(self) -> None:
         if(self.serial_scope_connected):
             while(self.trigger_running.is_set()):
-                self.trigger()
+                self._trigger()
 
     def start_auto_trigger(self) -> None:
         self.trigger_running.set()

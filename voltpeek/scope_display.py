@@ -34,7 +34,6 @@ class Scope_Display:
     def set_vector(self, vector:list[int]):
         self.vector = vector
         self._redraw()
-        self._draw_vector()
 
     def set_trigger_level(self, trigger_level) -> None:
         self.trigger_level:int = trigger_level
@@ -55,9 +54,10 @@ class Scope_Display:
     def _redraw(self) -> None:
         self.canvas.delete('all')
         self._draw_grid()
+        if self.vector is not None:
+            self._draw_vector()
 
     def _draw_vector(self):
-        self._redraw()
         for i, point in enumerate(self.vector):
             self.canvas.create_line(i-1, constants.Display.SIZE - point, i+2, 
                 constants.Display.SIZE - point, fill=constants.Signal.COLOR) 
