@@ -22,8 +22,7 @@ def FIR_filter(vv: list[int]) -> list[float]:
     N = 30
     hh = np.array([1/N for _ in range(0, N)]) 
     filtered_signal = np.convolve(np.array(vv), hh)
-    print(len(filtered_signal[N-1:len(filtered_signal)+N]))
-    return filtered_signal[N-1:len(filtered_signal)+N]
+    return filtered_signal[N-1:len(filtered_signal)]
 
 def resample_horizontal(vv: list[float], horizontal_setting: float, fs: float) -> list[int]:
     tt:list[float] = [i/fs for i in range(0, len(vv))]
