@@ -6,7 +6,7 @@ from scipy.interpolate import interp1d
 import numpy as np
 
 def inverse_quantize(code: float, resolution: float, voltage_ref: float) -> float:
-    return float((voltage_ref/resolution)*code) - 6e-3
+    return float((voltage_ref/resolution)*code)
 
 def zero(x: float, voltage_ref: float) -> float: return x - 0.5 
 
@@ -19,9 +19,11 @@ def quantize_vertical(vv: list[float], vertical_setting: float) -> list[int]:
     return [int(v/pixel_resolution) + int(constants.Display.SIZE/2) for v in vv] 
 
 def FIR_filter(vv: list[int]) -> list[float]:
-    N = 50
+    N = 30
     hh = np.array([1/N for _ in range(0, N)]) 
-    return list(np.convolve(np.array(vv), hh))
+    filtered_signal = np.convolve(np.array(vv), hh)
+    print(len(filtered_signal[N-1:len(filtered_signal)+N]))
+    return filtered_signal[N-1:len(filtered_signal)+N]
 
 def resample_horizontal(vv: list[float], horizontal_setting: float, fs: float) -> list[int]:
     tt:list[float] = [i/fs for i in range(0, len(vv))]
