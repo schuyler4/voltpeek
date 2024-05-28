@@ -263,17 +263,17 @@ class UserInterface:
             self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
     def auto_trigger(self) -> None:
-        if(self.serial_scope_connected):
-            while(self.trigger_running.is_set()): 
+        if self.serial_scope_connected:
+            while self.trigger_running.is_set(): 
                 self._trigger(force=True) 
 
     def single_trigger(self) -> None:
-        if(self.serial_scope_connected):
+        if self.serial_scope_connected:
             self._trigger()
     
     def normal_trigger(self) -> None:
-        if(self.serial_scope_connected):
-            while(self.trigger_running.is_set()):
+        if self.serial_scope_connected:
+            while self.trigger_running.is_set():
                 self._trigger()
 
     def start_auto_trigger(self) -> None:
@@ -309,7 +309,6 @@ class UserInterface:
             attenuation = scope_specs['attenuation']['range_high']
             offset = scope_specs['offset']['range_high']
         code:int = trigger_code(trigger_voltage, scope_specs['voltage_ref'], attenuation, offset)
-        print(code)
         self.serial_scope.set_trigger_code(code)
 
     def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
