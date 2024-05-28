@@ -10,7 +10,7 @@ import tkinter as tk
 from voltpeek import messages
 from voltpeek import constants
 from voltpeek import commands
-from voltpeek.measurements import average
+from voltpeek.measurements import average, rms
 from voltpeek.serial_scope import Serial_Scope
 
 from voltpeek.scope_display import Scope_Display
@@ -74,6 +74,7 @@ class UserInterface:
         self.root:tk.Tk = tk.Tk()
         self.root.title(constants.Application.NAME)
         self.root.configure(bg=constants.Window.BACKGROUND_COLOR) 
+        self.root.tk.call('tk', 'scaling', 1)
         self.root.bind('<KeyPress>', self.on_key_press)
 
     def on_key_press(self, event) -> None:
@@ -240,6 +241,7 @@ class UserInterface:
             filtered_signal: list[float] = FIR_filter(xx) 
             self.vv = reconstruct(filtered_signal, scope_specs, self.scale.vert)
             self.readout.set_average(average(self.vv))
+            self.readout.set_rms(rms(self.vv))
             vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
             h:list[int] = resample_horizontal(vertical_encode, self.scale.hor, self.scale.fs) 
             self.scope_display.set_vector(h)

@@ -7,6 +7,7 @@ from voltpeek.trigger import TriggerType
 
 class Readout:
     AVERAGE_STRING: str = 'average:'
+    RMS_STRING: str = 'rms:'
     BACKGROUND_COLOR: str = 'black'
 
     def __init__(self, master: tk.Tk, vertical_setting: float, horizontal_setting: float) -> None:
@@ -24,6 +25,7 @@ class Readout:
         self._vertical_text: tk.StringVar = tk.StringVar() 
         self._horizontal_text: tk.StringVar = tk.StringVar()
         self._average_text: tk.StringVar = tk.StringVar()
+        self._rms_text: tk.StringVar = tk.StringVar()
         self._status_text: tk.StringVar = tk.StringVar()
         self._fs_text: tk.StringVar = tk.StringVar()
         self._trigger_text: tk.StringVar = tk.StringVar()
@@ -64,6 +66,10 @@ class Readout:
             textvariable=self._average_text,
             bg=self.BACKGROUND_COLOR,
             fg=constants.Readout.TEXT_COLOR)
+        rms_label: tk.Label = tk.Label(self.frame, 
+            textvariable=self._rms_text,
+            bg=self.BACKGROUND_COLOR,
+            fg=constants.Readout.TEXT_COLOR)
         status_label: tk.Label = tk.Label(self.status_frame, 
             textvariable=self._status_text,
             bg=self.BACKGROUND_COLOR,
@@ -81,6 +87,7 @@ class Readout:
         self._vertical_text.set(self.get_vertical_str())  
         self._horizontal_text.set(self.get_horizontal_str()) 
         self._average_text.set(self.AVERAGE_STRING + '----')
+        self._rms_text.set(self.RMS_STRING + '----')
 
         self.status_frame.pack()
         status_label.pack()
@@ -90,6 +97,7 @@ class Readout:
         trigger_label.pack()
         probe_label.pack()
         average_label.pack()
+        rms_label.pack()
 
         for label in cursor_labels:
             label.pack()
@@ -109,6 +117,9 @@ class Readout:
 
     def set_average(self, average: float) -> None:
         self._average_text.set(self.AVERAGE_STRING + str(average) + 'V')
+
+    def set_rms(self, rms: float) -> None:
+        self._rms_text.set(self.RMS_STRING + str(rms) + 'Vrms')
 
     def set_fs(self, fs: float) -> None: self._fs_text.set('fs:' + str(fs) + 'S/s')
 
