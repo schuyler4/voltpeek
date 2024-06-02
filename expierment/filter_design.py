@@ -2,15 +2,15 @@ import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 
-fs = 125e6
+fs = 62.5e6
 nyq_rate = fs/2
 ripple_dB = 10
 width = 20e6/nyq_rate
-N, beta = signal.kaiserord(ripple_dB, width)
+N = 100
 
 cutoff_hz = 10e6
 
-hh = signal.firwin(N, cutoff_hz/nyq_rate, window=('kaiser', beta))
+hh = np.array([1/N for _ in range(0, N)]) 
 print(hh)
 print(N)
 

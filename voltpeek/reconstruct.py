@@ -19,7 +19,7 @@ def quantize_vertical(vv: list[float], vertical_setting: float) -> list[int]:
     return [int(v/pixel_resolution) + int(constants.Display.SIZE/2) for v in vv] 
 
 def FIR_filter(vv: list[int]) -> list[float]:
-    N = 30
+    N = 100
     hh = np.array([1/N for _ in range(0, N)]) 
     filtered_signal = np.convolve(np.array(vv), hh)
     return filtered_signal[N-1:len(filtered_signal)]
