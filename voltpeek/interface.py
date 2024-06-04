@@ -254,8 +254,10 @@ class UserInterface:
             self._update_scope_status()
             if force:
                 xx: list[int] = self.serial_scope.get_scope_force_trigger_data()
+                print(xx)
             else:
                 xx: list[int] = self.serial_scope.get_scope_trigger_data()
+                print(xx)
             self.display_signal(xx)
             self.xx = xx
             self.nn = [n for n in range(0, len(xx))]
