@@ -41,7 +41,7 @@ class Scope_Status(Enum):
 
 class ScopeAction(Enum):
     CONNECT = 0
-    NORMAL_TRIGGER = 1
+    TRIGGER = 1
     AUTO_TRIGGER = 2
 
 class ScopeInterface(Thread):
@@ -67,7 +67,7 @@ class ScopeInterface(Thread):
             self._serial_scope.init_serial()
         if self._action == ScopeAction.AUTO_TRIGGER:
             self._trigger(forced=True)
-        if self._action == ScopeAction.NORMAL_TRIGGER:
+        if self._action == ScopeAction.TRIGGER:
             self._trigger(forced=False)
         self._data_available.release()
 
@@ -78,7 +78,7 @@ class ScopeInterface(Thread):
     def task_complete(self): return not self.is_alive()
 
     def set_scope_action(self, new_scope_action: ScopeAction):
-        if self.task_complete:
+        if self.task_complete and self.data_available:
             self._action = new_scope_action
 
 class UserInterface:
@@ -111,6 +111,11 @@ class UserInterface:
         self._update_fs()
         self._update_scope_probe()
         self._set_trigger_rising_edge()
+
+        self._scope_interface = ScopeInterface()
+        self._force_trigger = False
+        self._single_trigger = False
+        self._normal_trigger = False
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
