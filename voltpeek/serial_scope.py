@@ -21,6 +21,7 @@ class Serial_Scope:
         self.baudrate: int = baudrate
         self.port: Optional[str] = None
         self.error: bool = False
+        self._stop: bool = False
 
     def pico_connected(self) -> bool:
         ports = list_ports.comports()
@@ -57,8 +58,12 @@ class Serial_Scope:
             print(messages.Errors.SERIAL_PORT_CONNECTION_ERROR)
 
     def read_glob_data(self) -> str:
+        self._stop = False
         codes: list[str] = []
         while(len(codes) < self.POINT_COUNT): 
+            if self._stop:
+                self._stop = False
+                return []
             codes += list(self.serial_port.read(self.serial_port.inWaiting()))
         return codes
 
@@ -83,3 +88,5 @@ class Serial_Scope:
     def set_clock_div(self, clock_div:int) -> None:
         self.serial_port.write(constants.Serial_Commands.CLOCK_DIV_COMMAND) 
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
+
+    def stop(self): self.stop = True

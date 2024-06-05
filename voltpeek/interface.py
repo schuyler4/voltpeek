@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 #DEBUG
 from typing import Callable, Optional, Sequence
 from enum import Enum
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 
 import tkinter as tk
 
@@ -38,6 +38,48 @@ class Scope_Status(Enum):
     NEUTRAL = 2
     ARMED = 3
     TRIGGERED = 4
+
+class ScopeAction(Enum):
+    CONNECT = 0
+    NORMAL_TRIGGER = 1
+    AUTO_TRIGGER = 2
+
+class ScopeInterface(Thread):
+    def __init__(self):
+        self._scope_connected: bool = False
+        self._xx:Optional[list[float]] = None
+        self._serial_scope = Serial_Scope(115200)
+        self._data_available = Lock()
+        self._action: ScopeAction = None
+        self._stop = Event()
+
+    def _trigger(self, forced=True):
+        assert self._scope_connected
+        if forced:
+            xx: list[int] = self._serial_scope.get_scope_force_trigger_data()
+        else:
+            xx: list[int] = self._serial_scope.get_scope_trigger_data()
+        self._xx = xx
+
+    def run(self):
+        self._data_available.acquire()
+        if self._action == ScopeAction.CONNECT:
+            self._serial_scope.init_serial()
+        if self._action == ScopeAction.AUTO_TRIGGER:
+            self._trigger(forced=True)
+        if self._action == ScopeAction.NORMAL_TRIGGER:
+            self._trigger(forced=False)
+        self._data_available.release()
+
+    @property 
+    def data_available(self): return self._data_available
+
+    @property
+    def task_complete(self): return not self.is_alive()
+
+    def set_scope_action(self, new_scope_action: ScopeAction):
+        if self.task_complete:
+            self._action = new_scope_action
 
 class UserInterface:
     def __init__(self) -> None:
