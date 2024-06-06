@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from typing import Callable, Optional, Sequence
 from enum import Enum
 from threading import Thread, Event, Lock
+from time import sleep
 
 import tkinter as tk
 
@@ -46,40 +47,51 @@ class ScopeAction(Enum):
 
 class ScopeInterface(Thread):
     def __init__(self):
+        super().__init__()
         self._scope_connected: bool = False
         self._xx:Optional[list[float]] = None
         self._serial_scope = Serial_Scope(115200)
         self._data_available = Lock()
         self._action: ScopeAction = None
-        self._stop = Event()
+        self._action_complete: bool = True
+        self._stopper = Event()
+        self._trigger_stopper = Event()
 
     def _trigger(self, forced=True):
         assert self._scope_connected
         if forced:
-            xx: list[int] = self._serial_scope.get_scope_force_trigger_data()
+            self._xx: list[int] = self._serial_scope.get_scope_force_trigger_data()
         else:
-            xx: list[int] = self._serial_scope.get_scope_trigger_data()
-        self._xx = xx
+            self._xx: list[int] = self._serial_scope.get_scope_trigger_data()
 
     def run(self):
-        self._data_available.acquire()
-        if self._action == ScopeAction.CONNECT:
-            self._serial_scope.init_serial()
-        if self._action == ScopeAction.AUTO_TRIGGER:
-            self._trigger(forced=True)
-        if self._action == ScopeAction.TRIGGER:
-            self._trigger(forced=False)
-        self._data_available.release()
+        while True:
+            if self._action == ScopeAction.CONNECT and not self._action_complete:
+                self._serial_scope.init_serial()
+                self._action_complete = True
+                self._scope_connected = True
+                self._data_available.release()
+            if self._action == ScopeAction.AUTO_TRIGGER and not self._action_complete:
+                self._trigger(forced=True)
+                self._action_complete = True
+                self._data_available.release()
+            if self._action == ScopeAction.TRIGGER and not self._action_complete:
+                self._trigger(forced=False)
+                self._action_complete = True
+                self._data_available.release()
+            sleep(1)
 
     @property 
-    def data_available(self): return self._data_available
+    def data_available(self): return not self._data_available.locked()
 
     @property
-    def task_complete(self): return not self.is_alive()
+    def xx(self): return self._xx
 
     def set_scope_action(self, new_scope_action: ScopeAction):
-        if self.task_complete and self.data_available:
+        if self.data_available:
             self._action = new_scope_action
+            self._action_complete = False
+            self._data_available.acquire()
 
 class UserInterface:
     def __init__(self) -> None:
@@ -105,14 +117,14 @@ class UserInterface:
         self.serial_scope_connected: bool = False
         self.scope_status = Scope_Status.DISCONNECTED
         self._update_scope_status()
-        self.trigger_running: Event = Event()
-        self.connect_thread: Thread = Thread()
-        self.trigger_thread: Thread = Thread()
         self._update_fs()
         self._update_scope_probe()
         self._set_trigger_rising_edge()
 
         self._scope_interface = ScopeInterface()
+        self._connect = False
+        self._connect_finish = False
+        self._auto_trigger = False
         self._force_trigger = False
         self._single_trigger = False
         self._normal_trigger = False
@@ -122,7 +134,17 @@ class UserInterface:
         self.root.title(constants.Application.NAME)
         self.root.configure(bg=constants.Window.BACKGROUND_COLOR) 
         self.root.tk.call('tk', 'scaling', 1)
+        self.root.after(1, self.check_state)
         self.root.bind('<KeyPress>', self.on_key_press)
+
+    def check_state(self):
+        if self._connect and self._scope_interface.data_available and not self._connect_finish:
+            self.finish_connect()
+            self._connect_finish = True
+        if self._force_trigger and self._scope_interface.data_available:
+            self.display_signal(self._scope_interface.xx)
+            self._scope_interface.set_scope_action(ScopeAction.AUTO_TRIGGER)
+        self.root.after(1, self.check_state)
 
     def on_key_press(self, event) -> None:
         if self.info_panel.visible and event.keycode != constants.KeyCodes.ENTER:
@@ -162,7 +184,7 @@ class UserInterface:
 
     def process_command(self, command:str) -> None:
         for key in self.get_commands():
-            if(key == command): 
+            if key == command: 
                 self.get_commands()[key]()
                 return
         self.command_input.set_error(messages.Errors.INVALID_COMMAND_ERROR)
@@ -240,7 +262,7 @@ class UserInterface:
     def get_commands(self): 
         return {
             commands.EXIT_COMMAND: self.exit,
-            commands.CONNECT_COMMAND: self.connect_serial_scope,
+            commands.CONNECT_COMMAND: self.start_connect,
             commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
             commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
             commands.TOGGLE_CURS: self.toggle_cursors, 
@@ -259,29 +281,26 @@ class UserInterface:
             commands.PROBE_10: lambda: self._set_probe(10),
             'rawdata':self.show_raw_data
         }
+
+    def start_connect(self) -> None:
+        self.scope_status = Scope_Status.CONNECTING
+        self._update_scope_status()
+        self._scope_interface.set_scope_action(ScopeAction.CONNECT)
+        self._connect = True
+        self._scope_interface.start()
             
-    def connect_serial_scope(self) -> None:
-
-        def connect_worker():
-            self.serial_scope.init_serial()
-            self.serial_scope_connected = True
-            low_range_index = constants.Scale.LOW_RANGE_VERTICAL_INDEX
-            if(self.scale.vert <= constants.Scale.VERTICALS[low_range_index]):
-                self.serial_scope.request_low_range()
-            else:
-                self.serial_scope.request_high_range()
-            self.scope_status = Scope_Status.NEUTRAL
-            self._update_scope_status()
-            self._update_fs()
-
-        self.serial_scope = Serial_Scope(115200)
-        if self.serial_scope.pico_connected():
-            self.scope_status = Scope_Status.CONNECTING
-            self._update_scope_status()
-            self.connect_thread = Thread(target=connect_worker)
-            self.connect_thread.start()
+    def finish_connect(self) -> None:
+        '''
+        self.serial_scope.init_serial()
+        self.serial_scope_connected = True
+        low_range_index = constants.Scale.LOW_RANGE_VERTICAL_INDEX
+        if(self.scale.vert <= constants.Scale.VERTICALS[low_range_index]):
+            self.serial_scope.request_low_range()
         else:
-            self.command_input.set_error('NewtScope is not connected.')
+            self.serial_scope.request_high_range()
+        '''
+        self.scope_status = Scope_Status.NEUTRAL
+        self._update_scope_status()
 
     def display_signal(self, xx: list[int]) -> None:
         if(len(xx) > 0):
@@ -311,10 +330,12 @@ class UserInterface:
         else:
             self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
 
+    '''
     def auto_trigger(self) -> None:
         if self.serial_scope_connected:
             while self.trigger_running.is_set(): 
                 self._trigger(force=True) 
+    '''
 
     def single_trigger(self) -> None:
         if self.serial_scope_connected:
@@ -326,9 +347,13 @@ class UserInterface:
                 self._trigger()
 
     def start_auto_trigger(self) -> None:
+        self._scope_interface.set_scope_action(ScopeAction.AUTO_TRIGGER)
+        self._force_trigger = True
+        '''
         self.trigger_running.set()
         self.trigger_thread = Thread(target=self.auto_trigger)
         self.trigger_thread.start()
+        '''
 
     def start_normal_trigger(self) -> None:
         self.trigger_running.set()
