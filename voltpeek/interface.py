@@ -43,11 +43,11 @@ class Scope_Status(Enum):
 class ScopeAction(Enum):
     CONNECT = 0
     TRIGGER = 1
-    AUTO_TRIGGER = 2
+    FORCE_TRIGGER = 2
+    STOP = 3
 
-class ScopeInterface(Thread):
+class ScopeInterface:
     def __init__(self):
-        super().__init__()
         self._scope_connected: bool = False
         self._xx:Optional[list[float]] = None
         self._serial_scope = Serial_Scope(115200)
@@ -57,29 +57,32 @@ class ScopeInterface(Thread):
         self._stopper = Event()
         self._trigger_stopper = Event()
 
-    def _trigger(self, forced=True):
-        assert self._scope_connected
-        if forced:
-            self._xx: list[int] = self._serial_scope.get_scope_force_trigger_data()
-        else:
-            self._xx: list[int] = self._serial_scope.get_scope_trigger_data()
+    def _connect_scope(self):
+        self._serial_scope.init_serial()
+        self._action_complete = True
+        self._scope_connected = True
+        self._data_available.release()
+
+    def _force_trigger(self):
+        self._xx: list[int] = self._serial_scope.get_scope_trigger_data()
+        self._action_complete = True
+        self._data_available.release()
+
+    def _trigger(self):
+        self._xx: list[int] = self._serial_scope.get_scope_force_trigger_data()
+        self._action_complete = True
+        self._data_available.release()
 
     def run(self):
-        while True:
-            if self._action == ScopeAction.CONNECT and not self._action_complete:
-                self._serial_scope.init_serial()
-                self._action_complete = True
-                self._scope_connected = True
-                self._data_available.release()
-            if self._action == ScopeAction.AUTO_TRIGGER and not self._action_complete:
-                self._trigger(forced=True)
-                self._action_complete = True
-                self._data_available.release()
-            if self._action == ScopeAction.TRIGGER and not self._action_complete:
-                self._trigger(forced=False)
-                self._action_complete = True
-                self._data_available.release()
-            sleep(1)
+        if self._action == ScopeAction.CONNECT and not self._action_complete:
+            thread: Thread = Thread(target=self._connect_scope)   
+        if self._action == ScopeAction.FORCE_TRIGGER and not self._action_complete:
+            thread: Thread = Thread(target=self._force_trigger)
+        if self._action == ScopeAction.TRIGGER and not self._action_complete:
+            thread: Thread = Thread(target=self._trigger)
+        if self._action == ScopeAction.STOP and not self._action_complete:
+            thread: Thread = Thread(target=self.stop_trigger) 
+        thread.start()
 
     @property 
     def data_available(self): return not self._data_available.locked()
@@ -92,6 +95,9 @@ class ScopeInterface(Thread):
             self._action = new_scope_action
             self._action_complete = False
             self._data_available.acquire()
+        
+    def stop_trigger(self):
+        self._serial_scope.stop_trigger()
 
 class UserInterface:
     def __init__(self) -> None:
@@ -124,10 +130,12 @@ class UserInterface:
         self._scope_interface = ScopeInterface()
         self._connect = False
         self._connect_finish = False
-        self._auto_trigger = False
+        self._auto_trigger_running = False
         self._force_trigger = False
         self._single_trigger = False
+        self._normal_trigger_running = False
         self._normal_trigger = False
+        self._stop_and_exit = False
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -143,7 +151,21 @@ class UserInterface:
             self._connect_finish = True
         if self._force_trigger and self._scope_interface.data_available:
             self.display_signal(self._scope_interface.xx)
-            self._scope_interface.set_scope_action(ScopeAction.AUTO_TRIGGER)
+            if self._auto_trigger_running:
+                self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
+                self._scope_interface.run()
+            else:
+                self._force_trigger = False
+        if self._normal_trigger and self._scope_interface.data_available:
+            if len(self._scope_interface.xx) > 0:
+                self.display_signal(self._scope_interface.xx)
+            if self._normal_trigger_running:
+                self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
+                self._scope_interface.run()
+            else:
+                self._normal_trigger = False
+        if self._stop_and_exit and self._scope_interface.data_available:
+            exit()
         self.root.after(1, self.check_state)
 
     def on_key_press(self, event) -> None:
@@ -251,9 +273,15 @@ class UserInterface:
         self.scope_display.set_cursors(self.cursors)
     
     def exit(self) -> None:
-        if self.trigger_running.is_set(): 
-            self.trigger_running.clear()
-        exit()
+        if not self._auto_trigger_running and not self._normal_trigger_running:
+            exit()
+        elif self._normal_trigger_running:
+            self._stop_and_exit = True
+            self._normal_trigger_running = False
+            self._scope_interface.set_scope_action(ScopeAction.STOP)
+        elif self._auto_trigger_running:
+            self._auto_trigger_running = False
+            self._stop_and_exit = True
 
     def show_raw_data(self) -> None:
         plt.plot(self.nn, self.xx)
@@ -273,7 +301,7 @@ class UserInterface:
             commands.AUTO_TRIGGER_COMMAND: self.start_auto_trigger, 
             commands.NORMAL_TRIGGER_COMMAND: self.start_normal_trigger,
             commands.SINGLE_TRIGGER_COMMAND: self.start_single_trigger,
-            commands.STOP: self.stop_auto_trigger,
+            commands.STOP: self._stop_trigger,
             commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
             commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge,
             commands.HELP: self.info_panel.show,
@@ -287,18 +315,9 @@ class UserInterface:
         self._update_scope_status()
         self._scope_interface.set_scope_action(ScopeAction.CONNECT)
         self._connect = True
-        self._scope_interface.start()
+        self._scope_interface.run()
             
     def finish_connect(self) -> None:
-        '''
-        self.serial_scope.init_serial()
-        self.serial_scope_connected = True
-        low_range_index = constants.Scale.LOW_RANGE_VERTICAL_INDEX
-        if(self.scale.vert <= constants.Scale.VERTICALS[low_range_index]):
-            self.serial_scope.request_low_range()
-        else:
-            self.serial_scope.request_high_range()
-        '''
         self.scope_status = Scope_Status.NEUTRAL
         self._update_scope_status()
 
@@ -314,29 +333,6 @@ class UserInterface:
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
 
-    def _trigger(self, force: bool = False) -> None:
-        if self.serial_scope_connected:
-            self.scope_status = Scope_Status.ARMED
-            self._update_scope_status()
-            if force:
-                xx: list[int] = self.serial_scope.get_scope_force_trigger_data()
-                print(xx)
-            else:
-                xx: list[int] = self.serial_scope.get_scope_trigger_data()
-                print(xx)
-            self.display_signal(xx)
-            self.xx = xx
-            self.nn = [n for n in range(0, len(xx))]
-        else:
-            self.command_input.set_error(messages.Errors.SCOPE_DISCONNECTED_ERROR)
-
-    '''
-    def auto_trigger(self) -> None:
-        if self.serial_scope_connected:
-            while self.trigger_running.is_set(): 
-                self._trigger(force=True) 
-    '''
-
     def single_trigger(self) -> None:
         if self.serial_scope_connected:
             self._trigger()
@@ -347,28 +343,30 @@ class UserInterface:
                 self._trigger()
 
     def start_auto_trigger(self) -> None:
-        self._scope_interface.set_scope_action(ScopeAction.AUTO_TRIGGER)
+        self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
         self._force_trigger = True
-        '''
-        self.trigger_running.set()
-        self.trigger_thread = Thread(target=self.auto_trigger)
-        self.trigger_thread.start()
-        '''
+        self._auto_trigger_running = True
+        self._scope_interface.run()
 
     def start_normal_trigger(self) -> None:
-        self.trigger_running.set()
-        self.trigger_thread = Thread(target=self.normal_trigger)
-        self.trigger_thread.start()
+        self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
+        self._normal_trigger = True
+        self._normal_trigger_running = True
+        self._scope_interface.run()
 
     def start_single_trigger(self) -> None:
         self.trigger_running.set()
         self.trigger_thread = Thread(target=self.single_trigger)
         self.trigger_thread.start()
 
-    def stop_auto_trigger(self) -> None: 
-        self.trigger_running.clear()
-        self.scope_status = Scope_Status.NEUTRAL
-        self._update_scope_status()
+    def _stop_trigger(self) -> None:
+        if self._auto_trigger_running:
+            self._auto_trigger_running = False
+        elif self._normal_trigger_running:
+            self._normal_trigger_running = False  
+            self._scope_interface.set_scope_action(ScopeAction.STOP)
+            self.scope_status = Scope_Status.NEUTRAL
+            self._update_scope_status()
 
     def set_trigger(self) -> None: 
         trigger_height:int = self.scope_display.get_trigger_level()

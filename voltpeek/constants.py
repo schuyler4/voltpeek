@@ -61,7 +61,7 @@ class Serial_Commands:
     TRIGGER_LEVEL_COMMAND: bytes = b'l'
     TRIGGER_COMMAND: bytes = b't'
     FORCE_TRIGGER_COMMAND: bytes = b'f'
-    SIMU_TRIGGER_COMMAND: bytes = b'S'
+    STOP_COMMAND: bytes = b'S'
     LOW_RANGE_COMMAND: bytes = b'r' 
     HIGH_RANGE_COMMAND: bytes = b'R'
     CLOCK_DIV_COMMAND: bytes = b'c'
