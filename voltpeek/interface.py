@@ -135,6 +135,7 @@ class UserInterface:
         self._single_trigger = False
         self._normal_trigger_running = False
         self._normal_trigger = False
+        self._stop = False
         self._stop_and_exit = False
 
     def _build_tk_root(self) -> None:
