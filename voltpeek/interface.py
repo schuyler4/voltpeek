@@ -44,18 +44,20 @@ class ScopeAction(Enum):
     CONNECT = 0
     TRIGGER = 1
     FORCE_TRIGGER = 2
-    STOP = 3
+    SET_CLOCK_DIV = 3
+    STOP = 4
 
 class ScopeInterface:
     def __init__(self):
         self._scope_connected: bool = False
-        self._xx:Optional[list[float]] = None
+        self._xx: Optional[list[float]] = None
         self._serial_scope = Serial_Scope(115200)
         self._data_available = Lock()
         self._action: ScopeAction = None
         self._action_complete: bool = True
         self._stopper = Event()
         self._trigger_stopper = Event()
+        self._value: Optional[int] = None
 
     def _connect_scope(self):
         self._serial_scope.init_serial()
@@ -73,6 +75,11 @@ class ScopeInterface:
         self._action_complete = True
         self._data_available.release()
 
+    def _set_clock_div(self):
+        self._serial_scope.set_trigger_code(self._value)
+        self._action_complete = True
+        self._data_available.release()
+
     def run(self):
         if self._action == ScopeAction.CONNECT and not self._action_complete:
             thread: Thread = Thread(target=self._connect_scope)   
@@ -80,6 +87,8 @@ class ScopeInterface:
             thread: Thread = Thread(target=self._force_trigger)
         if self._action == ScopeAction.TRIGGER and not self._action_complete:
             thread: Thread = Thread(target=self._trigger)
+        if self._action == ScopeAction.SET_CLOCK_DIV and not self._action_complete:
+            thread: Thread = Thread(target=self._set_clock_div)
         if self._action == ScopeAction.STOP and not self._action_complete:
             thread: Thread = Thread(target=self.stop_trigger) 
         thread.start()
@@ -89,6 +98,15 @@ class ScopeInterface:
 
     @property
     def xx(self): return self._xx
+
+    @property
+    def value(self): return self._value
+
+    def set_value(self, new_value: int) -> None:
+        if self.data_available:
+            print('made it here')
+            self._value = new_value
+            print('the value is', self._value)
 
     def set_scope_action(self, new_scope_action: ScopeAction):
         if self.data_available:
@@ -123,7 +141,6 @@ class UserInterface:
         self.serial_scope_connected: bool = False
         self.scope_status = Scope_Status.DISCONNECTED
         self._update_scope_status()
-        self._update_fs()
         self._update_scope_probe()
         self._set_trigger_rising_edge()
 
@@ -137,6 +154,8 @@ class UserInterface:
         self._normal_trigger = False
         self._stop = False
         self._stop_and_exit = False
+        self._change_scale_flag = False
+        self._change_scale = False
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -147,6 +166,13 @@ class UserInterface:
         self.root.bind('<KeyPress>', self.on_key_press)
 
     def check_state(self):
+        if self._change_scale_flag and self._scope_interface.data_available:
+            self._start_update_scale_hor()
+            self._change_scale_flag = False
+        if self._change_scale and self._scope_interface.data_available:
+            self._render_update_scale()
+            print('pee')
+            self._change_scale = False
         if self._connect and self._scope_interface.data_available and not self._connect_finish:
             self.finish_connect()
             self._connect_finish = True
@@ -180,13 +206,13 @@ class UserInterface:
                 self._set_command_mode()
         if self.mode == Mode.ADJUST_SCALE:
             if(event.char == constants.Keys.VERTICAL_UP):
-                self._update_scale(self.scale.increment_vert)
+                self._update_scale_vert(self.scale.increment_vert)
             elif(event.char == constants.Keys.VERTICAL_DOWN):
-                self._update_scale(self.scale.decrement_vert)
+                self._update_scale_vert(self.scale.decrement_vert)
             elif(event.char == constants.Keys.HORIZONTAL_RIGHT):
-                self._update_scale(self.scale.increment_hor)
+                self._set_update_scale_flag(self.scale.increment_hor)
             elif(event.char == constants.Keys.HORIZONTAL_LEFT):
-                self._update_scale(self.scale.decrement_hor)
+                self._set_update_scale_flag(self.scale.decrement_hor)
         elif(self.mode == Mode.ADJUST_TRIGGER_LEVEL):
             if(event.char == constants.Keys.VERTICAL_UP):
                 self.scope_display.increment_trigger_level()
@@ -243,21 +269,26 @@ class UserInterface:
 
     def _update_scope_probe(self) -> None: self.readout.set_probe(self.scale.probe_div)
 
-    def _update_fs(self):
+    def _set_update_scale_flag(self, update_fn: Callable[[], None]) -> None:
+        update_fn()
+        self._change_scale_flag = True
+
+    def _start_update_scale_hor(self) -> None:
+        print('clock div is', self.scale.clock_div)
+        self._scope_interface.set_value(self.scale.clock_div)
+        self._scope_interface.set_scope_action(ScopeAction.SET_CLOCK_DIV)
+        self._change_scale = True
+        self._scope_interface.run()
+
+    def _update_scale_vert(self, update_fn: Callable[[], None]) -> None:
+        update_fn()
+        self._render_update_scale()
+    
+    def _render_update_scale(self) -> None:
+        self.readout.update_settings(self.scale.vert, self.scale.hor)
         self.scale.update_sample_rate(scope_specs['sample_rate'], scope_specs['memory_depth'])
         self.readout.set_fs(self.scale.fs)
-        if self.serial_scope_connected:
-            self.serial_scope.set_clock_div(self.scale.clock_div)
         print(self.scale.fs)
-        print(self.scale.clock_div)
-
-    def _update_scale(self, arithmatic_fn: Callable[[], None]) -> None:
-        arithmatic_fn()
-        self.readout.update_settings(self.scale.vert, self.scale.hor)
-        if self.scale.low_range_flip and self.serial_scope_connected:
-            self.serial_scope.request_low_range()
-        elif self.scale.high_range_flip and self.serial_scope_connected:
-            self.serial_scope.request_high_range()
         if self.vv is not None:
             fs: int = 625000000   
             v_vertical: float = self.scale.vert
@@ -265,12 +296,10 @@ class UserInterface:
             vertical_encode: list[int] = quantize_vertical(self.vv, v_vertical)
             horizontal_encode: list[int] = resample_horizontal(vertical_encode, h_horizontal, fs) 
             self.scope_display.set_vector(horizontal_encode) 
-        self._update_fs()
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
-        self.readout.update_cursors(self.get_cursor_dict(self.cursors.hor_visible, 
-                                                         self.cursors.vert_visible))
+        self.readout.update_cursors(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))
         self.scope_display.set_cursors(self.cursors)
     
     def exit(self) -> None:
@@ -382,7 +411,6 @@ class UserInterface:
             attenuation = scope_specs['attenuation']['range_high']
             offset = scope_specs['offset']['range_high']
         code:int = trigger_code(trigger_voltage, scope_specs['voltage_ref'], attenuation, offset)
-        self.serial_scope.set_trigger_code(code)
 
     def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
         h1:str = self.cursors.get_hor1_voltage(self.scale.vert) if horizontal else ''
@@ -397,8 +425,7 @@ class UserInterface:
         self.cursors.toggle() 
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.hor_visible or self.cursors.vert_visible: 
-            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
-                                                                    self.cursors.vert_visible))   
+            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))   
         else: 
             self.readout.disable_cursor_readout()
 
@@ -406,8 +433,7 @@ class UserInterface:
         self.cursors.toggle_hor()
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.hor_visible:
-            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
-                                                                    self.cursors.vert_visible))  
+            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))  
         else: 
             self.readout.disable_cursor_readout()
 
@@ -415,8 +441,7 @@ class UserInterface:
         self.cursors.toggle_vert()
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.vert_visible:
-            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible,
-                                                                    self.cursors.vert_visible))   
+            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))   
         else: 
             self.readout.disable_cursor_readout()
 

@@ -48,15 +48,9 @@ class Serial_Scope:
             self.serial_port.port = self.port
             self.serial_port.timeout = 0
             self.serial_port.open()
-            # Delays are required around the serial buffer flush
-            time.sleep(self.BUFFER_FLUSH_DELAY)
             self.serial_port.flush()
-            time.sleep(self.BUFFER_FLUSH_DELAY)
-            print(messages.Messages.SERIAL_PORT_CONNECTION_SUCCESS)
         except Exception as e:
-            print(e)
             self.error = True
-            print(messages.Errors.SERIAL_PORT_CONNECTION_ERROR)
 
     def read_glob_data(self) -> str:
         self._stop.clear()
