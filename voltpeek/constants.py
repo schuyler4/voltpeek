@@ -13,7 +13,7 @@ class Serial_Protocol:
     BUFFER_FLUSH_DELAY:float = 1
 
 class Display:
-    SIZE:int = 500
+    SIZE:int = 800
     BACKGROUND_COLOR:str = 'black'
     GRID_LINE_COUNT:int = 10
     GRID_LINE_COLOR:str = 'grey'
