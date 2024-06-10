@@ -76,7 +76,7 @@ class ScopeInterface:
         self._data_available.release()
 
     def _set_clock_div(self):
-        self._serial_scope.set_trigger_code(self._value)
+        self._serial_scope.set_clock_div(self._value)
         self._action_complete = True
         self._data_available.release()
 
@@ -173,6 +173,7 @@ class UserInterface:
         if self._connect and self._scope_interface.data_available and not self._connect_finish:
             self.finish_connect()
             self._connect_finish = True
+            self._change_scale_flag = True
         if self._force_trigger and self._scope_interface.data_available:
             self.display_signal(self._scope_interface.xx)
             if self._auto_trigger_running:
@@ -271,7 +272,6 @@ class UserInterface:
         self._change_scale_flag = True
 
     def _start_update_scale_hor(self) -> None:
-        print('clock div is', self.scale.clock_div)
         self._scope_interface.set_value(self.scale.clock_div)
         self._scope_interface.set_scope_action(ScopeAction.SET_CLOCK_DIV)
         self._change_scale = True
@@ -285,7 +285,6 @@ class UserInterface:
         self.readout.update_settings(self.scale.vert, self.scale.hor)
         self.scale.update_sample_rate(scope_specs['sample_rate'], scope_specs['memory_depth'])
         self.readout.set_fs(self.scale.fs)
-        print(self.scale.fs)
         if self.vv is not None:
             fs: int = 625000000   
             v_vertical: float = self.scale.vert
