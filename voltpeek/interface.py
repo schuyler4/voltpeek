@@ -45,7 +45,9 @@ class ScopeAction(Enum):
     TRIGGER = 1
     FORCE_TRIGGER = 2
     SET_CLOCK_DIV = 3
-    STOP = 4
+    SET_HIGH_RANGE = 4
+    SET_LOW_RANGE = 5
+    STOP = 6
 
 class ScopeInterface:
     def __init__(self):
@@ -80,6 +82,16 @@ class ScopeInterface:
         self._action_complete = True
         self._data_available.release()
 
+    def _set_high_range(self):
+        self._serial_scope.request_high_range()
+        self._action_complete = True
+        self._data_available.release()
+
+    def _set_low_range(self):
+        self._serial_scope.request_low_range()
+        self._action_complete = True
+        self._data_available.release()
+
     def run(self):
         if self._action == ScopeAction.CONNECT and not self._action_complete:
             thread: Thread = Thread(target=self._connect_scope)   
@@ -89,6 +101,10 @@ class ScopeInterface:
             thread: Thread = Thread(target=self._trigger)
         if self._action == ScopeAction.SET_CLOCK_DIV and not self._action_complete:
             thread: Thread = Thread(target=self._set_clock_div)
+        if self._action == ScopeAction.SET_HIGH_RANGE and not self._action_complete:
+            thread: Thread = Thread(target=self._set_high_range)
+        if self._action == ScopeAction.SET_LOW_RANGE and not self._action_complete:
+            thread: Thread = Thread(target=self._set_low_range)
         if self._action == ScopeAction.STOP and not self._action_complete:
             thread: Thread = Thread(target=self.stop_trigger) 
         thread.start()
@@ -173,7 +189,8 @@ class UserInterface:
         if self._connect and self._scope_interface.data_available and not self._connect_finish:
             self.finish_connect()
             self._connect_finish = True
-            self._change_scale_flag = True
+            self._set_update_scale_flag(None)
+            print(self.scale.hor)
         if self._force_trigger and self._scope_interface.data_available:
             self.display_signal(self._scope_interface.xx)
             if self._auto_trigger_running:
@@ -268,7 +285,9 @@ class UserInterface:
     def _update_scope_probe(self) -> None: self.readout.set_probe(self.scale.probe_div)
 
     def _set_update_scale_flag(self, update_fn: Callable[[], None]) -> None:
-        update_fn()
+        if update_fn is not None:
+            update_fn()
+        self.scale.update_sample_rate(scope_specs['sample_rate'], scope_specs['memory_depth'])
         self._change_scale_flag = True
 
     def _start_update_scale_hor(self) -> None:
@@ -283,7 +302,6 @@ class UserInterface:
     
     def _render_update_scale(self) -> None:
         self.readout.update_settings(self.scale.vert, self.scale.hor)
-        self.scale.update_sample_rate(scope_specs['sample_rate'], scope_specs['memory_depth'])
         self.readout.set_fs(self.scale.fs)
         if self.vv is not None:
             fs: int = 625000000   
