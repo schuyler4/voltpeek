@@ -104,9 +104,7 @@ class ScopeInterface:
 
     def set_value(self, new_value: int) -> None:
         if self.data_available:
-            print('made it here')
             self._value = new_value
-            print('the value is', self._value)
 
     def set_scope_action(self, new_scope_action: ScopeAction):
         if self.data_available:
@@ -171,7 +169,6 @@ class UserInterface:
             self._change_scale_flag = False
         if self._change_scale and self._scope_interface.data_available:
             self._render_update_scale()
-            print('pee')
             self._change_scale = False
         if self._connect and self._scope_interface.data_available and not self._connect_finish:
             self.finish_connect()
