@@ -1,4 +1,5 @@
 from typing import Optional
+from threading import Event
 
 import time
 
@@ -21,6 +22,7 @@ class Serial_Scope:
         self.baudrate: int = baudrate
         self.port: Optional[str] = None
         self.error: bool = False
+        self._stop: Event = Event()
 
     def pico_connected(self) -> bool:
         ports = list_ports.comports()
@@ -46,19 +48,17 @@ class Serial_Scope:
             self.serial_port.port = self.port
             self.serial_port.timeout = 0
             self.serial_port.open()
-            # Delays are required around the serial buffer flush
-            time.sleep(self.BUFFER_FLUSH_DELAY)
             self.serial_port.flush()
-            time.sleep(self.BUFFER_FLUSH_DELAY)
-            print(messages.Messages.SERIAL_PORT_CONNECTION_SUCCESS)
         except Exception as e:
-            print(e)
             self.error = True
-            print(messages.Errors.SERIAL_PORT_CONNECTION_ERROR)
 
     def read_glob_data(self) -> str:
+        self._stop.clear()
         codes: list[str] = []
-        while(len(codes) < self.POINT_COUNT): 
+        while len(codes) < self.POINT_COUNT: 
+            if self._stop.is_set():
+                self._stop.clear()
+                return []
             codes += list(self.serial_port.read(self.serial_port.inWaiting()))
         return codes
 
@@ -83,3 +83,9 @@ class Serial_Scope:
     def set_clock_div(self, clock_div:int) -> None:
         self.serial_port.write(constants.Serial_Commands.CLOCK_DIV_COMMAND) 
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
+
+    def stop(self): self.serial_port.write(constants.Serial_Commands.STOP_COMMAND)
+
+    def stop_trigger(self): 
+        self.stop()
+        self._stop.set()
