@@ -47,7 +47,8 @@ class ScopeAction(Enum):
     SET_CLOCK_DIV = 3
     SET_HIGH_RANGE = 4
     SET_LOW_RANGE = 5
-    STOP = 6
+    SET_TRIGGER_LEVEL = 6
+    STOP = 7
 
 class ScopeInterface:
     def __init__(self):
@@ -68,12 +69,12 @@ class ScopeInterface:
         self._data_available.release()
 
     def _force_trigger(self):
-        self._xx: list[int] = self._serial_scope.get_scope_trigger_data()
+        self._xx: list[int] = self._serial_scope.get_scope_force_trigger_data()
         self._action_complete = True
         self._data_available.release()
 
     def _trigger(self):
-        self._xx: list[int] = self._serial_scope.get_scope_force_trigger_data()
+        self._xx: list[int] = self._serial_scope.get_scope_trigger_data()
         self._action_complete = True
         self._data_available.release()
 
@@ -92,6 +93,12 @@ class ScopeInterface:
         self._action_complete = True
         self._data_available.release()
 
+    def _set_trigger_level(self):
+        self._serial_scope.set_trigger_code(self._value)
+        print('set trigger to', self._value)
+        self._action_complete = True
+        self._data_available.release()
+
     def run(self):
         if self._action == ScopeAction.CONNECT and not self._action_complete:
             thread: Thread = Thread(target=self._connect_scope)   
@@ -105,6 +112,8 @@ class ScopeInterface:
             thread: Thread = Thread(target=self._set_high_range)
         if self._action == ScopeAction.SET_LOW_RANGE and not self._action_complete:
             thread: Thread = Thread(target=self._set_low_range)
+        if self._action == ScopeAction.SET_TRIGGER_LEVEL and not self._action_complete:
+            thread: Thread = Thread(target=self._set_trigger_level)
         if self._action == ScopeAction.STOP and not self._action_complete:
             thread: Thread = Thread(target=self.stop_trigger) 
         thread.start()
@@ -170,6 +179,12 @@ class UserInterface:
         self._stop_and_exit = False
         self._change_scale_flag = False
         self._change_scale = False
+        self._scale_range_flip_low_flag = False
+        self._scale_range_flip_high_flag = False
+        self._scale_range_flip_low = False
+        self._scale_range_flip_high = False
+        self._set_trigger_level_flag = False
+        self._set_trigger_level = False
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -186,11 +201,25 @@ class UserInterface:
         if self._change_scale and self._scope_interface.data_available:
             self._render_update_scale()
             self._change_scale = False
+        if self._scale_range_flip_high_flag and self._scope_interface.data_available:
+            self._start_range_flip_high()
+            self._scale_range_flip_high_flag = False
+        if self._scale_range_flip_low_flag and self._scope_interface.data_available:
+            self._start_range_flip_low()
+            self._scale_range_flip_low_flag = False
+        if self._scale_range_flip_high and self._scope_interface.data_available:
+            self._render_update_scale()
+            self._scale_range_flip_high = False
+        if self._scale_range_flip_low and self._scope_interface.data_available:
+            self._render_update_scale()
+            self._scale_range_flip_low = False
+        if self._set_trigger_level_flag and self._scope_interface.data_available:
+            self._start_set_trigger_level()
+            self._set_trigger_level_flag = False
         if self._connect and self._scope_interface.data_available and not self._connect_finish:
             self.finish_connect()
             self._connect_finish = True
             self._set_update_scale_flag(None)
-            print(self.scale.hor)
         if self._force_trigger and self._scope_interface.data_available:
             self.display_signal(self._scope_interface.xx)
             if self._auto_trigger_running:
@@ -213,20 +242,19 @@ class UserInterface:
     def on_key_press(self, event) -> None:
         if self.info_panel.visible and event.keycode != constants.KeyCodes.ENTER:
             self.info_panel.hide() 
-        if(self.mode == Mode.ADJUST_SCALE 
-           or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS):
+        if self.mode == Mode.ADJUST_SCALE  or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS:
             if event.keycode in constants.Keys.EXIT_COMMAND_MODE: 
-                if(self.mode == Mode.ADJUST_TRIGGER_LEVEL and self.serial_scope_connected): 
+                if self.mode == Mode.ADJUST_TRIGGER_LEVEL: 
                     self.set_trigger()
                 self._set_command_mode()
         if self.mode == Mode.ADJUST_SCALE:
-            if(event.char == constants.Keys.VERTICAL_UP):
+            if event.char == constants.Keys.VERTICAL_UP:
                 self._update_scale_vert(self.scale.increment_vert)
-            elif(event.char == constants.Keys.VERTICAL_DOWN):
+            elif event.char == constants.Keys.VERTICAL_DOWN:
                 self._update_scale_vert(self.scale.decrement_vert)
-            elif(event.char == constants.Keys.HORIZONTAL_RIGHT):
+            elif event.char == constants.Keys.HORIZONTAL_RIGHT:
                 self._set_update_scale_flag(self.scale.increment_hor)
-            elif(event.char == constants.Keys.HORIZONTAL_LEFT):
+            elif event.char == constants.Keys.HORIZONTAL_LEFT:
                 self._set_update_scale_flag(self.scale.decrement_hor)
         elif(self.mode == Mode.ADJUST_TRIGGER_LEVEL):
             if(event.char == constants.Keys.VERTICAL_UP):
@@ -298,7 +326,22 @@ class UserInterface:
 
     def _update_scale_vert(self, update_fn: Callable[[], None]) -> None:
         update_fn()
-        self._render_update_scale()
+        if self.scale.low_range_flip:
+            self._scale_range_flip_low_flag = True
+        elif self.scale.high_range_flip:
+            self._scale_range_flip_high_flag = True
+        else:
+            self._render_update_scale()
+
+    def _start_range_flip_high(self) -> None:
+        self._scope_interface.set_scope_action(ScopeAction.SET_HIGH_RANGE)
+        self._scale_range_flip_high = True
+        self._scope_interface.run()
+
+    def _start_range_flip_low(self) -> None:
+        self._scope_interface.set_scope_action(ScopeAction.SET_LOW_RANGE)
+        self._scale_range_flip_low = True
+        self._scope_interface.run()
     
     def _render_update_scale(self) -> None:
         self.readout.update_settings(self.scale.vert, self.scale.hor)
@@ -342,8 +385,8 @@ class UserInterface:
             commands.TOGGLE_VCURS: self.toggle_vertical_cursors,
             commands.NEXT_CURS: self.cursors.next_cursor, 
             commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
-            commands.AUTO_TRIGGER_COMMAND: self.start_auto_trigger, 
-            commands.NORMAL_TRIGGER_COMMAND: self.start_normal_trigger,
+            commands.AUTO_TRIGGER_COMMAND: self._start_auto_trigger, 
+            commands.NORMAL_TRIGGER_COMMAND: self._start_normal_trigger,
             commands.SINGLE_TRIGGER_COMMAND: self.start_single_trigger,
             commands.STOP: self._stop_trigger,
             commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
@@ -366,7 +409,7 @@ class UserInterface:
         self._update_scope_status()
 
     def display_signal(self, xx: list[int]) -> None:
-        if(len(xx) > 0):
+        if len(xx) > 0:
             filtered_signal: list[float] = FIR_filter(xx) 
             self.vv = reconstruct(filtered_signal, scope_specs, self.scale.vert)
             self.readout.set_average(average(self.vv))
@@ -386,13 +429,13 @@ class UserInterface:
             while self.trigger_running.is_set():
                 self._trigger()
 
-    def start_auto_trigger(self) -> None:
+    def _start_auto_trigger(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
         self._force_trigger = True
         self._auto_trigger_running = True
         self._scope_interface.run()
 
-    def start_normal_trigger(self) -> None:
+    def _start_normal_trigger(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
         self._normal_trigger = True
         self._normal_trigger_running = True
@@ -417,14 +460,20 @@ class UserInterface:
         trigger_voltage = get_trigger_voltage(self.scale.vert, trigger_height)
         attenuation: Optional[float] = None
         offset: Optional[float] = None
-        if(self.scale.vert <= 
-            constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX]):
+        if self.scale.vert <=  constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX]:
             attenuation = scope_specs['attenuation']['range_low']
             offset = scope_specs['offset']['range_low']
         else:
             attenuation = scope_specs['attenuation']['range_high']
             offset = scope_specs['offset']['range_high']
-        code:int = trigger_code(trigger_voltage, scope_specs['voltage_ref'], attenuation, offset)
+        self.trigger_code:int = trigger_code(trigger_voltage, scope_specs['voltage_ref'], attenuation, offset)
+        self._set_trigger_level_flag = True
+
+    def _start_set_trigger_level(self) -> None:
+        self._set_trigger_level = True
+        self._scope_interface.set_value(self.trigger_code)
+        self._scope_interface.set_scope_action(ScopeAction.SET_TRIGGER_LEVEL)
+        self._scope_interface.run()
 
     def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
         h1:str = self.cursors.get_hor1_voltage(self.scale.vert) if horizontal else ''
