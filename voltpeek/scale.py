@@ -22,23 +22,23 @@ class Scale:
         self._probe_div: int = 1
 
     def increment_vert(self) -> None:
-        if(self._vertical_index < self.MAX_VERTICAL_INDEX): 
+        if self._vertical_index < self.MAX_VERTICAL_INDEX: 
             self._vertical_index += 1     
             self._high_range_flip = self._vertical_index == self.RANGE_FLIP_INDEX + 1 
             self._low_range_flip = False 
 
     def decrement_vert(self) -> None:
-        if(self._vertical_index > 0): 
+        if self._vertical_index > 0: 
             self._vertical_index -= 1
             self._low_range_flip = self._vertical_index == self.RANGE_FLIP_INDEX
             self._high_range_flip = False
 
     def increment_hor(self) -> None:
-        if(self._horizontal_index < self.MAX_HOR_INDEX): 
+        if self._horizontal_index < self.MAX_HOR_INDEX: 
             self._horizontal_index += 1
 
     def decrement_hor(self) -> None:
-        if(self._horizontal_index > 0): 
+        if self._horizontal_index > 0: 
             self._horizontal_index -= 1
 
     @property

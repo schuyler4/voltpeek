@@ -72,6 +72,7 @@ class UserInterface:
         self._single_trigger = False
         self._normal_trigger_running = False
         self._normal_trigger = False
+        self._single_trigger = False
         self._stop = False
         self._stop_and_exit = False
         self._change_scale_flag = False
@@ -124,6 +125,8 @@ class UserInterface:
                 self._scope_interface.run()
             else:
                 self._force_trigger = False
+        if self._single_trigger and self._scope_interface.data_available:
+            self.display_signal(self._scope_interface.xx)
         if self._normal_trigger and self._scope_interface.data_available:
             if len(self._scope_interface.xx) > 0:
                 self.display_signal(self._scope_interface.xx)
@@ -139,7 +142,7 @@ class UserInterface:
     def on_key_press(self, event) -> None:
         if self.info_panel.visible and event.keycode != constants.KeyCodes.ENTER:
             self.info_panel.hide() 
-        if self.mode == Mode.ADJUST_SCALE  or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS:
+        if self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS:
             if event.keycode in constants.Keys.EXIT_COMMAND_MODE: 
                 if self.mode == Mode.ADJUST_TRIGGER_LEVEL: 
                     self.set_trigger()
@@ -204,6 +207,7 @@ class UserInterface:
     def _set_probe(self, probe_div):
         self.scale.probe_div = probe_div
         self.readout.set_probe(self.scale.probe_div)
+        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
     
     def _update_scope_status(self) -> None: self.readout.set_status(self.scope_status.name)
 
@@ -241,14 +245,11 @@ class UserInterface:
         self._scope_interface.run()
     
     def _render_update_scale(self) -> None:
-        self.readout.update_settings(self.scale.vert, self.scale.hor)
+        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
         self.readout.set_fs(self.scale.fs)
         if self.vv is not None:
-            fs: int = 625000000   
-            v_vertical: float = self.scale.vert
-            h_horizontal: float = self.scale.hor
-            vertical_encode: list[int] = quantize_vertical(self.vv, v_vertical)
-            horizontal_encode: list[int] = resample_horizontal(vertical_encode, h_horizontal, fs) 
+            vertical_encode: list[int] = quantize_vertical(self.vv, self.scale.vert)
+            horizontal_encode: list[int] = resample_horizontal(vertical_encode, self.scale.hor, scope_specs['sample_rate']) 
             self.scope_display.set_vector(horizontal_encode) 
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
@@ -280,7 +281,7 @@ class UserInterface:
             commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
             commands.AUTO_TRIGGER_COMMAND: self._start_auto_trigger, 
             commands.NORMAL_TRIGGER_COMMAND: self._start_normal_trigger,
-            commands.SINGLE_TRIGGER_COMMAND: self.start_single_trigger,
+            commands.SINGLE_TRIGGER_COMMAND: self._start_single_trigger,
             commands.STOP: self._stop_trigger,
             commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
             commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge,
@@ -303,7 +304,7 @@ class UserInterface:
     def display_signal(self, xx: list[int]) -> None:
         if len(xx) > 0:
             filtered_signal: list[float] = FIR_filter(xx) 
-            self.vv = reconstruct(filtered_signal, scope_specs, self.scale.vert)
+            self.vv = reconstruct(filtered_signal, scope_specs, self.scale.vert, self.scale.probe_div)
             self.readout.set_average(average(self.vv))
             self.readout.set_rms(rms(self.vv))
             vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
@@ -311,15 +312,6 @@ class UserInterface:
             self.scope_display.set_vector(h)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
-
-    def single_trigger(self) -> None:
-        if self.serial_scope_connected:
-            self._trigger()
-    
-    def normal_trigger(self) -> None:
-        if self.serial_scope_connected:
-            while self.trigger_running.is_set():
-                self._trigger()
 
     def _start_auto_trigger(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
@@ -333,10 +325,10 @@ class UserInterface:
         self._normal_trigger_running = True
         self._scope_interface.run()
 
-    def start_single_trigger(self) -> None:
-        self.trigger_running.set()
-        self.trigger_thread = Thread(target=self.single_trigger)
-        self.trigger_thread.start()
+    def _start_single_trigger(self) -> None:
+        self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
+        self._single_trigger = True
+        self._scope_interface.run()
 
     def _stop_trigger(self) -> None:
         if self._auto_trigger_running:

@@ -10,8 +10,8 @@ def inverse_quantize(code: float, resolution: float, voltage_ref: float) -> floa
 
 def zero(x: float, voltage_ref: float) -> float: return x - 0.5 
 
-def reamplify(x: float, attenuator_range: float) -> float: 
-    return x*(1/attenuator_range)
+def reamplify(x: float, attenuator_range: float, probe_div: float) -> float: 
+    return (x*(1/attenuator_range))
 
 def quantize_vertical(vv: list[float], vertical_setting: float) -> list[int]:
     pixel_amplitude: float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
@@ -32,7 +32,7 @@ def resample_horizontal(vv: list[float], horizontal_setting: float, fs: float) -
     new_vv = f(new_tt)
     return new_vv
 
-def reconstruct(xx: list[float], specs, vertical_setting: float) -> list[float]:
+def reconstruct(xx: list[float], specs, vertical_setting: float, probe_div: float) -> list[float]:
     attenuation: Optional[float] = None
     offset: Optional[float] = None
     if vertical_setting <= constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX]:
@@ -47,5 +47,5 @@ def reconstruct(xx: list[float], specs, vertical_setting: float) -> list[float]:
         adc_input = inverse_quantize(x, specs['resolution'], specs['voltage_ref'])
         zeroed = zero(adc_input, specs['voltage_ref'])
         if offset is not None:
-            reconstructed_signal.append(reamplify(zeroed, attenuation) + offset)
+            reconstructed_signal.append(reamplify(zeroed, attenuation, probe_div) + offset)
     return reconstructed_signal     
