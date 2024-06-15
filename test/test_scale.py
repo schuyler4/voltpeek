@@ -3,9 +3,9 @@
 import sys
 sys.path.append('..')
 
-from voltpeek.scale import Scale
-
 import unittest
+
+from voltpeek.scale import Scale
 
 class TestScale(unittest.TestCase):
     def test_scale_init(self):
