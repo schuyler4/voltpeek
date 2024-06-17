@@ -18,6 +18,7 @@ NEXT_CURS: str = 'nextcurs'
 PROBE_1: str = 'probe1'
 PROBE_10: str = 'probe10'
 STOP: str = 'stop'
+CAL: str = 'cal'
 HELP: str = 'help'
 
 ADJUST_COMMANDS: tuple[str, str, str] = (SCALE_COMMAND, TRIGGER_LEVEL_COMMAND, ADJUST_CURS)

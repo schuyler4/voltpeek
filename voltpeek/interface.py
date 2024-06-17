@@ -119,12 +119,15 @@ class UserInterface:
             self._connect_finish = True
             self._set_update_scale_flag(None)
         if self._force_trigger and self._scope_interface.data_available:
-            self.display_signal(self._scope_interface.xx)
-            if self._auto_trigger_running:
-                self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
-                self._scope_interface.run()
+            if self._calibrate:
+                self._calibrate_offsets()
             else:
-                self._force_trigger = False
+                self.display_signal(self._scope_interface.xx)
+                if self._auto_trigger_running:
+                    self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
+                    self._scope_interface.run()
+                else:
+                    self._force_trigger = False
         if self._single_trigger and self._scope_interface.data_available:
             self.display_signal(self._scope_interface.xx)
         if self._normal_trigger and self._scope_interface.data_available:
@@ -268,6 +271,18 @@ class UserInterface:
             self._auto_trigger_running = False
             self._stop_and_exit = True
 
+    def _start_calibrate(self):
+        pass
+
+    def _start_calibrate_trigger(self):
+        self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
+        self._calibrate = True
+        self._force_trigger = True
+        self._scope_interface.run()
+
+    def _calibrate_offsets(self):
+        average_offset: float = 0  
+
     def get_commands(self): 
         return {
             commands.EXIT_COMMAND: self.exit,
@@ -288,6 +303,7 @@ class UserInterface:
             commands.HELP: self.info_panel.show,
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
+            commands.CAL: self._start_calibrate_trigger
         }
 
     def start_connect(self) -> None:
