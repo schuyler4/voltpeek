@@ -42,12 +42,13 @@ class Event(Enum):
     SINGLE_TRIGGER = 1
     AUTO_TRIGGER = 2
     NORMAL_TRIGGER = 3
-    STOP = 4
-    CHANGE_SCALE = 5
-    RANGE_FLIP_LOW = 6
-    RANGE_FLIP_HIGH = 7
-    SET_TRIGGER_LEVEL = 8
-    EXIT = 9
+    FORCE_TRIGGER = 4
+    STOP = 5
+    CHANGE_SCALE = 6
+    RANGE_FLIP_LOW = 7
+    RANGE_FLIP_HIGH = 8
+    SET_TRIGGER_LEVEL = 9
+    EXIT = 10
 
 class UserInterface:
     def __init__(self) -> None:
@@ -83,6 +84,8 @@ class UserInterface:
 
         self._auto_trigger_running = False
         self._normal_trigger_running = False
+        self._calibration = False
+        self._calibration_step = 0
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -341,6 +344,14 @@ class UserInterface:
         self.display_signal(self._scope_interface.xx)
         if self._normal_trigger_running:
             self._start_event_queue.append(Event.NORMAL_TRIGGER)
+
+    def _start_force_trigger(self) -> None:
+        self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
+        self._scope_interface.run()
+
+    def _finish_force_trigger(self) -> None:
+        if self._calibration:
+            self._calibration_step += 1 
 
     def _start_single_trigger(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
