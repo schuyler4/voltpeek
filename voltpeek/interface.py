@@ -76,29 +76,13 @@ class UserInterface:
         self._update_scope_probe()
         self._set_trigger_rising_edge()
 
-        self._scope_interface = ScopeInterface()
+        self._scope_interface: ScopeInterface = ScopeInterface()
 
         self._start_event_queue: list[Event] = []
         self._end_event_queue: list[Event] = []
 
-        self._connect = False
-        self._connect_finish = False
         self._auto_trigger_running = False
-        self._force_trigger = False
-        self._single_trigger = False
         self._normal_trigger_running = False
-        self._normal_trigger = False
-        self._single_trigger = False
-        self._stop = False
-        self._stop_and_exit = False
-        self._change_scale_flag = False
-        self._change_scale = False
-        self._scale_range_flip_low_flag = False
-        self._scale_range_flip_high_flag = False
-        self._scale_range_flip_low = False
-        self._scale_range_flip_high = False
-        self._set_trigger_level_flag = False
-        self._set_trigger_level = False
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -110,11 +94,11 @@ class UserInterface:
 
     def check_state(self):
         if self._scope_interface.data_available and len(self._start_event_queue) > 0:
-            print(self._start_event_queue)
             if self._start_event_queue[0] == Event.CONNECT:
                 self.start_connect()
                 self._end_event_queue.append(Event.CONNECT)
             if self._start_event_queue[0] == Event.SINGLE_TRIGGER:
+                print('starting single trigger')
                 self._start_single_trigger()
             if self._start_event_queue[0] == Event.AUTO_TRIGGER:
                 self._start_auto_trigger_cycle()
@@ -145,16 +129,8 @@ class UserInterface:
                 self._finish_auto_trigger_cycle()
             if self._end_event_queue[0] == Event.NORMAL_TRIGGER:
                 self._finish_normal_trigger_cycle()
-            if self._end_event_queue[0] == Event.STOP:
-                pass
             if self._end_event_queue[0] == Event.CHANGE_SCALE:
                 self._render_update_scale()
-            if self._end_event_queue[0] == Event.RANGE_FLIP_LOW:
-                pass
-            if self._end_event_queue[0] == Event.RANGE_FLIP_HIGH:
-                pass
-            if self._end_event_queue[0] == Event.SET_TRIGGER_LEVEL:
-                pass
             self._end_event_queue.pop(0)
         self.root.after(1, self.check_state)
 
@@ -165,6 +141,7 @@ class UserInterface:
             if event.keycode in constants.Keys.EXIT_COMMAND_MODE: 
                 if self.mode == Mode.ADJUST_TRIGGER_LEVEL: 
                     self.set_trigger()
+                    self._start_event_queue.append(Event.SET_TRIGGER_LEVEL)
                 self._set_command_mode()
         if self.mode == Mode.ADJUST_SCALE:
             if event.char == constants.Keys.VERTICAL_UP:
@@ -207,7 +184,7 @@ class UserInterface:
 
     def _set_adjust_cursor_mode(self) -> None:
         # TODO: Fix bug where cursors are not visible
-        if(self.cursors.hor_visible or self.cursors.vert_visible):
+        if self.cursors.hor_visible or self.cursors.vert_visible:
             self.mode = Mode.ADJUST_CURSORS  
             self.command_input.set_adjust_mode()
             self.root.focus_set()
@@ -240,6 +217,7 @@ class UserInterface:
 
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
+        print(self.scale.clock_div)
         self._scope_interface.set_scope_action(ScopeAction.SET_CLOCK_DIV)
         self._change_scale = True
         self._scope_interface.run()
@@ -247,9 +225,9 @@ class UserInterface:
     def _update_scale_vert(self, update_fn: Callable[[], None]) -> None:
         update_fn()
         if self.scale.low_range_flip:
-            self._scale_range_flip_low_flag = True
+            self._start_event_queue.append(Event.RANGE_FLIP_LOW)
         elif self.scale.high_range_flip:
-            self._scale_range_flip_high_flag = True
+            self._start_event_queue.append(Event.RANGE_FLIP_HIGH)
         else:
             self._render_update_scale()
 
@@ -287,22 +265,19 @@ class UserInterface:
             self._auto_trigger_running = False
             self._stop_and_exit = True
 
-    def _start_calibrate(self):
-        pass
-
-    def _start_calibrate_trigger(self):
-        self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
-        self._calibrate = True
-        self._force_trigger = True
-        self._scope_interface.run()
-
     def _calibrate_offsets(self):
         average_offset: float = 0  
+
+    def _connect(self):
+        self._start_event_queue.append(Event.CONNECT)
+        self._set_update_scale(None)
+        self._start_event_queue.append(Event.CHANGE_SCALE)
+        self._start_event_queue.append(Event.RANGE_FLIP_HIGH)
 
     def get_commands(self): 
         return {
             commands.EXIT_COMMAND: lambda: self._start_event_queue.append(Event.EXIT),
-            commands.CONNECT_COMMAND: lambda: self._start_event_queue.append(Event.CONNECT),
+            commands.CONNECT_COMMAND: self._connect,
             commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
             commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
             commands.TOGGLE_CURS: self.toggle_cursors, 
@@ -319,7 +294,7 @@ class UserInterface:
             commands.HELP: self.info_panel.show,
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
-            commands.CAL: self._start_calibrate_trigger
+            commands.CAL: self._calibrate_offsets
         }
 
     def start_connect(self) -> None:
@@ -393,7 +368,6 @@ class UserInterface:
             attenuation = scope_specs['attenuation']['range_high']
             offset = scope_specs['offset']['range_high']
         self.trigger_code:int = trigger_code(trigger_voltage, scope_specs['voltage_ref'], attenuation, offset)
-        self._set_trigger_level_flag = True
 
     def _start_set_trigger_level(self) -> None:
         self._set_trigger_level = True
