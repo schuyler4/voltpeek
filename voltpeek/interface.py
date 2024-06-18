@@ -37,6 +37,18 @@ class Scope_Status(Enum):
     ARMED = 3
     TRIGGERED = 4
 
+class Event(Enum):
+    CONNECT = 0
+    SINGLE_TRIGGER = 1
+    AUTO_TRIGGER = 2
+    NORMAL_TRIGGER = 3
+    STOP = 4
+    CHANGE_SCALE = 5
+    RANGE_FLIP_LOW = 6
+    RANGE_FLIP_HIGH = 7
+    SET_TRIGGER_LEVEL = 8
+    EXIT = 9
+
 class UserInterface:
     def __init__(self) -> None:
         self._build_tk_root()
@@ -65,6 +77,10 @@ class UserInterface:
         self._set_trigger_rising_edge()
 
         self._scope_interface = ScopeInterface()
+
+        self._start_event_queue: list[Event] = []
+        self._end_event_queue: list[Event] = []
+
         self._connect = False
         self._connect_finish = False
         self._auto_trigger_running = False
@@ -93,53 +109,53 @@ class UserInterface:
         self.root.bind('<KeyPress>', self.on_key_press)
 
     def check_state(self):
-        if self._change_scale_flag and self._scope_interface.data_available:
-            self._start_update_scale_hor()
-            self._change_scale_flag = False
-        if self._change_scale and self._scope_interface.data_available:
-            self._render_update_scale()
-            self._change_scale = False
-        if self._scale_range_flip_high_flag and self._scope_interface.data_available:
-            self._start_range_flip_high()
-            self._scale_range_flip_high_flag = False
-        if self._scale_range_flip_low_flag and self._scope_interface.data_available:
-            self._start_range_flip_low()
-            self._scale_range_flip_low_flag = False
-        if self._scale_range_flip_high and self._scope_interface.data_available:
-            self._render_update_scale()
-            self._scale_range_flip_high = False
-        if self._scale_range_flip_low and self._scope_interface.data_available:
-            self._render_update_scale()
-            self._scale_range_flip_low = False
-        if self._set_trigger_level_flag and self._scope_interface.data_available:
-            self._start_set_trigger_level()
-            self._set_trigger_level_flag = False
-        if self._connect and self._scope_interface.data_available and not self._connect_finish:
-            self.finish_connect()
-            self._connect_finish = True
-            self._set_update_scale_flag(None)
-        if self._force_trigger and self._scope_interface.data_available:
-            if self._calibrate:
-                self._calibrate_offsets()
-            else:
-                self.display_signal(self._scope_interface.xx)
-                if self._auto_trigger_running:
-                    self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
-                    self._scope_interface.run()
-                else:
-                    self._force_trigger = False
-        if self._single_trigger and self._scope_interface.data_available:
-            self.display_signal(self._scope_interface.xx)
-        if self._normal_trigger and self._scope_interface.data_available:
-            if len(self._scope_interface.xx) > 0:
-                self.display_signal(self._scope_interface.xx)
-            if self._normal_trigger_running:
-                self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
-                self._scope_interface.run()
-            else:
-                self._normal_trigger = False
-        if self._stop_and_exit and self._scope_interface.data_available:
-            exit()
+        if self._scope_interface.data_available and len(self._start_event_queue) > 0:
+            print(self._start_event_queue)
+            if self._start_event_queue[0] == Event.CONNECT:
+                self.start_connect()
+                self._end_event_queue.append(Event.CONNECT)
+            if self._start_event_queue[0] == Event.SINGLE_TRIGGER:
+                self._start_single_trigger()
+            if self._start_event_queue[0] == Event.AUTO_TRIGGER:
+                self._start_auto_trigger_cycle()
+                self._end_event_queue.append(Event.AUTO_TRIGGER)
+            if self._start_event_queue[0] == Event.NORMAL_TRIGGER:
+                self._start_normal_trigger_cycle()
+                self._end_event_queue.append(Event.NORMAL_TRIGGER)
+            if self._start_event_queue[0] == Event.STOP:
+                pass
+            if self._start_event_queue[0] == Event.CHANGE_SCALE:
+                self._start_update_scale_hor()
+                self._end_event_queue.append(Event.CHANGE_SCALE)
+            if self._start_event_queue[0] == Event.RANGE_FLIP_LOW:
+                self._start_range_flip_low()
+            if self._start_event_queue[0] == Event.RANGE_FLIP_HIGH:
+                self._start_range_flip_high()
+            if self._start_event_queue[0] == Event.SET_TRIGGER_LEVEL:
+                self._start_set_trigger_level()
+            if self._start_event_queue[0] == Event.EXIT:
+                exit()
+            self._start_event_queue.pop(0)
+
+        if self._scope_interface.data_available and len(self._end_event_queue) > 0:
+            print(self._end_event_queue)
+            if self._end_event_queue[0] == Event.CONNECT:
+                self.finish_connect()
+            if self._end_event_queue[0] == Event.AUTO_TRIGGER:
+                self._finish_auto_trigger_cycle()
+            if self._end_event_queue[0] == Event.NORMAL_TRIGGER:
+                self._finish_normal_trigger_cycle()
+            if self._end_event_queue[0] == Event.STOP:
+                pass
+            if self._end_event_queue[0] == Event.CHANGE_SCALE:
+                self._render_update_scale()
+            if self._end_event_queue[0] == Event.RANGE_FLIP_LOW:
+                pass
+            if self._end_event_queue[0] == Event.RANGE_FLIP_HIGH:
+                pass
+            if self._end_event_queue[0] == Event.SET_TRIGGER_LEVEL:
+                pass
+            self._end_event_queue.pop(0)
         self.root.after(1, self.check_state)
 
     def on_key_press(self, event) -> None:
@@ -156,25 +172,25 @@ class UserInterface:
             elif event.char == constants.Keys.VERTICAL_DOWN:
                 self._update_scale_vert(self.scale.decrement_vert)
             elif event.char == constants.Keys.HORIZONTAL_RIGHT:
-                self._set_update_scale_flag(self.scale.increment_hor)
+                self._set_update_scale(self.scale.increment_hor)
             elif event.char == constants.Keys.HORIZONTAL_LEFT:
-                self._set_update_scale_flag(self.scale.decrement_hor)
-        elif(self.mode == Mode.ADJUST_TRIGGER_LEVEL):
-            if(event.char == constants.Keys.VERTICAL_UP):
+                self._set_update_scale(self.scale.decrement_hor)
+        elif self.mode == Mode.ADJUST_TRIGGER_LEVEL:
+            if event.char == constants.Keys.VERTICAL_UP:
                 self.scope_display.increment_trigger_level()
-            elif(event.char == constants.Keys.VERTICAL_DOWN):
+            elif event.char == constants.Keys.VERTICAL_DOWN:
                 self.scope_display.decrement_trigger_level()
-        elif(self.mode == Mode.ADJUST_CURSORS):
-            if(event.char == constants.Keys.VERTICAL_UP):
+        elif self.mode == Mode.ADJUST_CURSORS:
+            if event.char == constants.Keys.VERTICAL_UP:
                 self._update_cursor(self.cursors.decrement_hor)
-            elif(event.char == constants.Keys.VERTICAL_DOWN):
+            elif event.char == constants.Keys.VERTICAL_DOWN:
                 self._update_cursor(self.cursors.increment_hor)
-            elif(event.char == constants.Keys.HORIZONTAL_RIGHT):
+            elif event.char == constants.Keys.HORIZONTAL_RIGHT:
                 self._update_cursor(self.cursors.increment_vert)
-            elif(event.char == constants.Keys.HORIZONTAL_LEFT):
+            elif event.char == constants.Keys.HORIZONTAL_LEFT:
                 self._update_cursor(self.cursors.decrement_vert)
-        elif(self.mode == Mode.COMMAND):
-            if(event.keycode == constants.KeyCodes.UP_ARROW):
+        elif self.mode == Mode.COMMAND:
+            if event.keycode == constants.KeyCodes.UP_ARROW:
                 self.command_input.set_command_stack()
 
     def process_command(self, command:str) -> None:
@@ -216,11 +232,11 @@ class UserInterface:
 
     def _update_scope_probe(self) -> None: self.readout.set_probe(self.scale.probe_div)
 
-    def _set_update_scale_flag(self, update_fn: Callable[[], None]) -> None:
+    def _set_update_scale(self, update_fn: Callable[[], None]) -> None:
         if update_fn is not None:
             update_fn()
         self.scale.update_sample_rate(scope_specs['sample_rate'], scope_specs['memory_depth'])
-        self._change_scale_flag = True
+        self._start_event_queue.append(Event.CHANGE_SCALE)
 
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
@@ -285,8 +301,8 @@ class UserInterface:
 
     def get_commands(self): 
         return {
-            commands.EXIT_COMMAND: self.exit,
-            commands.CONNECT_COMMAND: self.start_connect,
+            commands.EXIT_COMMAND: lambda: self._start_event_queue.append(Event.EXIT),
+            commands.CONNECT_COMMAND: lambda: self._start_event_queue.append(Event.CONNECT),
             commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
             commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
             commands.TOGGLE_CURS: self.toggle_cursors, 
@@ -294,8 +310,8 @@ class UserInterface:
             commands.TOGGLE_VCURS: self.toggle_vertical_cursors,
             commands.NEXT_CURS: self.cursors.next_cursor, 
             commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
-            commands.AUTO_TRIGGER_COMMAND: self._start_auto_trigger, 
-            commands.NORMAL_TRIGGER_COMMAND: self._start_normal_trigger,
+            commands.AUTO_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.AUTO_TRIGGER), 
+            commands.NORMAL_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.NORMAL_TRIGGER),
             commands.SINGLE_TRIGGER_COMMAND: self._start_single_trigger,
             commands.STOP: self._stop_trigger,
             commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
@@ -329,17 +345,27 @@ class UserInterface:
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
 
-    def _start_auto_trigger(self) -> None:
+    def _start_auto_trigger_cycle(self) -> None:
+        print('starting auto trigger cycle')
         self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
-        self._force_trigger = True
         self._auto_trigger_running = True
         self._scope_interface.run()
 
-    def _start_normal_trigger(self) -> None:
+    def _finish_auto_trigger_cycle(self) -> None:
+        print('finishing auto trigger cycle')
+        self.display_signal(self._scope_interface.xx)
+        if self._auto_trigger_running:
+            self._start_event_queue.append(Event.AUTO_TRIGGER)
+
+    def _start_normal_trigger_cycle(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
-        self._normal_trigger = True
         self._normal_trigger_running = True
         self._scope_interface.run()
+
+    def _finish_normal_trigger_cycle(self) -> None:
+        self.display_signal(self._scope_interface.xx)
+        if self._normal_trigger_running:
+            self._start_event_queue.append(Event.NORMAL_TRIGGER)
 
     def _start_single_trigger(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.TRIGGER)

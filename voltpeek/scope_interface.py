@@ -18,18 +18,18 @@ class ScopeInterface:
     def __init__(self):
         self._scope_connected: bool = False
         self._xx: Optional[list[float]] = None
-        self._serial_scope = Serial_Scope(115200)
-        self._data_available = Lock()
+        self._serial_scope: Serial_Scope = Serial_Scope(115200)
+        self._data_available: Lock = Lock()
         self._action: ScopeAction = None
         self._action_complete: bool = True
-        self._stopper = Event()
-        self._trigger_stopper = Event()
+        self._stopper: Event = Event()
+        self._trigger_stopper: Event = Event()
         self._value: Optional[int] = None
 
     def _connect_scope(self):
         self._serial_scope.init_serial()
-        self._action_complete = True
         self._scope_connected = True
+        self._action_complete = True
         self._data_available.release()
 
     def _force_trigger(self):
