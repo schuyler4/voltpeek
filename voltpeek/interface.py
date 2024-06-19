@@ -101,7 +101,6 @@ class UserInterface:
                 self.start_connect()
                 self._end_event_queue.append(Event.CONNECT)
             if self._start_event_queue[0] == Event.SINGLE_TRIGGER:
-                print('starting single trigger')
                 self._start_single_trigger()
             if self._start_event_queue[0] == Event.AUTO_TRIGGER:
                 self._start_auto_trigger_cycle()
@@ -109,6 +108,9 @@ class UserInterface:
             if self._start_event_queue[0] == Event.NORMAL_TRIGGER:
                 self._start_normal_trigger_cycle()
                 self._end_event_queue.append(Event.NORMAL_TRIGGER)
+            if self._start_event_queue[0] == Event.FORCE_TRIGGER:
+                self._start_force_trigger()
+                self._end_event_queue.append(Event.FORCE_TRIGGER)
             if self._start_event_queue[0] == Event.STOP:
                 pass
             if self._start_event_queue[0] == Event.CHANGE_SCALE:
@@ -116,24 +118,30 @@ class UserInterface:
                 self._end_event_queue.append(Event.CHANGE_SCALE)
             if self._start_event_queue[0] == Event.RANGE_FLIP_LOW:
                 self._start_range_flip_low()
+                self._end_event_queue.append(Event.RANGE_FLIP_LOW)
             if self._start_event_queue[0] == Event.RANGE_FLIP_HIGH:
                 self._start_range_flip_high()
+                self._end_event_queue.append(Event.RANGE_FLIP_HIGH)
             if self._start_event_queue[0] == Event.SET_TRIGGER_LEVEL:
                 self._start_set_trigger_level()
             if self._start_event_queue[0] == Event.EXIT:
                 exit()
             self._start_event_queue.pop(0)
-
         if self._scope_interface.data_available and len(self._end_event_queue) > 0:
-            print(self._end_event_queue)
             if self._end_event_queue[0] == Event.CONNECT:
                 self.finish_connect()
             if self._end_event_queue[0] == Event.AUTO_TRIGGER:
                 self._finish_auto_trigger_cycle()
             if self._end_event_queue[0] == Event.NORMAL_TRIGGER:
                 self._finish_normal_trigger_cycle()
+            if self._end_event_queue[0] == Event.FORCE_TRIGGER:
+                self._finish_force_trigger()
             if self._end_event_queue[0] == Event.CHANGE_SCALE:
                 self._render_update_scale()
+            if self._end_event_queue[0] == Event.RANGE_FLIP_HIGH:
+                self._finish_range_flip_high()
+            if self._end_event_queue[0] == Event.RANGE_FLIP_LOW:
+                self._finish_range_flip_low()
             self._end_event_queue.pop(0)
         self.root.after(1, self.check_state)
 
@@ -239,10 +247,21 @@ class UserInterface:
         self._scale_range_flip_high = True
         self._scope_interface.run()
 
+    def _finish_range_flip_high(self) -> None:
+        if self._calibration:
+            self._calibration_step += 1
+            if self._calibration_step >= 5:
+                self._calibration = False
+                self._calibration_step = 0
+
     def _start_range_flip_low(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.SET_LOW_RANGE)
         self._scale_range_flip_low = True
         self._scope_interface.run()
+
+    def _finish_range_flip_low(self) -> None:
+        if self._calibration:
+            self._calibration_step += 1
     
     def _render_update_scale(self) -> None:
         self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
@@ -268,8 +287,11 @@ class UserInterface:
             self._auto_trigger_running = False
             self._stop_and_exit = True
 
-    def _calibrate_offsets(self):
-        average_offset: float = 0  
+    def _start_calibrate_offsets(self):
+        CAL_ROUTINE: list[Event] = [Event.RANGE_FLIP_HIGH, Event.FORCE_TRIGGER, Event.RANGE_FLIP_LOW, 
+                                    Event.FORCE_TRIGGER, Event.RANGE_FLIP_HIGH]
+        self._start_event_queue.extend(CAL_ROUTINE)
+        self._calibration = True
 
     def _connect(self):
         self._start_event_queue.append(Event.CONNECT)
@@ -297,7 +319,7 @@ class UserInterface:
             commands.HELP: self.info_panel.show,
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
-            commands.CAL: self._calibrate_offsets
+            commands.CAL: self._start_calibrate_offsets
         }
 
     def start_connect(self) -> None:
@@ -324,13 +346,11 @@ class UserInterface:
             self._update_scope_status()
 
     def _start_auto_trigger_cycle(self) -> None:
-        print('starting auto trigger cycle')
         self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
         self._auto_trigger_running = True
         self._scope_interface.run()
 
     def _finish_auto_trigger_cycle(self) -> None:
-        print('finishing auto trigger cycle')
         self.display_signal(self._scope_interface.xx)
         if self._auto_trigger_running:
             self._start_event_queue.append(Event.AUTO_TRIGGER)
@@ -351,6 +371,19 @@ class UserInterface:
 
     def _finish_force_trigger(self) -> None:
         if self._calibration:
+            average_offset: float = 0
+            for i in range(0, 100):
+                signal: list[float] = reconstruct(self._scope_interface.xx, scope_specs, self.scale.vert, 
+                                                  self.scale.probe_div, offset_null=False, 
+                                                  force_low_range=self._calibration_step==3)
+                average_offset += -1*average(signal)
+            average_offset /= 100
+            if self._calibration_step == 1:
+                scope_specs['offset']['range_high'] = average_offset
+                print('high range average offset', average_offset)
+            elif self._calibration_step == 3:
+                scope_specs['offset']['range_low'] = average_offset
+                print('low range average offset', average_offset)
             self._calibration_step += 1 
 
     def _start_single_trigger(self) -> None:

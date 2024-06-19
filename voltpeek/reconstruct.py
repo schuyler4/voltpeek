@@ -32,10 +32,12 @@ def resample_horizontal(vv: list[float], horizontal_setting: float, fs: float) -
     new_vv = f(new_tt)
     return new_vv
 
-def reconstruct(xx: list[float], specs, vertical_setting: float, probe_div: float) -> list[float]:
+def reconstruct(xx: list[float], specs, vertical_setting: float, probe_div: float, 
+                offset_null: bool=True, force_low_range=False) -> list[float]:
     attenuation: Optional[float] = None
     offset: Optional[float] = None
-    if vertical_setting <= constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX]:
+    # TODO: Change this logic so low range is just fed into the function
+    if vertical_setting <= constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX] or force_low_range:
         attenuation = specs['attenuation']['range_low']
         offset = specs['offset']['range_low']
     else: 
@@ -46,6 +48,8 @@ def reconstruct(xx: list[float], specs, vertical_setting: float, probe_div: floa
     for x in xx:
         adc_input = inverse_quantize(x, specs['resolution'], specs['voltage_ref'])
         zeroed = zero(adc_input, specs['voltage_ref'])
-        if offset is not None:
+        if offset is not None and offset_null:
             reconstructed_signal.append(reamplify(zeroed, attenuation, probe_div) + offset)
+        else:
+            reconstructed_signal.append(reamplify(zeroed, attenuation, probe_div))
     return reconstructed_signal     
