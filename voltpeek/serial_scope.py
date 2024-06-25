@@ -86,6 +86,13 @@ class Serial_Scope:
 
     def stop(self): self.serial_port.write(constants.Serial_Commands.STOP_COMMAND)
 
+    def read_calibration_offsets(self):
+        self.serial_port.write(constants.Serial_Commands.READ_CAL_COMMAND)
+        offset_bytes: list[str] = []
+        while len(offset_bytes) < 4:
+            offset_bytes += list(self.serial_port.read(self.serial_port.inWaiting()))
+        print(offset_bytes)
+
     def stop_trigger(self): 
         self.stop()
         self._stop.set()

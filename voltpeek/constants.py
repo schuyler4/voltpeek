@@ -65,6 +65,8 @@ class Serial_Commands:
     LOW_RANGE_COMMAND: bytes = b'r' 
     HIGH_RANGE_COMMAND: bytes = b'R'
     CLOCK_DIV_COMMAND: bytes = b'c'
+    SET_CAL_COMMAND: bytes = b'C'
+    READ_CAL_COMMAND: bytes = b'k'
 
 class Scale:
     DEFAULT_VERTICAL_INDEX:int = 5 

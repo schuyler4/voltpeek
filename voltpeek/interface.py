@@ -49,6 +49,7 @@ class Event(Enum):
     RANGE_FLIP_HIGH = 8
     SET_TRIGGER_LEVEL = 9
     EXIT = 10
+    READ_CAL_OFFSETS = 11
 
 class UserInterface:
     def __init__(self) -> None:
@@ -124,6 +125,8 @@ class UserInterface:
                 self._end_event_queue.append(Event.RANGE_FLIP_HIGH)
             if self._start_event_queue[0] == Event.SET_TRIGGER_LEVEL:
                 self._start_set_trigger_level()
+            if self._start_event_queue[0] == Event.READ_CAL_OFFSETS:
+                self._start_read_cal_offsets()
             if self._start_event_queue[0] == Event.EXIT:
                 exit()
             self._start_event_queue.pop(0)
@@ -226,9 +229,15 @@ class UserInterface:
         self.scale.update_sample_rate(scope_specs['sample_rate'], scope_specs['memory_depth'])
         self._start_event_queue.append(Event.CHANGE_SCALE)
 
+    def _start_read_cal_offsets(self) -> None:
+        self._scope_interface.set_scope_action(ScopeAction.READ_CAL_OFFSETS)
+        self._scope_interface.run()
+
+    def _finish_read_cal_offsets(self) -> None:
+        pass
+
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
-        print(self.scale.clock_div)
         self._scope_interface.set_scope_action(ScopeAction.SET_CLOCK_DIV)
         self._change_scale = True
         self._scope_interface.run()
@@ -298,6 +307,7 @@ class UserInterface:
         self._set_update_scale(None)
         self._start_event_queue.append(Event.CHANGE_SCALE)
         self._start_event_queue.append(Event.RANGE_FLIP_HIGH)
+        self._start_event_queue.append(Event.READ_CAL_OFFSETS)
 
     def get_commands(self): 
         return {
