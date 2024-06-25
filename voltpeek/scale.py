@@ -2,6 +2,7 @@ from typing import Optional
 
 from voltpeek import constants
 
+# TODO: Possibly make this an iterator.
 class Scale:
     VERTICALS = (0.1, 0.2, 0.5, 1, 2, 5, 10, 12)
     HORIZONTALS = (1e-6, 10e-6, 20e-6, 50e-6, 100e-6, 200e-6, 500e-6, 1e-3, 10e-3, 100e-3, 1)
