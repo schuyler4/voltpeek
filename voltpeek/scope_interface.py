@@ -13,6 +13,8 @@ class ScopeAction(Enum):
     SET_LOW_RANGE = 5
     SET_TRIGGER_LEVEL = 6
     STOP = 7
+    SET_CAL_OFFSETS = 7
+    READ_CAL_OFFSETS = 8
 
 class ScopeInterface:
     def __init__(self):
@@ -63,6 +65,17 @@ class ScopeInterface:
         self._action_complete = True
         self._data_available.release()
 
+    def _read_cal_offsets(self):
+        self._serial_scope.read_calibration_offsets()
+        self._action_complete = True
+        self._data_available.release()
+    
+    def _set_cal_offsets(self):
+        self._serial_scope.set_calibration_offsets(self._value)
+        print('set calibration offsets', self._value)
+        self._action_complete = True
+        self._data_available.release()
+
     def run(self):
         if self._action == ScopeAction.CONNECT and not self._action_complete:
             thread: Thread = Thread(target=self._connect_scope)   
@@ -80,6 +93,10 @@ class ScopeInterface:
             thread: Thread = Thread(target=self._set_trigger_level)
         if self._action == ScopeAction.STOP and not self._action_complete:
             thread: Thread = Thread(target=self.stop_trigger) 
+        if self._action == ScopeAction.READ_CAL_OFFSETS and not self._action_complete:
+            thread: Thread = Thread(target=self._read_cal_offsets)
+        if self._action == ScopeAction.SET_CAL_OFFSETS and not self._action_complete:
+            pass
         thread.start()
 
     @property 
