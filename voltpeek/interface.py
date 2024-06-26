@@ -262,6 +262,10 @@ class UserInterface:
             if self._calibration_step >= 5:
                 self._calibration = False
                 self._calibration_step = 0
+                data:str = str(int(scope_specs['offset']['range_high']*1000)) + str(int(scope_specs['offset']['range_low']*1000))
+                self._scope_interface.set_value(data)
+                self._scope_interface.set_scope_action(ScopeAction.SET_CAL_OFFSETS)
+                self._scope_interface.run()
 
     def _start_range_flip_low(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.SET_LOW_RANGE)
