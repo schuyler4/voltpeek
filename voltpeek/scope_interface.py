@@ -20,6 +20,7 @@ class ScopeInterface:
     def __init__(self):
         self._scope_connected: bool = False
         self._xx: Optional[list[float]] = None
+        self._calibration_ints: list[int] = None
         self._serial_scope: Serial_Scope = Serial_Scope(115200)
         self._data_available: Lock = Lock()
         self._action: ScopeAction = None
@@ -66,7 +67,7 @@ class ScopeInterface:
         self._data_available.release()
 
     def _read_cal_offsets(self):
-        self._serial_scope.read_calibration_offsets()
+        self._calibration_ints = self._serial_scope.read_calibration_offsets()
         self._action_complete = True
         self._data_available.release()
     
@@ -96,7 +97,7 @@ class ScopeInterface:
         if self._action == ScopeAction.READ_CAL_OFFSETS and not self._action_complete:
             thread: Thread = Thread(target=self._read_cal_offsets)
         if self._action == ScopeAction.SET_CAL_OFFSETS and not self._action_complete:
-            pass
+            thread: Thread = Thread(target=self._set_cal_offsets)
         thread.start()
 
     @property 
@@ -107,6 +108,9 @@ class ScopeInterface:
 
     @property
     def value(self): return self._value
+
+    @property
+    def calibration_ints(self): return self._calibration_ints
 
     def set_value(self, new_value: int) -> None:
         if self.data_available:

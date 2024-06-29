@@ -50,6 +50,7 @@ class Event(Enum):
     SET_TRIGGER_LEVEL = 9
     EXIT = 10
     READ_CAL_OFFSETS = 11
+    SET_CAL_OFFSETS = 12
 
 class UserInterface:
     def __init__(self) -> None:
@@ -127,6 +128,9 @@ class UserInterface:
                 self._start_set_trigger_level()
             if self._start_event_queue[0] == Event.READ_CAL_OFFSETS:
                 self._start_read_cal_offsets()
+                self._end_event_queue.append(Event.READ_CAL_OFFSETS)
+            if self._start_event_queue[0] == Event.SET_CAL_OFFSETS:
+                self._start_set_calibration()
             if self._start_event_queue[0] == Event.EXIT:
                 exit()
             self._start_event_queue.pop(0)
@@ -145,6 +149,8 @@ class UserInterface:
                 self._finish_range_flip_high()
             if self._end_event_queue[0] == Event.RANGE_FLIP_LOW:
                 self._finish_range_flip_low()
+            if self._end_event_queue[0] == Event.READ_CAL_OFFSETS:
+                self._finish_read_cal_offsets() 
             self._end_event_queue.pop(0)
         self.root.after(1, self.check_state)
 
@@ -234,7 +240,12 @@ class UserInterface:
         self._scope_interface.run()
 
     def _finish_read_cal_offsets(self) -> None:
-        pass
+        high_range_offset_int: int = self._scope_interface.calibration_ints[1] << 8 | self._scope_interface.calibration_ints[0]
+        low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
+        scope_specs['offset']['range_high'] = high_range_offset_int/1000
+        scope_specs['offset']['range_low'] = low_range_offset_int/1000
+        print(scope_specs['offset']['range_high'])
+        print(scope_specs['offset']['range_low'])
 
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
@@ -256,16 +267,21 @@ class UserInterface:
         self._scale_range_flip_high = True
         self._scope_interface.run()
 
+    def _start_set_calibration(self) -> None:
+        self._scope_interface.set_value(self._cal_offset_data)
+        self._scope_interface.set_scope_action(ScopeAction.SET_CAL_OFFSETS)
+        self._scope_interface.run()
+
     def _finish_range_flip_high(self) -> None:
         if self._calibration:
             self._calibration_step += 1
             if self._calibration_step >= 5:
                 self._calibration = False
                 self._calibration_step = 0
-                data:str = str(int(scope_specs['offset']['range_high']*1000)) + str(int(scope_specs['offset']['range_low']*1000))
-                self._scope_interface.set_value(data)
-                self._scope_interface.set_scope_action(ScopeAction.SET_CAL_OFFSETS)
-                self._scope_interface.run()
+                range_high_integer:int  = int(scope_specs['offset']['range_high']*1000)
+                range_low_integer:int = int(scope_specs['offset']['range_low']*1000)
+                self._cal_offset_data:str = str(range_high_integer) + str(range_low_integer)
+                self._start_event_queue.append(Event.SET_CAL_OFFSETS)
 
     def _start_range_flip_low(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.SET_LOW_RANGE)
