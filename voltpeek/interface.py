@@ -240,7 +240,12 @@ class UserInterface:
         self._scope_interface.run()
 
     def _finish_read_cal_offsets(self) -> None:
-        print(self._scope_interface.calibration_ints)
+        high_range_offset_int: int = self._scope_interface.calibration_ints[1] << 8 | self._scope_interface.calibration_ints[0]
+        low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
+        scope_specs['offset']['range_high'] = high_range_offset_int/1000
+        scope_specs['offset']['range_low'] = low_range_offset_int/1000
+        print(scope_specs['offset']['range_high'])
+        print(scope_specs['offset']['range_low'])
 
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
