@@ -88,7 +88,6 @@ class Serial_Scope:
         print('start of serial port write')
         self.serial_port.write(constants.Serial_Commands.SET_CAL_COMMAND)
         self.serial_port.write(bytes(str(calibration_offsets_str) + '\0', 'utf-8')) 
-        print('made it here')
 
     def stop(self): self.serial_port.write(constants.Serial_Commands.STOP_COMMAND)
 

@@ -242,8 +242,11 @@ class UserInterface:
     def _finish_read_cal_offsets(self) -> None:
         high_range_offset_int: int = self._scope_interface.calibration_ints[1] << 8 | self._scope_interface.calibration_ints[0]
         low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
-        scope_specs['offset']['range_high'] = high_range_offset_int/1000
+        scope_specs['offset']['range_high'] = high_range_offset_int/10000
         scope_specs['offset']['range_low'] = low_range_offset_int/1000
+        print(high_range_offset_int)
+        print(low_range_offset_int)
+        print(self._scope_interface.calibration_ints)
         print(scope_specs['offset']['range_high'])
         print(scope_specs['offset']['range_low'])
 
@@ -320,6 +323,8 @@ class UserInterface:
         CAL_ROUTINE: list[Event] = [Event.RANGE_FLIP_HIGH, Event.FORCE_TRIGGER, Event.RANGE_FLIP_LOW, 
                                     Event.FORCE_TRIGGER, Event.RANGE_FLIP_HIGH]
         self._start_event_queue.extend(CAL_ROUTINE)
+        scope_specs['offset']['range_high'] = 0
+        scope_specs['offset']['range_low'] = 0
         self._calibration = True
 
     def _connect(self):

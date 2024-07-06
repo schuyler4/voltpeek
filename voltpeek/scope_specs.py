@@ -17,8 +17,8 @@ class ScopeSpecs(TypedDict):
     memory_depth:int
 
 scope_specs:ScopeSpecs = {
-    'attenuation': {'range_high':0.02493, 'range_low':0.5005},
-    'offset': {'range_high':0.747, 'range_low':0.0372},
+    'attenuation': {'range_high':0.04976, 'range_low':0.5014},
+    'offset': {'range_high':0.515, 'range_low':0.511},
     'resolution': 256,    
     'voltage_ref': 1.0,
     'sample_rate': 62.5e6, 
