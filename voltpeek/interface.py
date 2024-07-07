@@ -244,11 +244,6 @@ class UserInterface:
         low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
         scope_specs['offset']['range_high'] = high_range_offset_int/10000
         scope_specs['offset']['range_low'] = low_range_offset_int/1000
-        print(high_range_offset_int)
-        print(low_range_offset_int)
-        print(self._scope_interface.calibration_ints)
-        print(scope_specs['offset']['range_high'])
-        print(scope_specs['offset']['range_low'])
 
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
@@ -275,6 +270,12 @@ class UserInterface:
         self._scope_interface.set_scope_action(ScopeAction.SET_CAL_OFFSETS)
         self._scope_interface.run()
 
+    def _pad_zero(self, number_string) -> str:
+        for i in range(1, 4):
+            if len(number_string) < i:
+                number_string = '0' + number_string
+        return number_string
+
     def _finish_range_flip_high(self) -> None:
         if self._calibration:
             self._calibration_step += 1
@@ -283,7 +284,7 @@ class UserInterface:
                 self._calibration_step = 0
                 range_high_integer:int  = int(scope_specs['offset']['range_high']*1000)
                 range_low_integer:int = int(scope_specs['offset']['range_low']*1000)
-                self._cal_offset_data:str = str(range_high_integer) + str(range_low_integer)
+                self._cal_offset_data:str = self._pad_zero(str(range_high_integer)) + self._pad_zero(str(range_low_integer))
                 self._start_event_queue.append(Event.SET_CAL_OFFSETS)
 
     def _start_range_flip_low(self) -> None:
