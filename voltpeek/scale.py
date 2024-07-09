@@ -11,7 +11,7 @@ class Scale:
     MAX_HOR_INDEX: int = len(HORIZONTALS) - 1
     RANGE_FLIP_INDEX: int = 1 
     DEFAULT_VERTICAL_INDEX: int = 5 
-    DEFAULT_HORIZONTAL_INDEX: int = 7
+    DEFAULT_HORIZONTAL_INDEX: int = 11
 
     def __init__(self) -> None:
         self._vertical_index: int = self.DEFAULT_VERTICAL_INDEX

@@ -20,6 +20,8 @@ PROBE_10: str = 'probe10'
 STOP: str = 'stop'
 CAL: str = 'cal'
 HELP: str = 'help'
+FIR10: str = 'fir10'
+FIR100: str = 'fir100'
 
 ADJUST_COMMANDS: tuple[str, str, str] = (SCALE_COMMAND, TRIGGER_LEVEL_COMMAND, ADJUST_CURS)
 

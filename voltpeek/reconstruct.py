@@ -18,11 +18,9 @@ def quantize_vertical(vv: list[float], vertical_setting: float) -> list[int]:
     pixel_resolution: float = vertical_setting/pixel_amplitude
     return [int(v/pixel_resolution) + int(constants.Display.SIZE/2) for v in vv] 
 
-def FIR_filter(vv: list[int]) -> list[float]:
-    N = 5
-    hh = np.array([1/N for _ in range(0, N)]) 
-    filtered_signal = np.convolve(np.array(vv), hh)
-    return filtered_signal[N-1:len(filtered_signal)]
+def FIR_filter(vv: list[int], length: int) -> list[float]:
+    filtered_signal = np.convolve(np.array(vv), np.array([1/length for _ in range(0, length)]))
+    return filtered_signal[length-1:len(filtered_signal)]
 
 def resample_horizontal(vv: list[float], horizontal_setting: float, fs: float) -> list[int]:
     tt:list[float] = [i/fs for i in range(0, len(vv))]

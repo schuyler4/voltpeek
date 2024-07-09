@@ -89,6 +89,8 @@ class UserInterface:
         self._calibration = False
         self._calibration_step = 0
 
+        self._fir_length = 10
+
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
         self.root.title(constants.Application.NAME)
@@ -335,6 +337,9 @@ class UserInterface:
         self._start_event_queue.append(Event.RANGE_FLIP_HIGH)
         self._start_event_queue.append(Event.READ_CAL_OFFSETS)
 
+    def _set_fir(self, new_length: int):
+        self._fir_length = new_length
+
     def get_commands(self): 
         return {
             commands.EXIT_COMMAND: lambda: self._start_event_queue.append(Event.EXIT),
@@ -355,7 +360,9 @@ class UserInterface:
             commands.HELP: self.info_panel.show,
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
-            commands.CAL: self._start_calibrate_offsets
+            commands.CAL: self._start_calibrate_offsets,
+            commands.FIR10: lambda: self._set_fir(10),
+            commands.FIR100: lambda: self._set_fir(100)
         }
 
     def start_connect(self) -> None:
@@ -371,7 +378,7 @@ class UserInterface:
 
     def display_signal(self, xx: list[int]) -> None:
         if len(xx) > 0:
-            filtered_signal: list[float] = FIR_filter(xx) 
+            filtered_signal: list[float] = FIR_filter(xx, self._fir_length) 
             self.vv = reconstruct(filtered_signal, scope_specs, self.scale.vert, self.scale.probe_div)
             self.readout.set_average(average(self.vv))
             self.readout.set_rms(rms(self.vv))
