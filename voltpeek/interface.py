@@ -89,7 +89,7 @@ class UserInterface:
         self._calibration = False
         self._calibration_step = 0
 
-        self._fir_length = 10
+        self._fir_length = 7
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -333,12 +333,10 @@ class UserInterface:
     def _connect(self):
         self._start_event_queue.append(Event.CONNECT)
         self._set_update_scale(None)
-        self._start_event_queue.append(Event.CHANGE_SCALE)
         self._start_event_queue.append(Event.RANGE_FLIP_HIGH)
         self._start_event_queue.append(Event.READ_CAL_OFFSETS)
 
-    def _set_fir(self, new_length: int):
-        self._fir_length = new_length
+    def _set_fir(self, new_length: int): self._fir_length = new_length
 
     def get_commands(self): 
         return {
@@ -374,6 +372,8 @@ class UserInterface:
             
     def finish_connect(self) -> None:
         self.scope_status = Scope_Status.NEUTRAL
+        self.scale.update_sample_rate(scope_specs['sample_rate'], scope_specs['memory_depth'])
+        self._start_event_queue.append(Event.CHANGE_SCALE)
         self._update_scope_status()
 
     def display_signal(self, xx: list[int]) -> None:

@@ -4,12 +4,12 @@ from voltpeek import constants
 
 # TODO: Possibly make this an iterator.
 class Scale:
-    VERTICALS = (0.1, 0.2, 0.5, 1, 2, 5, 10, 12)
+    VERTICALS = (0.1, 0.2, 0.4, 1, 2, 5, 10, 12)
     HORIZONTALS = (50e-9, 100e-9, 200e-9, 500e-9, 1e-6, 10e-6, 20e-6, 50e-6, 100e-6, 200e-6, 500e-6, 1e-3, 10e-3, 100e-3, 1)
     PROBE_DIVISIONS = (1, 10)
     MAX_VERTICAL_INDEX: int = len(VERTICALS) - 1
     MAX_HOR_INDEX: int = len(HORIZONTALS) - 1
-    RANGE_FLIP_INDEX: int = 1 
+    RANGE_FLIP_INDEX: int = 2 
     DEFAULT_VERTICAL_INDEX: int = 5 
     DEFAULT_HORIZONTAL_INDEX: int = 11
 
@@ -69,7 +69,7 @@ class Scale:
             raise ValueError('Not an existing probe division.')
         self._probe_div = probe_div
 
-    # TODO: possibly move these methods so they can be exposed to scripting API
+    # TODO: possibly move these methods so they can be exposed to the scripting API
     def get_max_sample_rate(self, memory_depth: int) -> float:
         return (memory_depth/(self.hor*constants.Display.GRID_LINE_COUNT)) 
 
