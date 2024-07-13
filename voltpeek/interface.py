@@ -263,8 +263,7 @@ class UserInterface:
             self._start_event_queue.append(Event.RANGE_FLIP_LOW)
         elif self.scale.high_range_flip:
             self._start_event_queue.append(Event.RANGE_FLIP_HIGH)
-        else:
-            self._render_update_scale()
+        self._render_update_scale()
 
     def _start_range_flip_high(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.SET_HIGH_RANGE)
