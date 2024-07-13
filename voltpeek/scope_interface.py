@@ -25,9 +25,8 @@ class ScopeInterface:
         self._data_available: Lock = Lock()
         self._action: ScopeAction = None
         self._action_complete: bool = True
-        self._stopper: Event = Event()
-        self._trigger_stopper: Event = Event()
         self._value: Optional[int] = None
+        self._stop_flag = False
 
     def _connect_scope(self):
         self._serial_scope.init_serial()
@@ -112,6 +111,12 @@ class ScopeInterface:
     @property
     def calibration_ints(self): return self._calibration_ints
 
+    @property
+    def stopped(self): return self._serial_scope.stopped
+
+    @property
+    def stop_flag(self): return self._stop_flag
+
     def set_value(self, new_value: int) -> None:
         if self.data_available:
             self._value = new_value
@@ -122,5 +127,9 @@ class ScopeInterface:
             self._action_complete = False
             self._data_available.acquire()
         
-    def stop_trigger(self):
+    def stop_trigger(self): 
+        self._stop_flag = True
         self._serial_scope.stop_trigger()
+
+    def reset_stop_flag(self):
+        self._stop_flag = False

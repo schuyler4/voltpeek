@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 from typing import Optional
 from threading import Event
 
@@ -53,10 +54,13 @@ class Serial_Scope:
             self.error = True
 
     def read_glob_data(self) -> str:
+        self.serial_port.flushInput()
+        self.serial_port.flushOutput()
         self._stop.clear()
         codes: list[str] = []
         while len(codes) < self.POINT_COUNT: 
             if self._stop.is_set():
+                print('stopped while waiting for data')
                 self._stop.clear()
                 return []
             codes += list(self.serial_port.read(self.serial_port.inWaiting()))
@@ -85,13 +89,14 @@ class Serial_Scope:
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
 
     def set_calibration_offsets(self, calibration_offsets_str:str):
-        print('start of serial port write')
         self.serial_port.write(constants.Serial_Commands.SET_CAL_COMMAND)
         self.serial_port.write(bytes(str(calibration_offsets_str) + '\0', 'utf-8')) 
 
     def stop(self): self.serial_port.write(constants.Serial_Commands.STOP_COMMAND)
 
     def read_calibration_offsets(self) -> list[int]:
+        self.serial_port.flushInput()
+        self.serial_port.flushOutput()
         self.serial_port.write(constants.Serial_Commands.READ_CAL_COMMAND)
         offset_bytes: list[str] = []
         while len(offset_bytes) < 4:
@@ -101,3 +106,6 @@ class Serial_Scope:
     def stop_trigger(self): 
         self.stop()
         self._stop.set()
+
+    @property
+    def stopped(self): return self._stop.is_set()

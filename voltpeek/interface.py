@@ -89,7 +89,7 @@ class UserInterface:
         self._calibration = False
         self._calibration_step = 0
 
-        self._fir_length = 7
+        self._fir_length = 6
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -246,6 +246,10 @@ class UserInterface:
         low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
         scope_specs['offset']['range_high'] = high_range_offset_int/10000
         scope_specs['offset']['range_low'] = low_range_offset_int/1000
+        print(high_range_offset_int)
+        print(low_range_offset_int)
+        print(scope_specs['offset']['range_high'])
+        print(scope_specs['offset']['range_low'])
 
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
@@ -404,7 +408,8 @@ class UserInterface:
         self._scope_interface.run()
 
     def _finish_normal_trigger_cycle(self) -> None:
-        self.display_signal(self._scope_interface.xx)
+        if len(self._scope_interface.xx) > 0: 
+            self.display_signal(self._scope_interface.xx)
         if self._normal_trigger_running:
             self._start_event_queue.append(Event.NORMAL_TRIGGER)
 
@@ -423,10 +428,8 @@ class UserInterface:
             average_offset /= 100
             if self._calibration_step == 1:
                 scope_specs['offset']['range_high'] = average_offset
-                print('high range average offset', average_offset)
             elif self._calibration_step == 3:
                 scope_specs['offset']['range_low'] = average_offset
-                print('low range average offset', average_offset)
             self._calibration_step += 1 
 
     def _start_single_trigger(self) -> None:
@@ -439,9 +442,7 @@ class UserInterface:
             self._auto_trigger_running = False
         elif self._normal_trigger_running:
             self._normal_trigger_running = False  
-            self._scope_interface.set_scope_action(ScopeAction.STOP)
-            self.scope_status = Scope_Status.NEUTRAL
-            self._update_scope_status()
+            self._scope_interface.stop_trigger()
 
     def set_trigger(self) -> None: 
         trigger_height:int = self.scope_display.get_trigger_level()
