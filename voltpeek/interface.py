@@ -2,6 +2,7 @@ from typing import Callable, Optional, Sequence
 from enum import Enum
 from threading import Thread, Event, Lock
 from time import sleep
+from inspect import signature
 
 import tkinter as tk
 
@@ -23,6 +24,8 @@ from voltpeek.cursors import Cursors, Cursor_Data
 from voltpeek.scale import Scale
 
 from voltpeek.scope_specs import scope_specs
+
+from voltpeek.export import export_png
 
 class Mode(Enum):
     COMMAND = 0
@@ -72,7 +75,7 @@ class UserInterface:
 
         self.mode: Mode = Mode.COMMAND
         self.command_input.set_focus()
-        self.vv:Optional[list[float]] = None
+        self.vv: Optional[list[float]] = None
         self.serial_scope_connected: bool = False
         self.scope_status = Scope_Status.DISCONNECTED
         self._update_scope_status()
@@ -89,7 +92,7 @@ class UserInterface:
         self._calibration = False
         self._calibration_step = 0
 
-        self._fir_length = 6
+        self._fir_length = 5
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -193,9 +196,21 @@ class UserInterface:
                 self.command_input.set_command_stack()
 
     def process_command(self, command:str) -> None:
+        argument = None
+        if ' ' in command:
+            argument = command.split(' ')[1]
+            command = command.split(' ')[0]
         for key in self.get_commands():
             if key == command: 
-                self.get_commands()[key]()
+                sig = signature(self.get_commands()[key])
+                parameters = sig.parameters
+                if len(parameters) > 0 and argument is not None:
+                    self.get_commands()[key](argument)
+                else:
+                    try:
+                        self.get_commands()[key]()
+                    except:
+                        break
                 return
         self.command_input.set_error(messages.Errors.INVALID_COMMAND_ERROR)
     
@@ -246,10 +261,6 @@ class UserInterface:
         low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
         scope_specs['offset']['range_high'] = high_range_offset_int/10000
         scope_specs['offset']['range_low'] = low_range_offset_int/1000
-        print(high_range_offset_int)
-        print(low_range_offset_int)
-        print(scope_specs['offset']['range_high'])
-        print(scope_specs['offset']['range_low'])
 
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
@@ -263,8 +274,7 @@ class UserInterface:
             self._start_event_queue.append(Event.RANGE_FLIP_LOW)
         elif self.scale.high_range_flip:
             self._start_event_queue.append(Event.RANGE_FLIP_HIGH)
-        else:
-            self._render_update_scale()
+        self._render_update_scale()
 
     def _start_range_flip_high(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.SET_HIGH_RANGE)
@@ -364,7 +374,8 @@ class UserInterface:
             commands.PROBE_10: lambda: self._set_probe(10),
             commands.CAL: self._start_calibrate_offsets,
             commands.FIR10: lambda: self._set_fir(10),
-            commands.FIR100: lambda: self._set_fir(100)
+            commands.FIR100: lambda: self._set_fir(100),
+            commands.PNG: lambda filename: export_png(self.scope_display.image_map, self.scale.vert, self.scale.hor, filename)
         }
 
     def start_connect(self) -> None:
