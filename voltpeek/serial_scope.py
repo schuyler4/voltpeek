@@ -63,7 +63,14 @@ class Serial_Scope:
                 print('stopped while waiting for data')
                 self._stop.clear()
                 return []
-            codes += list(self.serial_port.read(self.serial_port.inWaiting()))
+            new_data = self.serial_port.read(self.serial_port.inWaiting())
+            '''
+            USED for on data receive debugging.
+
+            if new_data != b'':
+                print(new_data) 
+            '''
+            codes += list(new_data)
         return codes
 
     def get_scope_trigger_data(self) -> list[int]:
