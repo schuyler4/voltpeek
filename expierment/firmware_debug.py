@@ -1,7 +1,7 @@
 import sys
 sys.path.append('..')
 
-from voltpeek.serial_scope import Serial_Scope
+from voltpeek.scopes.newt_scope_one import Serial_Scope
 
 serial_scope = Serial_Scope(115200)
 if serial_scope.pico_connected:

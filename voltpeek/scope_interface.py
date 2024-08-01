@@ -2,7 +2,7 @@ from typing import Optional
 from enum import Enum
 from threading import Thread, Event, Lock
 
-from voltpeek.serial_scope import Serial_Scope
+from voltpeek.scopes.newt_scope_one import NewtScope_One
 
 class ScopeAction(Enum):
     CONNECT = 0
@@ -21,7 +21,7 @@ class ScopeInterface:
         self._scope_connected: bool = False
         self._xx: Optional[list[float]] = None
         self._calibration_ints: list[int] = None
-        self._serial_scope: Serial_Scope = Serial_Scope(115200)
+        self._serial_scope: NewtScope_One = NewtScope_One(115200)
         self._data_available: Lock = Lock()
         self._action: ScopeAction = None
         self._action_complete: bool = True

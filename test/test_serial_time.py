@@ -5,7 +5,7 @@ import time
 
 # Must be run with the scope connected
 
-from voltpeek.serial_scope import Serial_Scope
+from voltpeek.scopes.newt_scope_one import Serial_Scope
 
 serial_scope = Serial_Scope(115200)
 serial_scope.init_serial()

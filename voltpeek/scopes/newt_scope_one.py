@@ -7,10 +7,10 @@ import time
 from serial import Serial
 from serial.tools import list_ports
 
-from . import messages
-from . import constants
+from .. import messages
+from .. import constants
 
-class Serial_Scope:
+class NewtScope_One:
     DECODING_SCHEME: str = constants.Serial_Protocol.DECODING_SCHEME
     DATA_START_COMMAND: str = constants.Serial_Protocol.DATA_START_COMMAND 
     DATA_END_COMMAND: str = constants.Serial_Protocol.DATA_END_COMMAND
