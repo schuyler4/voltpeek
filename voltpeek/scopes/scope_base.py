@@ -39,6 +39,3 @@ class ScopeBase(metaclass=ABCMeta):
     @abstractmethod
     def set_clock_div(self, clock_div:int) -> None:
         pass
-
-    
-

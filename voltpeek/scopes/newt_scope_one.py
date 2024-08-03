@@ -2,12 +2,9 @@ import matplotlib.pyplot as plt
 from typing import Optional
 from threading import Event
 
-import time
-
 from serial import Serial
 from serial.tools import list_ports
 
-from .. import messages
 from .. import constants
 
 from voltpeek.scopes.scope_base import ScopeBase, ScopeSpecs
