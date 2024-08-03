@@ -10,7 +10,9 @@ from serial.tools import list_ports
 from .. import messages
 from .. import constants
 
-class NewtScope_One:
+from voltpeek.scopes.scope_base import ScopeBase, ScopeSpecs
+
+class NewtScope_One(ScopeBase):
     DECODING_SCHEME: str = constants.Serial_Protocol.DECODING_SCHEME
     DATA_START_COMMAND: str = constants.Serial_Protocol.DATA_START_COMMAND 
     DATA_END_COMMAND: str = constants.Serial_Protocol.DATA_END_COMMAND
@@ -19,11 +21,22 @@ class NewtScope_One:
     PICO_VID: int = 0x2E8A
     POINT_COUNT: int = 20000
 
-    def __init__(self, baudrate: int, port: Optional[str]=None):
+    ID = 'NS1'
+    SCOPE_SPECS: ScopeSpecs = {
+        'attenuation': {'range_high':0.03568, 'range_low':0.2505},
+        'offset': {'range_high':0.515, 'range_low':0.511},
+        'resolution': 256,    
+        'voltage_ref': 1.0,
+        'sample_rate': 62.5e6, 
+        'memory_depth': 20000
+    }
+
+    def __init__(self, baudrate: int=115200, port: Optional[str]=None):
         self.baudrate: int = baudrate
         self.port: Optional[str] = None
         self.error: bool = False
         self._stop: Event = Event()
+        print('finished init')
 
     def pico_connected(self) -> bool:
         ports = list_ports.comports()

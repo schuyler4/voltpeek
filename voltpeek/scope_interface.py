@@ -17,11 +17,11 @@ class ScopeAction(Enum):
     READ_CAL_OFFSETS = 8
 
 class ScopeInterface:
-    def __init__(self):
+    def __init__(self, scope):
         self._scope_connected: bool = False
         self._xx: Optional[list[float]] = None
         self._calibration_ints: list[int] = None
-        self._serial_scope: NewtScope_One = NewtScope_One(115200)
+        self._scope = scope() 
         self._data_available: Lock = Lock()
         self._action: ScopeAction = None
         self._action_complete: bool = True
@@ -29,49 +29,49 @@ class ScopeInterface:
         self._stop_flag = False
 
     def _connect_scope(self):
-        self._serial_scope.init_serial()
+        self._scope.init_serial()
         self._scope_connected = True
         self._action_complete = True
         self._data_available.release()
 
     def _force_trigger(self):
-        self._xx: list[int] = self._serial_scope.get_scope_force_trigger_data()
+        self._xx: list[int] = self._scope.get_scope_force_trigger_data()
         self._action_complete = True
         self._data_available.release()
 
     def _trigger(self):
-        self._xx: list[int] = self._serial_scope.get_scope_trigger_data()
+        self._xx: list[int] = self._scope.get_scope_trigger_data()
         self._action_complete = True
         self._data_available.release()
 
     def _set_clock_div(self):
-        self._serial_scope.set_clock_div(self._value)
+        self._scope.set_clock_div(self._value)
         self._action_complete = True
         self._data_available.release()
 
     def _set_high_range(self):
-        self._serial_scope.request_high_range()
+        self._scope.request_high_range()
         self._action_complete = True
         self._data_available.release()
 
     def _set_low_range(self):
-        self._serial_scope.request_low_range()
+        self._scope.request_low_range()
         self._action_complete = True
         self._data_available.release()
 
     def _set_trigger_level(self):
-        self._serial_scope.set_trigger_code(self._value)
+        self._scope.set_trigger_code(self._value)
         print('set trigger to', self._value)
         self._action_complete = True
         self._data_available.release()
 
     def _read_cal_offsets(self):
-        self._calibration_ints = self._serial_scope.read_calibration_offsets()
+        self._calibration_ints = self._scope.read_calibration_offsets()
         self._action_complete = True
         self._data_available.release()
     
     def _set_cal_offsets(self):
-        self._serial_scope.set_calibration_offsets(self._value)
+        self._scope.set_calibration_offsets(self._value)
         print('set calibration offsets', self._value)
         self._action_complete = True
         self._data_available.release()
@@ -112,10 +112,13 @@ class ScopeInterface:
     def calibration_ints(self): return self._calibration_ints
 
     @property
-    def stopped(self): return self._serial_scope.stopped
+    def stopped(self): return self._scope.stopped
 
     @property
     def stop_flag(self): return self._stop_flag
+
+    @property
+    def scope(self): return self._scope 
 
     def set_value(self, new_value: int) -> None:
         if self.data_available:
@@ -129,7 +132,7 @@ class ScopeInterface:
         
     def stop_trigger(self): 
         self._stop_flag = True
-        self._serial_scope.stop_trigger()
+        self._scope.stop_trigger()
 
     def reset_stop_flag(self):
         self._stop_flag = False
