@@ -29,7 +29,7 @@ class ScopeInterface:
         self._stop_flag = False
 
     def _connect_scope(self):
-        self._scope.init_serial()
+        self._scope.connect()
         self._scope_connected = True
         self._action_complete = True
         self._data_available.release()

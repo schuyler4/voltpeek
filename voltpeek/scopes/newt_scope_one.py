@@ -2,15 +2,12 @@ import matplotlib.pyplot as plt
 from typing import Optional
 from threading import Event
 
-import time
-
 from serial import Serial
 from serial.tools import list_ports
 
-from .. import messages
 from .. import constants
 
-from voltpeek.scopes.scope_base import ScopeBase, ScopeSpecs
+from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 
 class NewtScope_One(ScopeBase):
     DECODING_SCHEME: str = constants.Serial_Protocol.DECODING_SCHEME
@@ -22,7 +19,7 @@ class NewtScope_One(ScopeBase):
     POINT_COUNT: int = 20000
 
     ID = 'NS1'
-    SCOPE_SPECS: ScopeSpecs = {
+    SCOPE_SPECS: SoftwareScopeSpecs = {
         'attenuation': {'range_high':0.03568, 'range_low':0.2505},
         'offset': {'range_high':0.515, 'range_low':0.511},
         'resolution': 256,    
@@ -36,7 +33,6 @@ class NewtScope_One(ScopeBase):
         self.port: Optional[str] = None
         self.error: bool = False
         self._stop: Event = Event()
-        print('finished init')
 
     def pico_connected(self) -> bool:
         ports = list_ports.comports()
@@ -52,7 +48,7 @@ class NewtScope_One(ScopeBase):
                 return port.device
         return None
 
-    def init_serial(self) -> None:
+    def connect(self) -> None:
         try:
             if self.port is None:
                 self.port = self.find_pico_serial_port() 

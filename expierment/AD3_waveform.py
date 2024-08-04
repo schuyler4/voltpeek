@@ -10,7 +10,7 @@ sts = ctypes.c_byte()
 constants_path = sep + "usr" + sep + "share" + sep + "digilent" + sep + "waveforms" + sep + "samples" + sep + "py"
 
 path.append(constants_path)
-import dwfconstants as constants
+import dwfconstants as constants # type: ignore
 
 class AD3:
     def __init__(self):
