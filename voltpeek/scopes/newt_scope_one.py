@@ -5,8 +5,6 @@ import numpy as np
 from serial import Serial
 from serial.tools import list_ports
 
-from .. import constants
-
 from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 
 class NewtScope_One(ScopeBase):
@@ -23,6 +21,16 @@ class NewtScope_One(ScopeBase):
         'sample_rate': 62.5e6, 
         'memory_depth': 20000
     }
+
+    TRIGGER_LEVEL_COMMAND: bytes = b'l'
+    TRIGGER_COMMAND: bytes = b't'
+    FORCE_TRIGGER_COMMAND: bytes = b'f'
+    STOP_COMMAND: bytes = b'S'
+    LOW_RANGE_COMMAND: bytes = b'r' 
+    HIGH_RANGE_COMMAND: bytes = b'R'
+    CLOCK_DIV_COMMAND: bytes = b'c'
+    SET_CAL_COMMAND: bytes = b'C'
+    READ_CAL_COMMAND: bytes = b'k'
 
     LOW_RANGE_THRESHOLD: float = 2
 
@@ -116,38 +124,38 @@ class NewtScope_One(ScopeBase):
         return reconstructed_signal
 
     def get_scope_trigger_data(self, full_scale: float) -> list[int]:
-        self.serial_port.write(constants.Serial_Commands.TRIGGER_COMMAND) 
+        self.serial_port.write(self.TRIGGER_COMMAND) 
         return self.reconstruct(self.FIR_filter(self.read_glob_data()), full_scale)
 
     def get_scope_force_trigger_data(self, full_scale: float) -> list[int]:
-        self.serial_port.write(constants.Serial_Commands.FORCE_TRIGGER_COMMAND) 
+        self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
         return self.reconstruct(self.FIR_filter(self.read_glob_data()), full_scale)
 
     def set_range(self, full_scale: float) -> None:
         # TODO: Optimize so we only send a flip command when necessary
         if full_scale <= self.LOW_RANGE_THRESHOLD: 
-            self.serial_port.write(constants.Serial_Commands.LOW_RANGE_COMMAND)
+            self.serial_port.write(self.LOW_RANGE_COMMAND)
         else:
-            self.serial_port.write(constants.Serial_Commands.HIGH_RANGE_COMMAND)
+            self.serial_port.write(self.HIGH_RANGE_COMMAND)
 
     def set_trigger_code(self, trigger_code:int) -> None:
-        self.serial_port.write(constants.Serial_Commands.TRIGGER_LEVEL_COMMAND) 
+        self.serial_port.write(self.TRIGGER_LEVEL_COMMAND) 
         self.serial_port.write(bytes(str(trigger_code) + '\0', 'utf-8')) 
 
     def set_clock_div(self, clock_div:int) -> None:
-        self.serial_port.write(constants.Serial_Commands.CLOCK_DIV_COMMAND) 
+        self.serial_port.write(self.CLOCK_DIV_COMMAND) 
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
 
     def set_calibration_offsets(self, calibration_offsets_str:str):
-        self.serial_port.write(constants.Serial_Commands.SET_CAL_COMMAND)
+        self.serial_port.write(self.SET_CAL_COMMAND)
         self.serial_port.write(bytes(str(calibration_offsets_str) + '\0', 'utf-8')) 
 
-    def stop(self): self.serial_port.write(constants.Serial_Commands.STOP_COMMAND)
+    def stop(self): self.serial_port.write(self.STOP_COMMAND)
 
     def read_calibration_offsets(self) -> list[int]:
         self.serial_port.flushInput()
         self.serial_port.flushOutput()
-        self.serial_port.write(constants.Serial_Commands.READ_CAL_COMMAND)
+        self.serial_port.write(self.READ_CAL_COMMAND)
         offset_bytes: list[str] = []
         while len(offset_bytes) < 4:
             offset_bytes += list(self.serial_port.read(self.serial_port.inWaiting()))

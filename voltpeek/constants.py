@@ -57,17 +57,6 @@ class Vertical:
     SMALL_STEP = 0.1
     MAX_STEP = 24
 
-class Serial_Commands:
-    TRIGGER_LEVEL_COMMAND: bytes = b'l'
-    TRIGGER_COMMAND: bytes = b't'
-    FORCE_TRIGGER_COMMAND: bytes = b'f'
-    STOP_COMMAND: bytes = b'S'
-    LOW_RANGE_COMMAND: bytes = b'r' 
-    HIGH_RANGE_COMMAND: bytes = b'R'
-    CLOCK_DIV_COMMAND: bytes = b'c'
-    SET_CAL_COMMAND: bytes = b'C'
-    READ_CAL_COMMAND: bytes = b'k'
-
 class Scale:
     DEFAULT_VERTICAL_INDEX:int = 5 
     DEFAULT_HORIZONTAL_INDEX:int = 7
