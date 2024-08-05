@@ -28,6 +28,7 @@ class ScopeInterface:
         self._action_complete: bool = True
         self._value: Optional[int] = None
         self._stop_flag = False
+        self._full_scale = 10
 
     def _connect_scope(self):
         self._scope.connect()
@@ -36,12 +37,12 @@ class ScopeInterface:
         self._data_available.release()
 
     def _force_trigger(self):
-        self._xx: list[int] = self._scope.get_scope_force_trigger_data()
+        self._xx: list[int] = self._scope.get_scope_force_trigger_data(self._full_scale)
         self._action_complete = True
         self._data_available.release()
 
     def _trigger(self):
-        self._xx: list[int] = self._scope.get_scope_trigger_data()
+        self._xx: list[int] = self._scope.get_scope_trigger_data(self._full_scale)
         self._action_complete = True
         self._data_available.release()
 
@@ -52,23 +53,11 @@ class ScopeInterface:
 
     def _set_range(self):
         self._scope.set_range(self._value)
-        print(self._value)
-        self._action_complete = True
-        self._data_available.release()
-
-    def _set_high_range(self):
-        self._scope.request_high_range()
-        self._action_complete = True
-        self._data_available.release()
-
-    def _set_low_range(self):
-        self._scope.request_low_range()
         self._action_complete = True
         self._data_available.release()
 
     def _set_trigger_level(self):
         self._scope.set_trigger_code(self._value)
-        print('set trigger to', self._value)
         self._action_complete = True
         self._data_available.release()
 
@@ -92,10 +81,6 @@ class ScopeInterface:
             thread: Thread = Thread(target=self._trigger)
         if self._action == ScopeAction.SET_CLOCK_DIV and not self._action_complete:
             thread: Thread = Thread(target=self._set_clock_div)
-        if self._action == ScopeAction.SET_HIGH_RANGE and not self._action_complete:
-            thread: Thread = Thread(target=self._set_high_range)
-        if self._action == ScopeAction.SET_LOW_RANGE and not self._action_complete:
-            thread: Thread = Thread(target=self._set_low_range)
         if self._action == ScopeAction.SET_TRIGGER_LEVEL and not self._action_complete:
             thread: Thread = Thread(target=self._set_trigger_level)
         if self._action == ScopeAction.STOP and not self._action_complete:
@@ -129,9 +114,14 @@ class ScopeInterface:
     @property
     def scope(self): return self._scope 
 
+    @property
+    def full_scale(self): return self._full_scale
+
     def set_value(self, new_value: int) -> None:
         if self.data_available:
             self._value = new_value
+
+    def set_full_scale(self, new_full_scale: float) -> None: self._full_scale = new_full_scale
 
     def set_scope_action(self, new_scope_action: ScopeAction):
         if self.data_available:

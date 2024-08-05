@@ -1,7 +1,6 @@
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional
 from enum import Enum
-from threading import Thread, Event, Lock
-from time import sleep
+from threading import Event
 from inspect import signature
 
 import tkinter as tk
@@ -47,13 +46,11 @@ class Event(Enum):
     FORCE_TRIGGER = 4
     STOP = 5
     CHANGE_SCALE = 6
-    RANGE_FLIP_LOW = 7
-    RANGE_FLIP_HIGH = 8
-    SET_TRIGGER_LEVEL = 9
-    EXIT = 10
-    READ_CAL_OFFSETS = 11
-    SET_CAL_OFFSETS = 12
-    SET_RANGE = 13
+    SET_TRIGGER_LEVEL = 7
+    EXIT = 8
+    READ_CAL_OFFSETS = 9
+    SET_CAL_OFFSETS = 10
+    SET_RANGE = 11
 
 class UserInterface:
     INVALID_SCOPE_ERROR = 'The scope identifier entered is not supported.'
@@ -292,6 +289,7 @@ class UserInterface:
                 self._scope_interface.set_value(10)
         else: 
             self._scope_interface.set_value(self.scale.vert*(self.scale.GRID_COUNT/2))
+        self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
         self._scope_interface.set_scope_action(ScopeAction.SET_RANGE)
         self._scope_interface.run()
 
@@ -301,9 +299,9 @@ class UserInterface:
             if self._calibration_step >= 5:
                 self._calibration = False
                 self._calibration_step = 0
-                range_high_integer:int  = int(self._scope_interface.scope.SCOPE_SPECS['offset']['range_high']*1000)
-                range_low_integer:int = int(self._scope_interface.scope.SCOPE_SPECS['offset']['range_low']*1000)
-                self._cal_offset_data:str = self._pad_zero(str(range_high_integer)) + self._pad_zero(str(range_low_integer))
+                range_high_integer: int = int(self._scope_interface.scope.SCOPE_SPECS['offset']['range_high']*1000)
+                range_low_integer: int = int(self._scope_interface.scope.SCOPE_SPECS['offset']['range_low']*1000)
+                self._cal_offset_data: str = self._pad_zero(str(range_high_integer)) + self._pad_zero(str(range_low_integer))
                 self._start_event_queue.append(Event.SET_CAL_OFFSETS)
 
     def _render_update_scale(self) -> None:
@@ -392,13 +390,11 @@ class UserInterface:
         self._start_event_queue.append(Event.CHANGE_SCALE)
         self._update_scope_status()
 
-    def display_signal(self, xx: list[int]) -> None:
+    def display_signal(self, xx: list[float]) -> None:
         if len(xx) > 0:
-            filtered_signal: list[float] = FIR_filter(xx, self._fir_length) 
-            self.vv = reconstruct(filtered_signal, self._scope_interface.scope.SCOPE_SPECS, self.scale.vert, self.scale.probe_div)
-            self.readout.set_average(average(self.vv))
-            self.readout.set_rms(rms(self.vv))
-            vertical_encode:list[float] = quantize_vertical(self.vv, self.scale.vert)
+            self.readout.set_average(average(xx))
+            self.readout.set_rms(rms(xx))
+            vertical_encode:list[float] = quantize_vertical(xx, self.scale.vert)
             h:list[int] = resample_horizontal(vertical_encode, self.scale.hor, self.scale.fs) 
             self.scope_display.set_vector(h)
             self.scope_status = Scope_Status.TRIGGERED
@@ -433,10 +429,7 @@ class UserInterface:
         if self._calibration:
             average_offset: float = 0
             for i in range(0, 100):
-                signal: list[float] = reconstruct(self._scope_interface.xx, self._scope_interface.scope.SCOPE_SPECS, self.scale.vert, 
-                                                  self.scale.probe_div, offset_null=False, 
-                                                  force_low_range=self._calibration_step==3)
-                average_offset += -1*average(signal)
+                average_offset += -1*average(self._scope_interface.xx)
             average_offset /= 100
             if self._calibration_step == 1:
                 self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = average_offset

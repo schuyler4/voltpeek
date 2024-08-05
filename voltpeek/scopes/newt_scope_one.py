@@ -1,7 +1,7 @@
-import matplotlib.pyplot as plt
 from typing import Optional
 from threading import Event
 
+import numpy as np
 from serial import Serial
 from serial.tools import list_ports
 
@@ -10,13 +10,9 @@ from .. import constants
 from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 
 class NewtScope_One(ScopeBase):
-    DECODING_SCHEME: str = constants.Serial_Protocol.DECODING_SCHEME
-    DATA_START_COMMAND: str = constants.Serial_Protocol.DATA_START_COMMAND 
-    DATA_END_COMMAND: str = constants.Serial_Protocol.DATA_END_COMMAND
-    DATA_RECIEVE_DELAY: float = constants.Serial_Protocol.DATA_RECIEVE_DELAY
-    BUFFER_FLUSH_DELAY: float = constants.Serial_Protocol.BUFFER_FLUSH_DELAY
     PICO_VID: int = 0x2E8A
     POINT_COUNT: int = 20000
+    FIR_LENGTH = 5
 
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
@@ -61,7 +57,7 @@ class NewtScope_One(ScopeBase):
             self.serial_port.timeout = 0
             self.serial_port.open()
             self.serial_port.flush()
-        except Exception as e:
+        except Exception as _:
             self.error = True
 
     def read_glob_data(self) -> str:
@@ -83,14 +79,49 @@ class NewtScope_One(ScopeBase):
             '''
             codes += list(new_data)
         return codes
+    
+    def FIR_filter(self, xx: list[int]) -> list[float]:
+        if len(xx) > 0:
+            filtered_signal = np.convolve(np.array(xx), np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]))
+            return filtered_signal[self.FIR_LENGTH-1:len(filtered_signal)]
+        else:
+            return []
 
-    def get_scope_trigger_data(self) -> list[int]:
+    def inverse_quantize(self, code: float, resolution: float, voltage_ref: float) -> float:
+        return float((voltage_ref/resolution)*code)
+
+    def zero(self, x: float) -> float: return x - 0.5 
+
+    def reamplify(self, x: float, attenuator_range: float) -> float: 
+        return (x*(1/attenuator_range))
+    
+    def reconstruct(self, xx: list[float], full_scale: float, offset_null: bool=True, force_low_range=False) -> list[float]:
+        attenuation: Optional[float] = None
+        offset: Optional[float] = None
+        if full_scale <= self.LOW_RANGE_THRESHOLD or force_low_range:
+            attenuation = self.SCOPE_SPECS['attenuation']['range_low']
+            offset = self.SCOPE_SPECS['offset']['range_low']
+        else: 
+            attenuation = self.SCOPE_SPECS['attenuation']['range_high']
+            offset = self.SCOPE_SPECS['offset']['range_high']
+        # TODO: Make this a matrix operation with numpy
+        reconstructed_signal: list[float] = []
+        for x in xx:
+            adc_input = self.inverse_quantize(x, self.SCOPE_SPECS['resolution'], self.SCOPE_SPECS['voltage_ref'])
+            zeroed = self.zero(adc_input)
+            if offset is not None and offset_null:
+                reconstructed_signal.append(self.reamplify(zeroed, attenuation) + offset)
+            else:
+                reconstructed_signal.append(self.reamplify(zeroed, attenuation))
+        return reconstructed_signal
+
+    def get_scope_trigger_data(self, full_scale: float) -> list[int]:
         self.serial_port.write(constants.Serial_Commands.TRIGGER_COMMAND) 
-        return self.read_glob_data()
+        return self.reconstruct(self.FIR_filter(self.read_glob_data()), full_scale)
 
-    def get_scope_force_trigger_data(self) -> list[int]:
+    def get_scope_force_trigger_data(self, full_scale: float) -> list[int]:
         self.serial_port.write(constants.Serial_Commands.FORCE_TRIGGER_COMMAND) 
-        return self.read_glob_data()
+        return self.reconstruct(self.FIR_filter(self.read_glob_data()), full_scale)
 
     def set_range(self, full_scale: float) -> None:
         # TODO: Optimize so we only send a flip command when necessary
@@ -98,12 +129,6 @@ class NewtScope_One(ScopeBase):
             self.serial_port.write(constants.Serial_Commands.LOW_RANGE_COMMAND)
         else:
             self.serial_port.write(constants.Serial_Commands.HIGH_RANGE_COMMAND)
-
-    def request_low_range(self) -> None: 
-        self.serial_port.write(constants.Serial_Commands.LOW_RANGE_COMMAND)
-
-    def request_high_range(self) -> None:
-        self.serial_port.write(constants.Serial_Commands.HIGH_RANGE_COMMAND)
 
     def set_trigger_code(self, trigger_code:int) -> None:
         self.serial_port.write(constants.Serial_Commands.TRIGGER_LEVEL_COMMAND) 
