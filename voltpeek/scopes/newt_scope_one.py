@@ -28,6 +28,8 @@ class NewtScope_One(ScopeBase):
         'memory_depth': 20000
     }
 
+    LOW_RANGE_THRESHOLD: float = 2
+
     def __init__(self, baudrate: int=115200, port: Optional[str]=None):
         self.baudrate: int = baudrate
         self.port: Optional[str] = None
@@ -89,6 +91,13 @@ class NewtScope_One(ScopeBase):
     def get_scope_force_trigger_data(self) -> list[int]:
         self.serial_port.write(constants.Serial_Commands.FORCE_TRIGGER_COMMAND) 
         return self.read_glob_data()
+
+    def set_range(self, full_scale: float) -> None:
+        # TODO: Optimize so we only send a flip command when necessary
+        if full_scale <= self.LOW_RANGE_THRESHOLD: 
+            self.serial_port.write(constants.Serial_Commands.LOW_RANGE_COMMAND)
+        else:
+            self.serial_port.write(constants.Serial_Commands.HIGH_RANGE_COMMAND)
 
     def request_low_range(self) -> None: 
         self.serial_port.write(constants.Serial_Commands.LOW_RANGE_COMMAND)

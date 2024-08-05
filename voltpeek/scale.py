@@ -12,6 +12,7 @@ class Scale:
     RANGE_FLIP_INDEX: int = 2 
     DEFAULT_VERTICAL_INDEX: int = 5 
     DEFAULT_HORIZONTAL_INDEX: int = 11
+    GRID_COUNT: int = 10
 
     def __init__(self) -> None:
         self._vertical_index: int = self.DEFAULT_VERTICAL_INDEX

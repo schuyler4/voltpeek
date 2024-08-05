@@ -15,6 +15,7 @@ class ScopeAction(Enum):
     STOP = 7
     SET_CAL_OFFSETS = 7
     READ_CAL_OFFSETS = 8
+    SET_RANGE = 9
 
 class ScopeInterface:
     def __init__(self, scope):
@@ -46,6 +47,12 @@ class ScopeInterface:
 
     def _set_clock_div(self):
         self._scope.set_clock_div(self._value)
+        self._action_complete = True
+        self._data_available.release()
+
+    def _set_range(self):
+        self._scope.set_range(self._value)
+        print(self._value)
         self._action_complete = True
         self._data_available.release()
 
@@ -97,6 +104,8 @@ class ScopeInterface:
             thread: Thread = Thread(target=self._read_cal_offsets)
         if self._action == ScopeAction.SET_CAL_OFFSETS and not self._action_complete:
             thread: Thread = Thread(target=self._set_cal_offsets)
+        if self._action == ScopeAction.SET_RANGE and not self._action_complete:
+            thread: Thread = Thread(target=self._set_range)
         thread.start()
 
     @property 
