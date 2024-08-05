@@ -10,12 +10,14 @@ class OffsetSettings(TypedDict):
     range_low:float
 
 class ScopeSpecs(TypedDict):
+    sample_rate:float
+    memory_depth:int
+
+class SoftwareScopeSpecs(ScopeSpecs):
     attenuation:AttenuationSettings
     offset:OffsetSettings
     resolution:int
     voltage_ref:float
-    sample_rate:float
-    memory_depth:int
 
 class ScopeBase(metaclass=ABCMeta):
     @property
