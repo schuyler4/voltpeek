@@ -17,7 +17,7 @@ from voltpeek.command_input import Command_Input
 from voltpeek.readout import Readout
 from voltpeek.info_panel import InfoPanel
 
-from voltpeek.reconstruct import reconstruct, quantize_vertical, resample_horizontal, FIR_filter
+from voltpeek.reconstruct import quantize_vertical, resample_horizontal
 
 from voltpeek.trigger import Trigger, TriggerType, get_trigger_voltage, trigger_code
 from voltpeek.cursors import Cursors, Cursor_Data
