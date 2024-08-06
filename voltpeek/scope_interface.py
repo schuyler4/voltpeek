@@ -57,7 +57,7 @@ class ScopeInterface:
         self._data_available.release()
 
     def _set_trigger_level(self):
-        self._scope.set_trigger_code(self._value)
+        self._scope.set_trigger_code(self._value, self._full_scale)
         self._action_complete = True
         self._data_available.release()
 
@@ -68,7 +68,6 @@ class ScopeInterface:
     
     def _set_cal_offsets(self):
         self._scope.set_calibration_offsets(self._value)
-        print('set calibration offsets', self._value)
         self._action_complete = True
         self._data_available.release()
 

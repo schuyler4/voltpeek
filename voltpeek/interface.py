@@ -19,7 +19,7 @@ from voltpeek.info_panel import InfoPanel
 
 from voltpeek.reconstruct import quantize_vertical, resample_horizontal
 
-from voltpeek.trigger import Trigger, TriggerType, get_trigger_voltage, trigger_code
+from voltpeek.trigger import Trigger, TriggerType, get_trigger_voltage
 from voltpeek.cursors import Cursors, Cursor_Data
 from voltpeek.scale import Scale
 
@@ -161,7 +161,6 @@ class UserInterface:
         if self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS:
             if event.keycode in constants.Keys.EXIT_COMMAND_MODE: 
                 if self.mode == Mode.ADJUST_TRIGGER_LEVEL: 
-                    self.set_trigger()
                     self._start_event_queue.append(Event.SET_TRIGGER_LEVEL)
                 self._set_command_mode()
         if self.mode == Mode.ADJUST_SCALE:
@@ -428,7 +427,7 @@ class UserInterface:
     def _finish_force_trigger(self) -> None:
         if self._calibration:
             average_offset: float = 0
-            for i in range(0, 100):
+            for _ in range(0, 100):
                 average_offset += -1*average(self._scope_interface.xx)
             average_offset /= 100
             if self._calibration_step == 1:
@@ -449,32 +448,19 @@ class UserInterface:
             self._normal_trigger_running = False  
             self._scope_interface.stop_trigger()
 
-    def set_trigger(self) -> None: 
-        trigger_height:int = self.scope_display.get_trigger_level()
-        trigger_voltage = get_trigger_voltage(self.scale.vert, trigger_height)
-        attenuation: Optional[float] = None
-        offset: Optional[float] = None
-        if self.scale.vert <=  constants.Scale.VERTICALS[constants.Scale.LOW_RANGE_VERTICAL_INDEX]:
-            attenuation = self._scope_interface.scope.SCOPE_SPECS['attenuation']['range_low']
-            offset = self._scope_interface.scope.SCOPE_SPECS['offset']['range_low']
-        else:
-            attenuation = self._scope_interface.scope.SCOPE_SPECS['attenuation']['range_high']
-            offset = self._scope_interface.scope.SCOPE_SPECS['offset']['range_high']
-        self.trigger_code:int = trigger_code(trigger_voltage, self._scope_interface.scope.SCOPE_SPECS['voltage_ref'], attenuation, offset)
-
     def _start_set_trigger_level(self) -> None:
         self._set_trigger_level = True
-        self._scope_interface.set_value(self.trigger_code)
+        self._scope_interface.set_value(get_trigger_voltage(self.scale.vert, self.scope_display.get_trigger_level()))
         self._scope_interface.set_scope_action(ScopeAction.SET_TRIGGER_LEVEL)
         self._scope_interface.run()
 
     def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
-        h1:str = self.cursors.get_hor1_voltage(self.scale.vert) if horizontal else ''
-        h2:str = self.cursors.get_hor2_voltage(self.scale.vert) if horizontal else '' 
-        hdelta:str = self.cursors.get_delta_voltage(self.scale.vert) if horizontal else ''
-        v1:str = self.cursors.get_vert1_time(self.scale.hor) if vertical else ''
-        v2:str = self.cursors.get_vert2_time(self.scale.hor) if vertical else ''
-        vdelta:str = self.cursors.get_delta_time(self.scale.hor) if vertical else ''
+        h1: str = self.cursors.get_hor1_voltage(self.scale.vert) if horizontal else ''
+        h2: str = self.cursors.get_hor2_voltage(self.scale.vert) if horizontal else '' 
+        hdelta: str = self.cursors.get_delta_voltage(self.scale.vert) if horizontal else ''
+        v1: str = self.cursors.get_vert1_time(self.scale.hor) if vertical else ''
+        v2: str = self.cursors.get_vert2_time(self.scale.hor) if vertical else ''
+        vdelta: str = self.cursors.get_delta_time(self.scale.hor) if vertical else ''
         return { 'h1': h1, 'h2': h2, 'hdelta': hdelta, 'v1': v1, 'v2': v2, 'vdelta': vdelta }
     
     def toggle_cursors(self) -> None:

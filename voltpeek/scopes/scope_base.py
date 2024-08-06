@@ -2,22 +2,23 @@ from abc import ABCMeta, abstractmethod
 from typing import TypedDict
 
 class AttenuationSettings(TypedDict):
-    range_high:float
-    range_low:float
+    range_high: float
+    range_low: float
 
 class OffsetSettings(TypedDict):
-    range_high:float
-    range_low:float
+    range_high: float
+    range_low: float
 
 class ScopeSpecs(TypedDict):
-    sample_rate:float
-    memory_depth:int
+    sample_rate: float
+    memory_depth: int
 
 class SoftwareScopeSpecs(ScopeSpecs):
-    attenuation:AttenuationSettings
-    offset:OffsetSettings
-    resolution:int
-    voltage_ref:float
+    attenuation: AttenuationSettings
+    offset: OffsetSettings
+    resolution: int
+    voltage_ref: float
+    trigger_resolution: int
 
 class ScopeBase(metaclass=ABCMeta):
     @property

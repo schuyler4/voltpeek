@@ -19,7 +19,8 @@ class NewtScope_One(ScopeBase):
         'resolution': 256,    
         'voltage_ref': 1.0,
         'sample_rate': 62.5e6, 
-        'memory_depth': 20000
+        'memory_depth': 20000, 
+        'trigger_resolution': 256
     }
 
     TRIGGER_LEVEL_COMMAND: bytes = b'l'
@@ -75,7 +76,6 @@ class NewtScope_One(ScopeBase):
         codes: list[str] = []
         while len(codes) < self.POINT_COUNT: 
             if self._stop.is_set():
-                print('stopped while waiting for data')
                 self._stop.clear()
                 return []
             new_data = self.serial_port.read(self.serial_port.inWaiting())
@@ -88,7 +88,7 @@ class NewtScope_One(ScopeBase):
             codes += list(new_data)
         return codes
     
-    def FIR_filter(self, xx: list[int]) -> list[float]:
+    def _FIR_filter(self, xx: list[int]) -> list[float]:
         if len(xx) > 0:
             filtered_signal = np.convolve(np.array(xx), np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]))
             return filtered_signal[self.FIR_LENGTH-1:len(filtered_signal)]
@@ -98,12 +98,12 @@ class NewtScope_One(ScopeBase):
     def inverse_quantize(self, code: float, resolution: float, voltage_ref: float) -> float:
         return float((voltage_ref/resolution)*code)
 
-    def zero(self, x: float) -> float: return x - 0.5 
+    def _zero(self, x: float) -> float: return x - 0.5 
 
-    def reamplify(self, x: float, attenuator_range: float) -> float: 
+    def _reamplify(self, x: float, attenuator_range: float) -> float: 
         return (x*(1/attenuator_range))
     
-    def reconstruct(self, xx: list[float], full_scale: float, offset_null: bool=True, force_low_range=False) -> list[float]:
+    def _reconstruct(self, xx: list[float], full_scale: float, offset_null: bool=True, force_low_range=False) -> list[float]:
         attenuation: Optional[float] = None
         offset: Optional[float] = None
         if full_scale <= self.LOW_RANGE_THRESHOLD or force_low_range:
@@ -116,20 +116,20 @@ class NewtScope_One(ScopeBase):
         reconstructed_signal: list[float] = []
         for x in xx:
             adc_input = self.inverse_quantize(x, self.SCOPE_SPECS['resolution'], self.SCOPE_SPECS['voltage_ref'])
-            zeroed = self.zero(adc_input)
+            zeroed = self._zero(adc_input)
             if offset is not None and offset_null:
-                reconstructed_signal.append(self.reamplify(zeroed, attenuation) + offset)
+                reconstructed_signal.append(self._reamplify(zeroed, attenuation) + offset)
             else:
-                reconstructed_signal.append(self.reamplify(zeroed, attenuation))
+                reconstructed_signal.append(self._reamplify(zeroed, attenuation))
         return reconstructed_signal
 
     def get_scope_trigger_data(self, full_scale: float) -> list[int]:
         self.serial_port.write(self.TRIGGER_COMMAND) 
-        return self.reconstruct(self.FIR_filter(self.read_glob_data()), full_scale)
+        return self._reconstruct(self._FIR_filter(self.read_glob_data()), full_scale)
 
     def get_scope_force_trigger_data(self, full_scale: float) -> list[int]:
         self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
-        return self.reconstruct(self.FIR_filter(self.read_glob_data()), full_scale)
+        return self._reconstruct(self._FIR_filter(self.read_glob_data()), full_scale)
 
     def set_range(self, full_scale: float) -> None:
         # TODO: Optimize so we only send a flip command when necessary
@@ -138,7 +138,14 @@ class NewtScope_One(ScopeBase):
         else:
             self.serial_port.write(self.HIGH_RANGE_COMMAND)
 
-    def set_trigger_code(self, trigger_code:int) -> None:
+    def set_trigger_code(self, trigger_voltage: float, full_scale: float) -> None:
+        if full_scale <= self.LOW_RANGE_THRESHOLD:
+            attenuation = self.SCOPE_SPECS['attenuation']['range_low']
+        else: 
+            attenuation = self.SCOPE_SPECS['attenuation']['range_high']
+        # TODO: Add error handling for non-compliant trigger voltages
+        max_input_voltage: float = (self.SCOPE_SPECS['voltage_ref']/attenuation)/2   
+        trigger_code: int = int(((trigger_voltage + max_input_voltage)/(max_input_voltage*2))*(self.SCOPE_SPECS['trigger_resolution']-1))
         self.serial_port.write(self.TRIGGER_LEVEL_COMMAND) 
         self.serial_port.write(bytes(str(trigger_code) + '\0', 'utf-8')) 
 
