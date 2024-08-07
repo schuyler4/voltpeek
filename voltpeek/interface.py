@@ -257,6 +257,11 @@ class UserInterface:
         low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
         self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = high_range_offset_int/10000
         self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = low_range_offset_int/1000
+        # Probably a bug somewhere with this. Sometimes the waveform is very positive when it should be reading zero in low
+        # range mode. 
+        #print('Read Calibration Offsets')
+        #print(self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'])
+        #print(self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'])
 
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
