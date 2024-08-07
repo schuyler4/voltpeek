@@ -32,6 +32,10 @@ class ScopeBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def connect(self) -> None:
+        pass
+
+    @abstractmethod
     def get_scope_trigger_data(self):
         pass
 
@@ -41,4 +45,12 @@ class ScopeBase(metaclass=ABCMeta):
 
     @abstractmethod
     def set_clock_div(self, clock_div:int) -> None:
+        pass
+
+    @abstractmethod
+    def set_range(self, full_scale: float) -> None:
+        pass
+
+    @abstractmethod
+    def disconnect(self) -> None:
         pass
