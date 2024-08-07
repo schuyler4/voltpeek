@@ -174,3 +174,6 @@ class NewtScope_One(ScopeBase):
 
     @property
     def stopped(self): return self._stop.is_set()
+
+    def disconnect(self) -> None:
+        pass

@@ -25,6 +25,9 @@ from voltpeek.scale import Scale
 
 from voltpeek.export import export_png
 
+from voltpeek.scopes.newt_scope_one import NewtScope_One
+from voltpeek.scopes.AD3 import AD3
+
 class Mode(Enum):
     COMMAND = 0
     ADJUST_SCALE = 1
@@ -135,8 +138,6 @@ class UserInterface:
                 if self._start_event_queue[0] == Event.FORCE_TRIGGER:
                     self._start_force_trigger()
                     self._end_event_queue.append(Event.FORCE_TRIGGER)
-                if self._start_event_queue[0] == Event.STOP:
-                    pass
                 if self._start_event_queue[0] == Event.CHANGE_SCALE:
                     self._start_update_scale_hor()
                     self._end_event_queue.append(Event.CHANGE_SCALE)
@@ -151,7 +152,7 @@ class UserInterface:
                     self._start_set_range()  
                     self._end_event_queue.append(Event.SET_RANGE)
                 if self._start_event_queue[0] == Event.EXIT:
-                    exit()
+                    self.exit()
                 self._start_event_queue.pop(0)
         self.root.after(1, self.check_state)
 
@@ -319,6 +320,7 @@ class UserInterface:
     
     def exit(self) -> None:
         if not self._auto_trigger_running and not self._normal_trigger_running:
+            self._scope_interface.scope.disconnect()
             exit()
         elif self._normal_trigger_running:
             self._stop_and_exit = True
@@ -339,10 +341,11 @@ class UserInterface:
         for scope in get_available_scopes():
             if list(scope.keys())[0] == identifier:
                 self._connect_initiated = True
+                self._scope_interface: ScopeInterface = ScopeInterface(scope[identifier])
                 self._start_event_queue.append(Event.CONNECT)
                 self._start_event_queue.append(Event.SET_RANGE)
-                self._start_event_queue.append(Event.READ_CAL_OFFSETS)
-                self._scope_interface: ScopeInterface = ScopeInterface(scope[identifier])
+                if isinstance(self._scope_interface, NewtScope_One):
+                    self._start_event_queue.append(Event.READ_CAL_OFFSETS)
                 self._set_update_scale(None)
                 return
         self.command_input.set_error(self.INVALID_SCOPE_ERROR)
