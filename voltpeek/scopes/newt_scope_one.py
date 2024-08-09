@@ -10,7 +10,7 @@ from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 class NewtScope_One(ScopeBase):
     PICO_VID: int = 0x2E8A
     POINT_COUNT: int = 20000
-    FIR_LENGTH = 5
+    FIR_LENGTH = 10
 
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
@@ -123,11 +123,11 @@ class NewtScope_One(ScopeBase):
                 reconstructed_signal.append(self._reamplify(zeroed, attenuation))
         return reconstructed_signal
 
-    def get_scope_trigger_data(self, full_scale: float) -> list[int]:
+    def get_scope_trigger_data(self, full_scale: float) -> list[float]:
         self.serial_port.write(self.TRIGGER_COMMAND) 
         return self._reconstruct(self._FIR_filter(self.read_glob_data()), full_scale)
 
-    def get_scope_force_trigger_data(self, full_scale: float) -> list[int]:
+    def get_scope_force_trigger_data(self, full_scale: float) -> list[float]:
         self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
         return self._reconstruct(self._FIR_filter(self.read_glob_data()), full_scale)
 
@@ -138,7 +138,7 @@ class NewtScope_One(ScopeBase):
         else:
             self.serial_port.write(self.HIGH_RANGE_COMMAND)
 
-    def set_trigger_code(self, trigger_voltage: float, full_scale: float) -> None:
+    def set_trigger_voltage(self, trigger_voltage: float, full_scale: float) -> None:
         if full_scale <= self.LOW_RANGE_THRESHOLD:
             attenuation = self.SCOPE_SPECS['attenuation']['range_low']
         else: 
