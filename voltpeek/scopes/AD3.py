@@ -1,6 +1,5 @@
-import time
-from ctypes import byref, c_int, c_byte, cdll, sizeof, c_double, create_string_buffer, c_int16
-import ctypes
+from threading import Event
+from ctypes import byref, c_int, c_byte, cdll, sizeof, c_double, create_string_buffer 
 from sys import path
 from os import sep
 
@@ -27,33 +26,30 @@ class AD3(ScopeBase):
         self.cLost = c_int()
         self.cCorrupted = c_int()
         self.gdSamples1 = (c_double*self.SCOPE_SPECS['memory_depth'])()
+        self._stop: Event = Event()
+        self._clock_div = 1
 
     def connect(self):
         self.dwf.FDwfDeviceOpen(c_int(-1), byref(self.hdwf))
-        cBufMax = c_int()
         self.dwf.FDwfDeviceAutoConfigureSet(self.hdwf, c_int(0))
-        #self.dwf.FDwfAnalogInBufferSizeInfo(self.hdwf, 0, byref(cBufMax))
-        #self.dwf.FDwfAnalogInConfigure(self.hdwf, c_int(1), c_int(1))
-        #self.dwf.FDwfAnalogInBufferSizeSet(self.hdwf, c_int(self.SCOPE_SPECS['memory_depth'])) 
-        # Only channel 1 is supported for now.
-        #self.dwf.FDwfAnalogInChannelEnableSet(self.hdwf, c_int(-1), c_int(1))
 
     def get_scope_trigger_data(self, full_scale: float):
         self.cAvailable = c_int()
         self.cLost = c_int()
         self.cCorrupted = c_int()
         self.gdSamples1 = (c_double*self.SCOPE_SPECS['memory_depth'])()
-        print(self.SCOPE_SPECS['sample_rate'])
-        acq_frequency = c_double(self.SCOPE_SPECS['sample_rate'])
+        acq_frequency = c_double(self.SCOPE_SPECS['sample_rate']/self._clock_div)
         self.dwf.FDwfAnalogInChannelEnableSet(self.hdwf, c_int(0), c_int(1))
         self.dwf.FDwfAnalogInAcquisitionModeSet(self.hdwf, c_int(3)) # record
-        self.dwf.FDwfAnalogInFrequencySet(self.hdwf, acq_frequency)
         sRecord = self.SCOPE_SPECS['memory_depth']/acq_frequency.value
         self.dwf.FDwfAnalogInRecordLengthSet(self.hdwf, c_double(sRecord)) # -1 infinite record length
-        self.dwf.FDwfAnalogInTriggerPositionSet(self.hdwf, c_double(-0.25*sRecord)) # -0.25 = trigger at 25%
+        self.dwf.FDwfAnalogInTriggerPositionSet(self.hdwf, c_double(-0.5*sRecord)) # -0.25 = trigger at 25%
         self.dwf.FDwfAnalogInConfigure(self.hdwf, c_int(1), c_int(1))
         iSample = 0 
         while True:
+            if self._stop.is_set():
+                self._stop.clear()
+                return []
             if self.dwf.FDwfAnalogInStatus(self.hdwf, c_int(1), byref(self.sts)) != 1:
                 print("FDwfAnalogInStatus Error")
                 szerr = create_string_buffer(512)
@@ -91,7 +87,6 @@ class AD3(ScopeBase):
         return np.fromiter(sample_array, dtype=np.cfloat).real
 
     def set_trigger_voltage(self, trigger_voltage: float, full_scale: float) -> None:
-        self.dwf.FDwfAnalogInTriggerAutoTimeoutSet(self.hdwf, c_double(1))
         self.dwf.FDwfAnalogInTriggerSourceSet(self.hdwf, c_byte(2))
         self.dwf.FDwfAnalogInTriggerTypeSet(self.hdwf, c_int(0))
         self.dwf.FDwfAnalogInTriggerChannelSet(self.hdwf, c_int(0))
@@ -99,15 +94,18 @@ class AD3(ScopeBase):
         self.dwf.FDwfAnalogInTriggerHysteresisSet(self.hdwf, c_double(0.01))
         self.dwf.FDwfAnalogInTriggerConditionSet(self.hdwf, c_int(0)) 
         self.dwf.FDwfAnalogInConfigure(self.hdwf, c_int(1), c_int(0))
-        print('Set Trigger')
 
     def set_clock_div(self, clock_div: int) -> None:
         self.dwf.FDwfAnalogInFrequencySet(self.hdwf, c_double(self.SCOPE_SPECS['sample_rate']/clock_div))
         self.dwf.FDwfAnalogInConfigure(self.hdwf, c_int(1), c_int(1))
+        self._clock_div = clock_div
     
     def set_range(self, full_scale: float) -> None:
         self.dwf.FDwfAnalogInChannelRangeSet(self.hdwf, c_int(-1), c_double(full_scale))
         self.dwf.FDwfAnalogInConfigure(self.hdwf, c_int(1), c_int(1))
+
+    def stop_trigger(self):
+        self._stop.set()
 
     def disconnect(self) -> None: 
         self.dwf.FDwfDeviceCloseAll()
