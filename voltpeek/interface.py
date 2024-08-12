@@ -302,6 +302,7 @@ class UserInterface:
                 range_high_integer: int = int(self._scope_interface.scope.SCOPE_SPECS['offset']['range_high']*1000)
                 range_low_integer: int = int(self._scope_interface.scope.SCOPE_SPECS['offset']['range_low']*1000)
                 self._cal_offset_data: str = self._pad_zero(str(range_high_integer)) + self._pad_zero(str(range_low_integer))
+                self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
                 self._start_event_queue.append(Event.SET_CAL_OFFSETS)
 
     def _render_update_scale(self) -> None:
@@ -424,6 +425,11 @@ class UserInterface:
             self._start_event_queue.append(Event.NORMAL_TRIGGER)
 
     def _start_force_trigger(self) -> None:
+        if self._calibration:
+            if self._calibration_step == 1:
+                self._scope_interface.set_full_scale(5)
+            elif self._calibration_step == 3:
+                self._scope_interface.set_full_scale(0.4)
         self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
         self._scope_interface.run()
 
@@ -437,6 +443,7 @@ class UserInterface:
                 self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = average_offset
             elif self._calibration_step == 3:
                 self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = average_offset
+                print(self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'])
             self._calibration_step += 1 
 
     def _start_single_trigger(self) -> None:
