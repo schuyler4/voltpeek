@@ -57,7 +57,7 @@ class ScopeInterface:
         self._data_available.release()
 
     def _set_trigger_level(self):
-        self._scope.set_trigger_code(self._value, self._full_scale)
+        self._scope.set_trigger_voltage(self._value, self._full_scale)
         self._action_complete = True
         self._data_available.release()
 
