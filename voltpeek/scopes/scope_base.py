@@ -48,6 +48,10 @@ class ScopeBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def set_trigger_voltage(self, trigger_voltage: float, full_scale: float) -> None:
+        pass
+
+    @abstractmethod
     def set_range(self, full_scale: float) -> None:
         pass
 
