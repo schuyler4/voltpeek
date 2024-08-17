@@ -376,7 +376,8 @@ class UserInterface:
             commands.CAL: self._start_calibrate_offsets,
             commands.FIR10: lambda: self._set_fir(10),
             commands.FIR100: lambda: self._set_fir(100),
-            commands.PNG: lambda filename: export_png(self.scope_display.image_map, self.scale.vert, self.scale.hor, filename)
+            commands.PNG: lambda filename: export_png(self.scope_display.image_map, 
+                                                      self.scale.vert, self.scale.hor, filename, self.scale.probe_div)
         }
 
     def start_connect(self) -> None:
