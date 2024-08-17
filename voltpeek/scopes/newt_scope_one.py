@@ -10,7 +10,7 @@ from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 class NewtScope_One(ScopeBase):
     PICO_VID: int = 0x2E8A
     POINT_COUNT: int = 20000
-    FIR_LENGTH = 10
+    FIR_LENGTH = 4
 
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
