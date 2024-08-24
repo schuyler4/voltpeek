@@ -9,7 +9,6 @@ from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 
 class NewtScope_One(ScopeBase):
     PICO_VID: int = 0x2E8A
-    POINT_COUNT: int = 20000
     FIR_LENGTH = 4
 
     ID = 'NS1'
@@ -19,7 +18,7 @@ class NewtScope_One(ScopeBase):
         'resolution': 256,    
         'voltage_ref': 1.0,
         'sample_rate': 62.5e6, 
-        'memory_depth': 20000, 
+        'memory_depth': 16380, 
         'trigger_resolution': 256
     }
 
@@ -74,7 +73,7 @@ class NewtScope_One(ScopeBase):
         self.serial_port.flushOutput()
         self._stop.clear()
         codes: list[str] = []
-        while len(codes) < self.POINT_COUNT: 
+        while len(codes) < self.SCOPE_SPECS['memory_depth']: 
             if self._stop.is_set():
                 self._stop.clear()
                 return []
