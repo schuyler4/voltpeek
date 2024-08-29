@@ -311,7 +311,8 @@ class UserInterface:
         if self.vv is not None:
             vertical_encode: list[int] = quantize_vertical(self.vv, self.scale.vert)
             horizontal_encode: list[int] = resample_horizontal(vertical_encode, self.scale.hor, 
-                                                               self._scope_interface.scope.SCOPE_SPECS['sample_rate']) 
+                                                               self._scope_interface.scope.SCOPE_SPECS['sample_rate'],
+                                                               self._scope_interface.scope.SCOPE_SPECS['memory_depth']) 
             self.scope_display.set_vector(horizontal_encode) 
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
@@ -399,7 +400,8 @@ class UserInterface:
             self.readout.set_average(average(xx))
             self.readout.set_rms(rms(xx))
             vertical_encode:list[float] = quantize_vertical(xx, self.scale.vert)
-            h:list[int] = resample_horizontal(vertical_encode, self.scale.hor, self.scale.fs) 
+            h:list[int] = resample_horizontal(vertical_encode, self.scale.hor, self.scale.fs, 
+                                              self._scope_interface.scope.SCOPE_SPECS['memory_depth']) 
             self.scope_display.set_vector(h)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()

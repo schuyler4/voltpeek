@@ -18,7 +18,7 @@ class NewtScope_One(ScopeBase):
         'resolution': 256,    
         'voltage_ref': 1.0,
         'sample_rate': 62.5e6, 
-        'memory_depth': 16380, 
+        'memory_depth': 8192, 
         'trigger_resolution': 256
     }
 
