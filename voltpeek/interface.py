@@ -116,6 +116,8 @@ class UserInterface:
                     self._finish_normal_trigger_cycle()
                 if self._end_event_queue[0] == Event.FORCE_TRIGGER:
                     self._finish_force_trigger()
+                if self._end_event_queue[0] == Event.SINGLE_TRIGGER:
+                    self._finish_single_trigger()
                 if self._end_event_queue[0] == Event.CHANGE_SCALE:
                     self._render_update_scale()
                 if self._end_event_queue[0] == Event.SET_RANGE:
@@ -129,6 +131,7 @@ class UserInterface:
                     self._end_event_queue.append(Event.CONNECT)
                 if self._start_event_queue[0] == Event.SINGLE_TRIGGER:
                     self._start_single_trigger()
+                    self._end_event_queue.append(Event.SINGLE_TRIGGER)
                 if self._start_event_queue[0] == Event.AUTO_TRIGGER:
                     self._start_auto_trigger_cycle()
                     self._end_event_queue.append(Event.AUTO_TRIGGER)
@@ -367,7 +370,7 @@ class UserInterface:
             commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
             commands.AUTO_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.AUTO_TRIGGER), 
             commands.NORMAL_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.NORMAL_TRIGGER),
-            commands.SINGLE_TRIGGER_COMMAND: self._start_single_trigger,
+            commands.SINGLE_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.SINGLE_TRIGGER),
             commands.STOP: self._stop_trigger,
             commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
             commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge,
@@ -427,6 +430,10 @@ class UserInterface:
         if self._normal_trigger_running:
             self._start_event_queue.append(Event.NORMAL_TRIGGER)
 
+    def _finish_single_trigger(self) -> None:
+        if len(self._scope_interface.xx) > 0:
+            self.display_signal(self._scope_interface.xx)
+
     def _start_force_trigger(self) -> None:
         if self._calibration:
             if self._calibration_step == 1:
@@ -451,7 +458,6 @@ class UserInterface:
 
     def _start_single_trigger(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
-        self._single_trigger = True
         self._scope_interface.run()
 
     def _stop_trigger(self) -> None:
