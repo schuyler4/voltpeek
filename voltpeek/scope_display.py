@@ -62,15 +62,18 @@ class Scope_Display:
 
     def _draw_vector(self):
         for i, point in enumerate(self.vector):
-            self.canvas.create_line(i-1, constants.Display.SIZE - point, i+2, 
-                                    constants.Display.SIZE - point, 
-                                    fill=self._hex_string_from_rgb(self.SIGNAL_COLOR)) 
-            self.canvas.create_line(i-1, constants.Display.SIZE - point + 1, i+2, 
-                                    constants.Display.SIZE - point + 1, 
-                                    fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-            self.canvas.create_line(i-1, constants.Display.SIZE - point - 1, i+2, 
-                                    constants.Display.SIZE - point-1, 
-                                    fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+            if point > 0: 
+                # TODO: Possibly refactor this so un-captured points are actually deleted from the
+                # signal vector.
+                self.canvas.create_line(i-1, constants.Display.SIZE - point, i+2, 
+                                        constants.Display.SIZE - point, 
+                                        fill=self._hex_string_from_rgb(self.SIGNAL_COLOR)) 
+                self.canvas.create_line(i-1, constants.Display.SIZE - point + 1, i+2, 
+                                        constants.Display.SIZE - point + 1, 
+                                        fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                self.canvas.create_line(i-1, constants.Display.SIZE - point - 1, i+2, 
+                                        constants.Display.SIZE - point-1, 
+                                        fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
 
     def _draw_horizontal_line(self, position, color): 
         self.canvas.create_line(0, position, constants.Display.SIZE, position, fill=color)

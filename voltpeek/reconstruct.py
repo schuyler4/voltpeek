@@ -1,7 +1,6 @@
 from voltpeek import constants
 
 from scipy.interpolate import interp1d
-import numpy as np
 
 def quantize_vertical(vv: list[float], vertical_setting: float) -> list[int]:
     pixel_amplitude: float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
