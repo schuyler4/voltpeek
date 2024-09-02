@@ -39,6 +39,7 @@ class NewtScope_One(ScopeBase):
         self.port: Optional[str] = None
         self.error: bool = False
         self._stop: Event = Event()
+        self._xx: list[float] = []
 
     def pico_connected(self) -> bool:
         ports = list_ports.comports()
@@ -68,7 +69,7 @@ class NewtScope_One(ScopeBase):
         except Exception as _:
             self.error = True
 
-    def read_glob_data(self) -> str:
+    def read_glob_data(self) -> Optional[str]:
         self.serial_port.flushInput()
         self.serial_port.flushOutput()
         self._stop.clear()
@@ -76,7 +77,7 @@ class NewtScope_One(ScopeBase):
         while len(codes) < self.SCOPE_SPECS['memory_depth']: 
             if self._stop.is_set():
                 self._stop.clear()
-                return []
+                return None
             new_data = self.serial_port.read(self.serial_port.inWaiting())
             '''
             USED for on data receive debugging.
@@ -124,11 +125,17 @@ class NewtScope_One(ScopeBase):
 
     def get_scope_trigger_data(self, full_scale: float) -> list[float]:
         self.serial_port.write(self.TRIGGER_COMMAND) 
-        return self._reconstruct(self._FIR_filter(self.read_glob_data()), full_scale)
+        new_codes = self.read_glob_data()
+        if new_codes is not None:
+            self._xx = self._reconstruct(self._FIR_filter(new_codes), full_scale)
+        return self._xx
 
     def get_scope_force_trigger_data(self, full_scale: float) -> list[float]:
         self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
-        return self._reconstruct(self._FIR_filter(self.read_glob_data()), full_scale)
+        new_codes = self.read_glob_data()
+        if new_codes is not None:
+            self._xx = self._reconstruct(self._FIR_filter(new_codes), full_scale)
+        return self._xx 
 
     def set_range(self, full_scale: float) -> None:
         # TODO: Optimize so we only send a flip command when necessary

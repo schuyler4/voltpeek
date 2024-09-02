@@ -12,7 +12,5 @@ def resample_horizontal(vv: list[float], horizontal_setting: float, fs: float, m
     tt:list[float] = [i/fs for i in range(0, len(vv))]
     f = interp1d(tt, vv, kind='linear', fill_value=0, bounds_error=False)
     new_T: float = (horizontal_setting)/(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
-    chop_time = (1/fs)*memory_depth - horizontal_setting*constants.Display.GRID_LINE_COUNT
-    new_tt: list[float] = [(i*new_T) + (chop_time/2) for i in range(0, constants.Display.SIZE)]
-    new_vv = f(new_tt)
-    return new_vv
+    chop_time: float = (1/fs)*memory_depth - horizontal_setting*constants.Display.GRID_LINE_COUNT
+    return f([(i*new_T) + (chop_time/2) for i in range(0, constants.Display.SIZE)])

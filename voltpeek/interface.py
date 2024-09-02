@@ -77,7 +77,6 @@ class UserInterface:
 
         self.mode: Mode = Mode.COMMAND
         self.command_input.set_focus()
-        self.vv: Optional[list[float]] = None
         self.serial_scope_connected: bool = False
         self.scope_status = Scope_Status.DISCONNECTED
         self._update_scope_status()
@@ -250,6 +249,8 @@ class UserInterface:
             update_fn()
         self.scale.update_sample_rate(self._scope_interface.scope.SCOPE_SPECS['sample_rate'], 
                                       self._scope_interface.scope.SCOPE_SPECS['memory_depth'])
+        if self._auto_trigger_running or self._normal_trigger_running:
+            self._scope_interface.fs = self.scale.fs
         self._start_event_queue.append(Event.CHANGE_SCALE)
 
     def _start_read_cal_offsets(self) -> None:
@@ -311,10 +312,9 @@ class UserInterface:
     def _render_update_scale(self) -> None:
         self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
         self.readout.set_fs(self.scale.fs)
-        if self.vv is not None:
-            vertical_encode: list[int] = quantize_vertical(self.vv, self.scale.vert)
-            horizontal_encode: list[int] = resample_horizontal(vertical_encode, self.scale.hor, 
-                                                               self._scope_interface.scope.SCOPE_SPECS['sample_rate'],
+        if self._scope_interface.xx is not None and len(self._scope_interface.xx) > 0:
+            vertical_encode: list[int] = quantize_vertical(self._scope_interface.xx, self.scale.vert)
+            horizontal_encode: list[int] = resample_horizontal(vertical_encode, self.scale.hor, self._scope_interface.fs,
                                                                self._scope_interface.scope.SCOPE_SPECS['memory_depth']) 
             self.scope_display.set_vector(horizontal_encode) 
 
@@ -412,6 +412,7 @@ class UserInterface:
     def _start_auto_trigger_cycle(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
         self._auto_trigger_running = True
+        self._scope_interface.fs = self.scale.fs
         self._scope_interface.run()
 
     def _finish_auto_trigger_cycle(self) -> None:
@@ -422,6 +423,7 @@ class UserInterface:
     def _start_normal_trigger_cycle(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
         self._normal_trigger_running = True
+        self._scope_interface.fs = self.scale.fs
         self._scope_interface.run()
 
     def _finish_normal_trigger_cycle(self) -> None:
@@ -453,7 +455,6 @@ class UserInterface:
                 self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = average_offset
             elif self._calibration_step == 3:
                 self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = average_offset
-                print(self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'])
             self._calibration_step += 1 
 
     def _start_single_trigger(self) -> None:

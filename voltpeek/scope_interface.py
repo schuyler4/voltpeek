@@ -29,6 +29,7 @@ class ScopeInterface:
         self._value: Optional[int] = None
         self._stop_flag = False
         self._full_scale = 10
+        self._fs: Optional[float] = None
 
     def _connect_scope(self):
         self._scope.connect()
@@ -134,3 +135,9 @@ class ScopeInterface:
 
     def reset_stop_flag(self):
         self._stop_flag = False
+
+    @property
+    def fs(self): return self._fs
+
+    @fs.setter
+    def fs(self, new_fs: float): self._fs = new_fs
