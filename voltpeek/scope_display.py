@@ -12,13 +12,14 @@ class Scope_Display:
 
     def _hex_string_from_rgb(self, rgb: tuple[int]): return '#%02x%02x%02x' % rgb
 
-    def __init__(self, master) -> None:
+    def __init__(self, master, cursors) -> None:
         self.master:tk.Tk = master        
         self.frame = tk.Frame(self.master)
         self.canvas = tk.Canvas(self.frame, height=constants.Display.SIZE, width=constants.Display.SIZE, 
                                 bg=self._hex_string_from_rgb(self.BACKGROUND_COLOR))
         self._draw_grid()
         self.vector:Optional[list[int]] = None
+        self.cursors:Optional[Cursors] = cursors
 
     def __call__(self):
         self.canvas.pack()
@@ -33,6 +34,10 @@ class Scope_Display:
             # Draw Horizontal Grid Lines
             self.canvas.create_line(0, grid_spacing*i,  constants.Display.SIZE, grid_spacing*i, 
                                     fill=self._hex_string_from_rgb(self.GRID_LINE_COLOR))
+
+    def set_cursors(self, cursors:Cursors):
+        self.cursors = cursors
+        self._redraw()
 
     def set_vector(self, vector:list[int]):
         self.vector = vector
@@ -54,11 +59,23 @@ class Scope_Display:
     def decrement_trigger_level(self) -> None: 
         if self.trigger_level > 0: self.set_trigger_level(self.trigger_level + 1)
 
+    def _draw_horizontal_cursors(self) -> None:
+        self._draw_horizontal_line(self.cursors.hor1_pos, constants.Display.CURSOR_COLOR)  
+        self._draw_horizontal_line(self.cursors.hor2_pos, constants.Display.CURSOR_COLOR)
+
+    def _draw_vertical_cursors(self) -> None:
+        self._draw_vertical_line(self.cursors.vert1_pos, constants.Display.CURSOR_COLOR)
+        self._draw_vertical_line(self.cursors.vert2_pos, constants.Display.CURSOR_COLOR)
+
     def _redraw(self) -> None:
         self.canvas.delete('all')
         self._draw_grid()
         if self.vector is not None:
             self._draw_vector()
+        if self.cursors.hor_visible:
+            self._draw_horizontal_cursors()
+        if self.cursors.vert_visible:
+            self._draw_vertical_cursors()
 
     def _draw_vector(self):
         for i, point in enumerate(self.vector):
@@ -82,15 +99,6 @@ class Scope_Display:
         self.canvas.create_line(position, 0, position, constants.Display.SIZE, fill=color)
 
     def _draw_trigger_level(self): self._draw_horizontal_line(self.trigger_level, constants.Display.TRIGGER_LINE_COLOR)
-
-    def set_cursors(self, cursors:Cursors):
-        self._redraw()
-        if cursors.hor_visible:
-            self._draw_horizontal_line(cursors.hor1_pos, constants.Display.CURSOR_COLOR)  
-            self._draw_horizontal_line(cursors.hor2_pos, constants.Display.CURSOR_COLOR)
-        if cursors.vert_visible:
-            self._draw_vertical_line(cursors.vert1_pos, constants.Display.CURSOR_COLOR)
-            self._draw_vertical_line(cursors.vert2_pos, constants.Display.CURSOR_COLOR)
 
     @property
     def image_map(self):

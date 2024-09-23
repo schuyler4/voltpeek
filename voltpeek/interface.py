@@ -65,7 +65,7 @@ class UserInterface:
         self.scope_trigger: Trigger = Trigger()
         self.cursors: Cursors = Cursors()
 
-        self.scope_display: Scope_Display = Scope_Display(self.root)
+        self.scope_display: Scope_Display = Scope_Display(self.root, self.cursors)
         self.command_input: Command_Input = Command_Input(self.root, self.process_command)
         self.readout: Readout = Readout(self.root, self.scale.vert, self.scale.hor)
         self.info_panel: InfoPanel = InfoPanel(self.root)
