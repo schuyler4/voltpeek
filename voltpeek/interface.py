@@ -154,7 +154,7 @@ class UserInterface:
                     self._start_set_range()  
                     self._end_event_queue.append(Event.SET_RANGE)
                 if self._start_event_queue[0] == Event.EXIT:
-                    self.exit()
+                    self.exit_routine()
                 self._start_event_queue.pop(0)
         self.root.after(1, self.check_state)
 
@@ -208,7 +208,7 @@ class UserInterface:
                     try:
                         self.get_commands()[key]()
                         return
-                    except:
+                    except Exception as _:
                         break
         self.command_input.set_error(messages.Errors.INVALID_COMMAND_ERROR)
     
@@ -323,7 +323,7 @@ class UserInterface:
         self.readout.update_cursors(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))
         self.scope_display.set_cursors(self.cursors)
     
-    def exit(self) -> None:
+    def exit_routine(self) -> None:
         if not self._auto_trigger_running and not self._normal_trigger_running:
             self._scope_interface.scope.disconnect()
             exit()
@@ -359,7 +359,7 @@ class UserInterface:
 
     def get_commands(self): 
         return {
-            commands.EXIT_COMMAND: lambda: self._start_event_queue.append(Event.EXIT),
+            commands.EXIT_COMMAND: lambda: self._start_event_queue.append(Event.EXIT) if self._connect_initiated else exit(),
             commands.CONNECT_COMMAND: lambda identifier: self._connect(identifier),
             commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
             commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
