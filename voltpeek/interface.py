@@ -366,7 +366,7 @@ class UserInterface:
             commands.TOGGLE_CURS: self.toggle_cursors, 
             commands.TOGGLE_HCURS: self.toggle_horizontal_cursors, 
             commands.TOGGLE_VCURS: self.toggle_vertical_cursors,
-            commands.NEXT_CURS: self.cursors.next_cursor, 
+            commands.NEXT_CURS: self.next_cursor, 
             commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
             commands.AUTO_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.AUTO_TRIGGER), 
             commands.NORMAL_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.NORMAL_TRIGGER),
@@ -481,8 +481,10 @@ class UserInterface:
         v1: str = self.cursors.get_vert1_time(self.scale.hor) if vertical else ''
         v2: str = self.cursors.get_vert2_time(self.scale.hor) if vertical else ''
         vdelta: str = self.cursors.get_delta_time(self.scale.hor) if vertical else ''
-        return { 'h1': h1, 'h2': h2, 'hdelta': hdelta, 'v1': v1, 'v2': v2, 'vdelta': vdelta }
+        vdelta_frequency: str = self.cursors.get_delta_frequency(self.scale.hor) if vertical else ''
+        return { 'h1': h1, 'h2': h2, 'hdelta': hdelta, 'v1': v1, 'v2': v2, 'vdelta': vdelta, '1/vdelta': vdelta_frequency}
     
+    # TODO: Refactor the three methods below that are very similar.
     def toggle_cursors(self) -> None:
         self.cursors.toggle() 
         self.scope_display.set_cursors(self.cursors)
@@ -493,19 +495,29 @@ class UserInterface:
 
     def toggle_horizontal_cursors(self) -> None:
         self.cursors.toggle_hor()
-        self.scope_display.set_cursors(self.cursors)
         if self.cursors.hor_visible:
             self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))  
-        else: 
+        elif not self.cursors.vert_visible: 
             self.readout.disable_cursor_readout()
+        else:
+            self.readout.disable_horizontal_cursor_readout()
+            self.cursors.next_cursor()
+        self.scope_display.set_cursors(self.cursors)
 
     def toggle_vertical_cursors(self) -> None:
         self.cursors.toggle_vert()
-        self.scope_display.set_cursors(self.cursors)
         if self.cursors.vert_visible:
             self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))   
-        else: 
+        elif not self.cursors.hor_visible: 
             self.readout.disable_cursor_readout()
+        else:
+            self.readout.disable_vertical_cursor_readout()
+            self.cursors.next_cursor()
+        self.scope_display.set_cursors(self.cursors)
+
+    def next_cursor(self) -> None:
+        self.cursors.next_cursor()
+        self.scope_display.set_cursors(self.cursors)
 
     def _set_trigger_rising_edge(self) -> None:
         self.scope_trigger.trigger_type = TriggerType.RISING_EDGE

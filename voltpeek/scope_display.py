@@ -3,7 +3,7 @@ from typing import Optional
 import tkinter as tk
 
 from voltpeek import constants 
-from voltpeek.cursors import Cursors
+from voltpeek.cursors import Cursors, Selected_Cursor
 
 class Scope_Display:
     BACKGROUND_COLOR = (0, 0, 0)
@@ -57,15 +57,34 @@ class Scope_Display:
             self.set_trigger_level(self.trigger_level - 1)
         
     def decrement_trigger_level(self) -> None: 
-        if self.trigger_level > 0: self.set_trigger_level(self.trigger_level + 1)
+        if self.trigger_level > 0: 
+            self.set_trigger_level(self.trigger_level + 1)    
 
     def _draw_horizontal_cursors(self) -> None:
-        self._draw_horizontal_line(self.cursors.hor1_pos, constants.Display.CURSOR_COLOR)  
-        self._draw_horizontal_line(self.cursors.hor2_pos, constants.Display.CURSOR_COLOR)
+        if self.cursors.selected_cursor == Selected_Cursor.HOR1:
+            for position in range(self.cursors.hor1_pos-1,self.cursors.hor1_pos+2):
+                self._draw_horizontal_line(position, constants.Display.CURSOR_COLOR)  
+        else:
+            self._draw_horizontal_line(self.cursors.hor1_pos, constants.Display.CURSOR_COLOR)  
+
+        if self.cursors.selected_cursor == Selected_Cursor.HOR2:
+            for position in range(self.cursors.hor2_pos-1,self.cursors.hor2_pos+2):
+                self._draw_horizontal_line(position, constants.Display.CURSOR_COLOR)  
+        else:
+            self._draw_horizontal_line(self.cursors.hor2_pos, constants.Display.CURSOR_COLOR)
 
     def _draw_vertical_cursors(self) -> None:
-        self._draw_vertical_line(self.cursors.vert1_pos, constants.Display.CURSOR_COLOR)
-        self._draw_vertical_line(self.cursors.vert2_pos, constants.Display.CURSOR_COLOR)
+        if self.cursors.selected_cursor == Selected_Cursor.VERT1:
+            for position in range(self.cursors.vert1_pos-1,self.cursors.vert1_pos+2):
+                self._draw_vertical_line(position, constants.Display.CURSOR_COLOR)
+        else:
+            self._draw_vertical_line(self.cursors.vert1_pos, constants.Display.CURSOR_COLOR)
+        
+        if self.cursors.selected_cursor == Selected_Cursor.VERT2:
+            for position in range(self.cursors.vert2_pos-1,self.cursors.vert2_pos+2):
+                self._draw_vertical_line(position, constants.Display.CURSOR_COLOR)
+        else:
+            self._draw_vertical_line(self.cursors.vert2_pos, constants.Display.CURSOR_COLOR)
 
     def _redraw(self) -> None:
         self.canvas.delete('all')

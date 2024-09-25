@@ -40,14 +40,13 @@ class Readout:
             'hdelta': tk.StringVar(),
             'v1': tk.StringVar(),
             'v2': tk.StringVar(),
-            'vdelta': tk.StringVar()
+            'vdelta': tk.StringVar(),
+            '1/vdelta': tk.StringVar()
         }
 
-    def get_vertical_str(self) -> str:
-        return str(self._vertical_setting) + ' V/div' 
+    def get_vertical_str(self) -> str: return str(self._vertical_setting) + ' V/div' 
 
-    def get_horizontal_str(self) -> str:
-        return str(self._horizontal_setting) + ' s/div'
+    def get_horizontal_str(self) -> str: return str(self._horizontal_setting) + ' s/div'
 
     def __call__(self) -> None:
         vertical_label: tk.Label = tk.Label(self.frame, 
@@ -80,7 +79,7 @@ class Readout:
         probe_label: tk.Label = tk.Label(self.frame, textvariable=self._probe_text, 
                                            bg=self.BACKGROUND_COLOR, 
                                            fg=constants.Readout.TEXT_COLOR) 
-        cursor_labels: list[tk.Label] = [tk.Label(self._cursor_frame, 
+        self.cursor_labels: list[tk.Label] = [tk.Label(self._cursor_frame, 
             textvariable=self._cursor_text[key],
             bg=self.BACKGROUND_COLOR,
             fg=constants.Readout.TEXT_COLOR) for key in self._cursor_text]
@@ -99,10 +98,9 @@ class Readout:
         average_label.pack()
         rms_label.pack()
 
-        for label in cursor_labels:
-            label.pack()
-        self.frame.grid(sticky=tk.N, row=0, column=1, padx=constants.Application.PADDING,
-                                                      pady=constants.Application.PADDING)
+        #for label in self.cursor_labels:
+        #    label.pack()
+        self.frame.grid(sticky=tk.N, row=0, column=1, padx=constants.Application.PADDING, pady=constants.Application.PADDING)
 
     def update_settings(self, new_vertical_setting: float, 
                         new_horizontal_setting: float) -> None:
@@ -112,21 +110,22 @@ class Readout:
         self._horizontal_text.set(self.get_horizontal_str())
 
     def update_cursors(self, cursor_data: Cursor_Data) -> None:
-        for key in cursor_data:
-            self._cursor_text[key].set(key + ':' + str(cursor_data[key]))
+        for i, key in enumerate(cursor_data):
+            if cursor_data[key] != '':
+                self._cursor_text[key].set(key + ':' + str(cursor_data[key]))
+                self.cursor_labels[i].pack()
+            else:
+                self.cursor_labels[i].pack_forget()
 
-    def set_average(self, average: float) -> None:
-        self._average_text.set(self.AVERAGE_STRING + str(average) + 'V')
+    def set_average(self, average: float) -> None: self._average_text.set(self.AVERAGE_STRING + str(average) + 'V')
 
-    def set_rms(self, rms: float) -> None:
-        self._rms_text.set(self.RMS_STRING + str(rms) + 'Vrms')
+    def set_rms(self, rms: float) -> None: self._rms_text.set(self.RMS_STRING + str(rms) + 'Vrms')
 
     def set_fs(self, fs: float) -> None: self._fs_text.set('fs:' + str(fs) + 'S/s')
 
     def set_status(self, status_str: str) -> None: self._status_text.set(status_str)
 
-    def set_probe(self, probe_div: int) -> None:
-        self._probe_text.set('Probe: ' + str(probe_div) + 'X')
+    def set_probe(self, probe_div: int) -> None: self._probe_text.set('Probe: ' + str(probe_div) + 'X')
 
     def enable_cursor_readout(self, cursor_data: Cursor_Data) -> None:
         self.update_cursors(cursor_data)
@@ -139,3 +138,11 @@ class Readout:
             self._trigger_text.set('trigger \\')
 
     def disable_cursor_readout(self) -> None: self._cursor_frame.pack_forget()
+
+    def disable_horizontal_cursor_readout(self) -> None:
+        for i in range(0, 3):
+            self.cursor_labels[i].pack_forget()
+
+    def disable_vertical_cursor_readout(self) -> None:
+        for i in range(3, 7):
+            self.cursor_labels[i].pack_forget() 
