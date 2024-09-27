@@ -13,9 +13,11 @@ class ScopeAction(Enum):
     SET_LOW_RANGE = 5
     SET_TRIGGER_LEVEL = 6
     STOP = 7
-    SET_CAL_OFFSETS = 7
-    READ_CAL_OFFSETS = 8
-    SET_RANGE = 9
+    SET_CAL_OFFSETS = 8
+    READ_CAL_OFFSETS = 9
+    SET_RANGE = 10
+    SET_RISING_EDGE_TRIGGER = 11
+    SET_FALLING_EDGE_TRIGGER = 12
 
 class ScopeInterface:
     def __init__(self, scope):
@@ -72,6 +74,16 @@ class ScopeInterface:
         self._action_complete = True
         self._data_available.release()
 
+    def _set_rising_edge_trigger(self):
+        self._scope.set_rising_edge_trigger()
+        self._action_complete = True
+        self._data_available.release()
+
+    def _set_falling_edge_trigger(self):
+        self._scope.set_falling_edge_trigger()
+        self._action_complete = True
+        self._data_available.release()
+
     def run(self):
         if self._action == ScopeAction.CONNECT and not self._action_complete:
             thread: Thread = Thread(target=self._connect_scope)   
@@ -91,6 +103,10 @@ class ScopeInterface:
             thread: Thread = Thread(target=self._set_cal_offsets)
         if self._action == ScopeAction.SET_RANGE and not self._action_complete:
             thread: Thread = Thread(target=self._set_range)
+        if self._action == ScopeAction.SET_RISING_EDGE_TRIGGER and not self._action_complete:
+            thread: Thread = Thread(target=self._set_rising_edge_trigger)
+        if self._action == ScopeAction.SET_FALLING_EDGE_TRIGGER and not self._action_complete:
+            thread: Thread = Thread(target=self._set_falling_edge_trigger)
         thread.start()
 
     @property 

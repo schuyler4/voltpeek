@@ -31,6 +31,8 @@ class NewtScope_One(ScopeBase):
     CLOCK_DIV_COMMAND: bytes = b'c'
     SET_CAL_COMMAND: bytes = b'C'
     READ_CAL_COMMAND: bytes = b'k'
+    RISING_EDGE_TRIGGER_COMMAND: bytes = b'/'
+    FALLING_EDGE_TRIGGER_COMMAND: bytes = b'\\'
 
     LOW_RANGE_THRESHOLD: float = 2
 
@@ -159,9 +161,13 @@ class NewtScope_One(ScopeBase):
         self.serial_port.write(self.CLOCK_DIV_COMMAND) 
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
 
-    def set_calibration_offsets(self, calibration_offsets_str:str):
+    def set_calibration_offsets(self, calibration_offsets_str:str) -> None:
         self.serial_port.write(self.SET_CAL_COMMAND)
         self.serial_port.write(bytes(str(calibration_offsets_str) + '\0', 'utf-8')) 
+
+    def set_rising_edge_trigger(self) -> None: self.serial_port.write(self.RISING_EDGE_TRIGGER_COMMAND)
+
+    def set_falling_edge_trigger(self) -> None: self.serial_port.write(self.FALLING_EDGE_TRIGGER_COMMAND)
 
     def stop(self): self.serial_port.write(self.STOP_COMMAND)
 

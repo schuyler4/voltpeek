@@ -26,7 +26,6 @@ from voltpeek.scale import Scale
 from voltpeek.export import export_png
 
 from voltpeek.scopes.newt_scope_one import NewtScope_One
-from voltpeek.scopes.AD3 import AD3
 
 class Mode(Enum):
     COMMAND = 0
@@ -54,6 +53,8 @@ class Event(Enum):
     READ_CAL_OFFSETS = 9
     SET_CAL_OFFSETS = 10
     SET_RANGE = 11
+    SET_RISING_EDGE_TRIGGER = 12
+    SET_FALLING_EDGE_TRIGGER = 13
 
 class UserInterface:
     INVALID_SCOPE_ERROR = 'The scope identifier entered is not supported.'
@@ -155,6 +156,10 @@ class UserInterface:
                     self._end_event_queue.append(Event.SET_RANGE)
                 if self._start_event_queue[0] == Event.EXIT:
                     self.exit_routine()
+                if self._start_event_queue[0] == Event.SET_RISING_EDGE_TRIGGER:
+                    self._start_set_rising_edge_trigger()
+                if self._start_event_queue[0] == Event.SET_FALLING_EDGE_TRIGGER:
+                    self._start_set_falling_edge_trigger()
                 self._start_event_queue.pop(0)
         self.root.after(1, self.check_state)
 
@@ -474,6 +479,14 @@ class UserInterface:
         self._scope_interface.set_scope_action(ScopeAction.SET_TRIGGER_LEVEL)
         self._scope_interface.run()
 
+    def _start_set_rising_edge_trigger(self) -> None:
+        self._scope_interface.set_scope_action(ScopeAction.SET_RISING_EDGE_TRIGGER)
+        self._scope_interface.run()
+
+    def _start_set_falling_edge_trigger(self) -> None:
+        self._scope_interface.set_scope_action(ScopeAction.SET_FALLING_EDGE_TRIGGER)
+        self._scope_interface.run()
+
     def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
         h1: str = self.cursors.get_hor1_voltage(self.scale.vert) if horizontal else ''
         h2: str = self.cursors.get_hor2_voltage(self.scale.vert) if horizontal else '' 
@@ -522,9 +535,11 @@ class UserInterface:
     def _set_trigger_rising_edge(self) -> None:
         self.scope_trigger.trigger_type = TriggerType.RISING_EDGE
         self.readout.set_trigger_type(self.scope_trigger.trigger_type)
+        self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
 
     def _set_trigger_falling_edge(self) -> None:
         self.scope_trigger.trigger_type = TriggerType.FALLING_EDGE
         self.readout.set_trigger_type(self.scope_trigger.trigger_type)
+        self._start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER)
 
     def __call__(self) -> None: self.root.mainloop()
