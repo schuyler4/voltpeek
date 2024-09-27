@@ -82,8 +82,6 @@ class UserInterface:
         self.scope_status = Scope_Status.DISCONNECTED
         self._update_scope_status()
         self._update_scope_probe()
-        self._set_trigger_rising_edge()
-
 
         self._start_event_queue: list[Event] = []
         self._end_event_queue: list[Event] = []
@@ -124,6 +122,10 @@ class UserInterface:
                     self._finish_set_range()
                 if self._end_event_queue[0] == Event.READ_CAL_OFFSETS:
                     self._finish_read_cal_offsets() 
+                if self._end_event_queue[0] == Event.SET_RISING_EDGE_TRIGGER:
+                    self._finish_set_rising_edge_trigger()
+                if self._end_event_queue[0] == Event.SET_FALLING_EDGE_TRIGGER:
+                    self._finish_set_falling_edge_trigger()
                 self._end_event_queue.pop(0)
             if self._scope_interface.data_available and len(self._start_event_queue) > 0:
                 if self._start_event_queue[0] == Event.CONNECT:
@@ -158,8 +160,10 @@ class UserInterface:
                     self.exit_routine()
                 if self._start_event_queue[0] == Event.SET_RISING_EDGE_TRIGGER:
                     self._start_set_rising_edge_trigger()
+                    self._end_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
                 if self._start_event_queue[0] == Event.SET_FALLING_EDGE_TRIGGER:
                     self._start_set_falling_edge_trigger()
+                    self._end_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER)
                 self._start_event_queue.pop(0)
         self.root.after(1, self.check_state)
 
@@ -223,7 +227,6 @@ class UserInterface:
         self.root.focus_set()
 
     def _set_adjust_cursor_mode(self) -> None:
-        # TODO: Fix bug where cursors are not visible
         if self.cursors.hor_visible or self.cursors.vert_visible:
             self.mode = Mode.ADJUST_CURSORS  
             self.command_input.set_adjust_mode()
@@ -377,8 +380,8 @@ class UserInterface:
             commands.NORMAL_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.NORMAL_TRIGGER),
             commands.SINGLE_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.SINGLE_TRIGGER),
             commands.STOP: self._stop_trigger,
-            commands.TRIGGER_RISING_EDGE_COMMAND: self._set_trigger_rising_edge,
-            commands.TRIGGER_FALLING_EDGE_COMMAND: self._set_trigger_falling_edge,
+            commands.TRIGGER_RISING_EDGE_COMMAND: lambda: self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER),
+            commands.TRIGGER_FALLING_EDGE_COMMAND: lambda: self._start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER),
             commands.HELP: self.info_panel.show,
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
@@ -401,6 +404,7 @@ class UserInterface:
         self.scale.update_sample_rate(self._scope_interface.scope.SCOPE_SPECS['sample_rate'], 
                                       self._scope_interface.scope.SCOPE_SPECS['memory_depth'])
         self._start_event_queue.append(Event.CHANGE_SCALE)
+        self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
         self._update_scope_status()
 
     def display_signal(self, xx: list[float]) -> None:
@@ -483,9 +487,17 @@ class UserInterface:
         self._scope_interface.set_scope_action(ScopeAction.SET_RISING_EDGE_TRIGGER)
         self._scope_interface.run()
 
+    def _finish_set_rising_edge_trigger(self) -> None:
+        self.scope_trigger.trigger_type = TriggerType.RISING_EDGE
+        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
+
     def _start_set_falling_edge_trigger(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.SET_FALLING_EDGE_TRIGGER)
         self._scope_interface.run()
+
+    def _finish_set_falling_edge_trigger(self) -> None:
+        self.scope_trigger.trigger_type = TriggerType.FALLING_EDGE
+        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
 
     def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
         h1: str = self.cursors.get_hor1_voltage(self.scale.vert) if horizontal else ''
@@ -531,15 +543,5 @@ class UserInterface:
     def next_cursor(self) -> None:
         self.cursors.next_cursor()
         self.scope_display.set_cursors(self.cursors)
-
-    def _set_trigger_rising_edge(self) -> None:
-        self.scope_trigger.trigger_type = TriggerType.RISING_EDGE
-        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
-        self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
-
-    def _set_trigger_falling_edge(self) -> None:
-        self.scope_trigger.trigger_type = TriggerType.FALLING_EDGE
-        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
-        self._start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER)
 
     def __call__(self) -> None: self.root.mainloop()
