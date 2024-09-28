@@ -77,6 +77,10 @@ class Scale:
     def find_lowest_clock_division(self, sample_rate: float, base_clock: float) -> Optional[int]:
         for div in range(1, 65540):
             if base_clock/div <= sample_rate:
+                # For some reason the system does not like even clock divisions, they induce unwanted wiggle into 
+                # the signal. It is unclear exactly why at this point. 
+                if div % 2 == 0:
+                    return div + 1
                 return div
         return None
 
