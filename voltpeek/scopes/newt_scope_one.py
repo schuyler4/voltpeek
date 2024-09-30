@@ -97,6 +97,7 @@ class NewtScope_One(ScopeBase):
         else:
             return []
 
+    # We don't need all these arguments
     def inverse_quantize(self, code: float, resolution: float, voltage_ref: float) -> float:
         return float((voltage_ref/resolution)*code)
 

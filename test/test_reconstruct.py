@@ -1,18 +1,22 @@
 import sys
 sys.path.append('..')
 
-import time
+import unittest
 
-from voltpeek.reconstruct import reconstruct
-from voltpeek.pixel_vector import quantize_vertical, FIR_filter, resample_horizontal
-from voltpeek.scope_specs import scope_specs
+from voltpeek.reconstruct import quantize_vertical
+from voltpeek.scopes.newt_scope_one import NewtScope_One
+from voltpeek import constants
 
-xx = [200 for _ in range(0, scope_specs['memory_depth'])]
+class TestReconstruct(unittest.TestCase):
+    def test_quantize_vertical(self):
+        vv = [0 for _ in range(0, NewtScope_One.SCOPE_SPECS['memory_depth'])]
+        self.assertEqual(len(vv), 16384)
+        pixel_list = quantize_vertical(vv, 2)
+        for pixel_value in pixel_list:
+            self.assertEqual(pixel_value, constants.Display.SIZE/2)
+        vv = [2 for _ in range(0, NewtScope_One.SCOPE_SPECS['memory_depth'])]
+        pixel_list = quantize_vertical(vv, 2)
+        for pixel_value in pixel_list:
+            self.assertEqual(pixel_value, (constants.Display.SIZE/2) + (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT))
 
-start_time = time.time()
-amplitude_reconstructed_signal = reconstruct(xx, scope_specs, 10)
-filtered_signal = FIR_filter(amplitude_reconstructed_signal)
-display_reconstructed_signal = quantize_vertical(filtered_signal, 10)
-display_signal = resample_horizontal(display_reconstructed_signal, 0.001, scope_specs['sample_rate'])
-
-print(time.time() - start_time)
+        
