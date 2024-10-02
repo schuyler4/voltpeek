@@ -99,17 +99,27 @@ class Scope_Display:
     def _draw_vector(self):
         for i, point in enumerate(self.vector):
             if point > 0: 
-                # TODO: Possibly refactor this so un-captured points are actually deleted from the
-                # signal vector.
-                self.canvas.create_line(i-1, constants.Display.SIZE - point, i+2, 
-                                        constants.Display.SIZE - point, 
-                                        fill=self._hex_string_from_rgb(self.SIGNAL_COLOR)) 
-                self.canvas.create_line(i-1, constants.Display.SIZE - point + 1, i+2, 
-                                        constants.Display.SIZE - point + 1, 
-                                        fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-                self.canvas.create_line(i-1, constants.Display.SIZE - point - 1, i+2, 
-                                        constants.Display.SIZE - point-1, 
-                                        fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                if i < len(self.vector) - 1:
+                    next_point: int = self.vector[i+1]
+                    self.canvas.create_line(i-1, constants.Display.SIZE - point, i+2, 
+                                            constants.Display.SIZE - next_point, 
+                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                    self.canvas.create_line(i-1, constants.Display.SIZE - point + 1, i+2, 
+                                            constants.Display.SIZE - next_point + 1, 
+                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                    self.canvas.create_line(i-1, constants.Display.SIZE - point - 1, i+2, 
+                                            constants.Display.SIZE - next_point-1, 
+                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                else:
+                    self.canvas.create_line(i-1, constants.Display.SIZE - point, i+2, 
+                                            constants.Display.SIZE - point, 
+                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR)) 
+                    self.canvas.create_line(i-1, constants.Display.SIZE - point + 1, i+2, 
+                                            constants.Display.SIZE - point + 1, 
+                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                    self.canvas.create_line(i-1, constants.Display.SIZE - point - 1, i+2, 
+                                            constants.Display.SIZE - point-1, 
+                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
 
     def _draw_horizontal_line(self, position, color): 
         self.canvas.create_line(0, position, constants.Display.SIZE, position, fill=color)
