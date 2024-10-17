@@ -34,7 +34,7 @@ class NewtScope_One(ScopeBase):
     RISING_EDGE_TRIGGER_COMMAND: bytes = b'/'
     FALLING_EDGE_TRIGGER_COMMAND: bytes = b'\\'
 
-    LOW_RANGE_THRESHOLD: float = 2
+    LOW_RANGE_THRESHOLD: float = 4
 
     def __init__(self, baudrate: int=115200, port: Optional[str]=None):
         self.baudrate: int = baudrate
@@ -159,6 +159,7 @@ class NewtScope_One(ScopeBase):
         self.serial_port.write(bytes(str(trigger_code) + '\0', 'utf-8')) 
 
     def set_clock_div(self, clock_div:int) -> None:
+        # TODO: Check for non-compliant clock divs
         self.serial_port.write(self.CLOCK_DIV_COMMAND) 
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
 

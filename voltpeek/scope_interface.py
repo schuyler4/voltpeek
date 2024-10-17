@@ -9,15 +9,13 @@ class ScopeAction(Enum):
     TRIGGER = 1
     FORCE_TRIGGER = 2
     SET_CLOCK_DIV = 3
-    SET_HIGH_RANGE = 4
-    SET_LOW_RANGE = 5
-    SET_TRIGGER_LEVEL = 6
-    STOP = 7
-    SET_CAL_OFFSETS = 8
-    READ_CAL_OFFSETS = 9
-    SET_RANGE = 10
-    SET_RISING_EDGE_TRIGGER = 11
-    SET_FALLING_EDGE_TRIGGER = 12
+    SET_TRIGGER_LEVEL = 4
+    SET_RANGE = 5
+    STOP = 6
+    SET_CAL_OFFSETS = 7
+    READ_CAL_OFFSETS = 8
+    SET_RISING_EDGE_TRIGGER = 9
+    SET_FALLING_EDGE_TRIGGER = 10
 
 class ScopeInterface:
     def __init__(self, scope):
