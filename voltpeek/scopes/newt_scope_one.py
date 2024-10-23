@@ -90,10 +90,15 @@ class NewtScope_One(ScopeBase):
             codes += list(new_data)
         return codes
     
-    def _FIR_filter(self, xx: list[int]) -> list[float]:
+    def _FIR_filter(self, xx: list[int], run_up_bias: bool=False, bias_array: Optional[np.array]=None) -> list[float]:
         if len(xx) > 0:
-            filtered_signal = np.convolve(np.array(xx), np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]))
-            return filtered_signal[self.FIR_LENGTH-1:len(filtered_signal)]
+            if run_up_bias:
+                xx = np.concatenate((xx, bias_array))
+                filtered_signal = np.convolve(xx, np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]))
+                return filtered_signal[self.FIR_LENGTH:len(filtered_signal)-bias_array.size-1]
+            else:
+                filtered_signal = np.convolve(xx, np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]))
+                return filtered_signal[self.FIR_LENGTH:len(filtered_signal)-1]
         else:
             return []
 
@@ -128,15 +133,24 @@ class NewtScope_One(ScopeBase):
 
     def get_scope_trigger_data(self, full_scale: float) -> list[float]:
         self.serial_port.write(self.TRIGGER_COMMAND) 
-        new_codes = self.read_glob_data()
-        if new_codes is not None:
-            self._xx = self._reconstruct(self._FIR_filter(new_codes), full_scale)
+        new_codes = np.array(self.read_glob_data())
+        # Split new_codes into pre-trigger and post-trigger data
+        # We don't want any interpolated data at the trigger point as this 
+        # may cause apparent jitter.
+        if new_codes.size == self.SCOPE_SPECS['memory_depth']:
+            mid_point = (self.SCOPE_SPECS['memory_depth'] // 2)+1
+            pre_trigger_codes = new_codes[:mid_point]
+            post_trigger_codes = new_codes[mid_point:]
+            filtered_post_trigger_codes = self._FIR_filter(post_trigger_codes)[:2]
+            pre_trigger_codes = self._reconstruct(self._FIR_filter(pre_trigger_codes, run_up_bias=True, bias_array=filtered_post_trigger_codes), full_scale)
+            post_trigger_codes = self._reconstruct(self._FIR_filter(post_trigger_codes), full_scale)
+            self._xx = pre_trigger_codes + post_trigger_codes
         return self._xx
 
     def get_scope_force_trigger_data(self, full_scale: float) -> list[float]:
         self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
         new_codes = self.read_glob_data()
-        if new_codes is not None:
+        if len(new_codes) > 0:
             self._xx = self._reconstruct(self._FIR_filter(new_codes), full_scale)
         return self._xx 
 
@@ -171,7 +185,9 @@ class NewtScope_One(ScopeBase):
 
     def set_falling_edge_trigger(self) -> None: self.serial_port.write(self.FALLING_EDGE_TRIGGER_COMMAND)
 
-    def stop(self): self.serial_port.write(self.STOP_COMMAND)
+    def stop(self): 
+        self.serial_port.write(self.STOP_COMMAND)
+        self.serial_port.flush()
 
     def read_calibration_offsets(self) -> list[int]:
         self.serial_port.flushInput()
