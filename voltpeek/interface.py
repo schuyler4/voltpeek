@@ -17,8 +17,6 @@ from voltpeek.command_input import Command_Input
 from voltpeek.readout import Readout
 from voltpeek.info_panel import InfoPanel
 
-from voltpeek.reconstruct import quantize_vertical, resample_horizontal
-
 from voltpeek.trigger import Trigger, TriggerType, get_trigger_voltage
 from voltpeek.cursors import Cursors, Cursor_Data
 from voltpeek.scale import Scale
@@ -321,10 +319,7 @@ class UserInterface:
         self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
         self.readout.set_fs(self.scale.fs)
         if self._scope_interface.xx is not None and len(self._scope_interface.xx) > 0:
-            vertical_encode: list[int] = quantize_vertical(self._scope_interface.xx, self.scale.vert)
-            horizontal_encode: list[int] = resample_horizontal(vertical_encode, self.scale.hor, self._scope_interface.fs,
-                                                               self._scope_interface.scope.SCOPE_SPECS['memory_depth']) 
-            self.scope_display.set_vector(horizontal_encode) 
+            self.scope_display.resample_vector(self.scale.hor, self.scale.fs, self._scope_interface.scope.SCOPE_SPECS['memory_depth'], self.scale.vert)
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
@@ -411,10 +406,8 @@ class UserInterface:
         if len(xx) > 0:
             self.readout.set_average(average(xx))
             self.readout.set_rms(rms(xx))
-            vertical_encode:list[float] = quantize_vertical(xx, self.scale.vert)
-            h:list[int] = resample_horizontal(vertical_encode, self.scale.hor, self.scale.fs, 
-                                              self._scope_interface.scope.SCOPE_SPECS['memory_depth']) 
-            self.scope_display.set_vector(h)
+            self.scope_display.set_vector(xx)
+            self.scope_display.resample_vector(self.scale.hor, self.scale.fs, self._scope_interface.scope.SCOPE_SPECS['memory_depth'], self.scale.vert)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
 

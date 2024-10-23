@@ -1,6 +1,7 @@
 from typing import Optional
 
 import tkinter as tk
+from scipy.interpolate import interp1d
 
 from voltpeek import constants 
 from voltpeek.cursors import Cursors, Selected_Cursor
@@ -34,6 +35,23 @@ class Scope_Display:
             # Draw Horizontal Grid Lines
             self.canvas.create_line(0, grid_spacing*i,  constants.Display.SIZE, grid_spacing*i, 
                                     fill=self._hex_string_from_rgb(self.GRID_LINE_COLOR))
+                        
+    def _quantize_vertical(self, vertical_setting: float) -> list[int]:
+        pixel_amplitude: float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        pixel_resolution: float = vertical_setting/pixel_amplitude
+        self.vector = [int(v/pixel_resolution) + int(constants.Display.SIZE/2) for v in self.vector] 
+
+    def _resample_horizontal(self, horizontal_setting: float, fs: float, memory_depth: int) -> list[int]:
+        tt:list[float] = [i/fs for i in range(0, len(self.vector))]
+        f = interp1d(tt, self.vector, kind='linear', fill_value=0, bounds_error=False)
+        new_T: float = (horizontal_setting)/(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        chop_time: float = (1/fs)*memory_depth - horizontal_setting*constants.Display.GRID_LINE_COUNT
+        self.vector = f([(i*new_T) + (chop_time/2) for i in range(0, constants.Display.SIZE)])   
+
+    def resample_vector(self, horizontal_setting: float, fs: float, memory_depth: int, vertical_setting: float) -> None:
+        self._quantize_vertical(vertical_setting)
+        self._resample_horizontal(horizontal_setting, fs, memory_depth)
+        self._redraw()
 
     def set_cursors(self, cursors:Cursors):
         self.cursors = cursors
@@ -41,7 +59,6 @@ class Scope_Display:
 
     def set_vector(self, vector:list[int]):
         self.vector = vector
-        self._redraw()
 
     def set_trigger_level(self, trigger_level) -> None:
         self.trigger_level:int = trigger_level
