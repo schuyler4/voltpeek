@@ -41,6 +41,9 @@ class Scope_Display:
         pixel_resolution: float = vertical_setting/pixel_amplitude
         self.vector = [int(v/pixel_resolution) + int(constants.Display.SIZE/2) for v in self.vector] 
 
+    def _get_trigger_offset(self) -> float:
+        pass
+
     def _resample_horizontal(self, horizontal_setting: float, fs: float, memory_depth: int) -> list[int]:
         tt:list[float] = [i/fs for i in range(0, len(self.vector))]
         f = interp1d(tt, self.vector, kind='linear', fill_value=0, bounds_error=False)
@@ -67,7 +70,10 @@ class Scope_Display:
             self._draw_vector()
         self._draw_trigger_level()
 
-    def get_trigger_level(self) -> int: return constants.Display.SIZE - self.trigger_level
+    def get_trigger_voltage(self, vertical_setting: float) -> float:
+        pixel_division:float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        pixel_resolution:float = vertical_setting/pixel_division
+        return float((constants.Display.SIZE - self.trigger_level - (constants.Display.SIZE/2))*pixel_resolution)
 
     def increment_trigger_level(self) -> None:
         if self.trigger_level < constants.Display.SIZE:

@@ -472,7 +472,7 @@ class UserInterface:
 
     def _start_set_trigger_level(self) -> None:
         self._set_trigger_level = True
-        self._scope_interface.set_value(get_trigger_voltage(self.scale.vert, self.scope_display.get_trigger_level()))
+        self._scope_interface.set_value(self.scope_display.get_trigger_voltage(self.scale.vert))
         self._scope_interface.set_scope_action(ScopeAction.SET_TRIGGER_LEVEL)
         self._scope_interface.run()
 
