@@ -41,27 +41,50 @@ class Scope_Display:
         pixel_resolution: float = vertical_setting/pixel_amplitude
         self.vector = [int(v/pixel_resolution) + int(constants.Display.SIZE/2) for v in self.vector] 
 
-    def _get_trigger_offset(self) -> float:
-        pass
-
-    def _resample_horizontal(self, horizontal_setting: float, fs: float, memory_depth: int) -> list[int]:
+    # Make the below method more readable
+    def _resample_horizontal(self, horizontal_setting: float, vertical_setting: float, fs: float, memory_depth: int) -> list[int]:
         tt:list[float] = [i/fs for i in range(0, len(self.vector))]
         f = interp1d(tt, self.vector, kind='linear', fill_value=0, bounds_error=False)
         new_T: float = (horizontal_setting)/(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
         chop_time: float = (1/fs)*memory_depth - horizontal_setting*constants.Display.GRID_LINE_COUNT
-        self.vector = f([(i*new_T) + (chop_time/2) for i in range(0, constants.Display.SIZE)])   
+        pixel_width_horizontal: float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        horizontal_pixel_time: float = horizontal_setting/pixel_width_horizontal
+        set_trigger_voltage: float = self.get_trigger_voltage(vertical_setting)
+        centered_vector: list[float] = f([(i*new_T) + (chop_time/2) for i in range(0, constants.Display.SIZE)])   
+        captured_trigger_voltage: float = self.vector[(constants.Display.SIZE//2)+1]
+        delta_time: float = 0
+        i = 0
+        if captured_trigger_voltage > set_trigger_voltage:
+            while captured_trigger_voltage > set_trigger_voltage:
+                if i > constants.Display.SIZE//4:
+                    delta_time = 0
+                    break
+                captured_trigger_voltage = centered_vector[(constants.Display.SIZE//2)+1-i]
+                delta_time -= horizontal_pixel_time
+                i += 1
+        if captured_trigger_voltage < set_trigger_voltage:
+            while captured_trigger_voltage < set_trigger_voltage:
+                if i > constants.Display.SIZE//4:
+                    delta_time = 0
+                    break
+                captured_trigger_voltage = centered_vector[(constants.Display.SIZE//2)+1+i]
+                delta_time += horizontal_pixel_time
+                i += 1
+        self.vector = f([(i*new_T) + (chop_time/2) + delta_time for i in range(0, constants.Display.SIZE)])
 
-    def resample_vector(self, horizontal_setting: float, fs: float, memory_depth: int, vertical_setting: float) -> None:
-        self._quantize_vertical(vertical_setting)
-        self._resample_horizontal(horizontal_setting, fs, memory_depth)
-        self._redraw()
+    def resample_vector(self, horizontal_setting: float, vertical_setting: float, fs: float, memory_depth: int) -> None:
+        if len(self.vector) == memory_depth:
+            # Horizontal resampling must be done before vertical quantization because amplitude information is 
+            # needed for trigger point interpolation.
+            self._resample_horizontal(horizontal_setting, vertical_setting, fs, memory_depth)
+            self._quantize_vertical(vertical_setting)
+            self._redraw()
 
     def set_cursors(self, cursors:Cursors):
         self.cursors = cursors
         self._redraw()
 
-    def set_vector(self, vector:list[int]):
-        self.vector = vector
+    def set_vector(self, vector:list[int]): self.vector = vector
 
     def set_trigger_level(self, trigger_level) -> None:
         self.trigger_level:int = trigger_level
@@ -118,6 +141,7 @@ class Scope_Display:
             self._draw_horizontal_cursors()
         if self.cursors.vert_visible:
             self._draw_vertical_cursors()
+        self._draw_trigger_level()
 
     def _draw_vector(self):
         for i, point in enumerate(self.vector):

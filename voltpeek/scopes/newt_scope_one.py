@@ -90,15 +90,10 @@ class NewtScope_One(ScopeBase):
             codes += list(new_data)
         return codes
     
-    def _FIR_filter(self, xx: list[int], run_up_bias: bool=False, bias_array: Optional[np.array]=None) -> list[float]:
+    def _FIR_filter(self, xx: list[int]) -> list[float]:
         if len(xx) > 0:
-            if run_up_bias:
-                xx = np.concatenate((xx, bias_array))
-                filtered_signal = np.convolve(xx, np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]))
-                return filtered_signal[self.FIR_LENGTH:len(filtered_signal)-bias_array.size-1]
-            else:
-                filtered_signal = np.convolve(xx, np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]))
-                return filtered_signal[self.FIR_LENGTH:len(filtered_signal)-1]
+            filtered_signal = np.convolve(xx, np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]))
+            return filtered_signal[self.FIR_LENGTH-1:len(filtered_signal)]
         else:
             return []
 
