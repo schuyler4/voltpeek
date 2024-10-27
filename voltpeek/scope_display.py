@@ -12,7 +12,7 @@ class Scope_Display:
     BACKGROUND_COLOR = (0, 0, 0)
     GRID_LINE_COLOR = (128, 128, 128)
     SIGNAL_COLOR = (17, 176, 249)
-    MAX_TRIGGER_CORRECTION_PIXELS: int = 3
+    MAX_TRIGGER_CORRECTION_PIXELS: int = 6
 
     def _hex_string_from_rgb(self, rgb: tuple[int]): return '#%02x%02x%02x' % rgb
 
