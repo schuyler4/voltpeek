@@ -319,7 +319,8 @@ class UserInterface:
         self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
         self.readout.set_fs(self.scale.fs)
         if self._scope_interface.xx is not None and len(self._scope_interface.xx) > 0:
-            self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, self._scope_interface.scope.SCOPE_SPECS['memory_depth'])
+            self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
+                                               self._scope_interface.scope.SCOPE_SPECS['memory_depth'], self.scope_trigger.trigger_type)
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
@@ -407,7 +408,9 @@ class UserInterface:
             self.readout.set_average(average(xx))
             self.readout.set_rms(rms(xx))
             self.scope_display.set_vector(xx)
-            self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, self._scope_interface.scope.SCOPE_SPECS['memory_depth'])
+            self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
+                                               self._scope_interface.scope.SCOPE_SPECS['memory_depth'], 
+                                               self.scope_trigger.trigger_type)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
 
