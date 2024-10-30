@@ -1,9 +1,4 @@
 import sys
-import os
-import time
-import subprocess
-import tempfile
-import shutil
 sys.path.append('..')
 
 import unittest
@@ -44,3 +39,12 @@ class TestNewtScope_One(unittest.TestCase):
         vv = self.newt_scope_one._reconstruct(codes, 2, offset_null=False)
         for v in vv:
             self.assertEqual(v, 0)
+
+    def test_FIR_filter_returns_empty_output_given_empty_input(self):
+        self.assertEqual(self.newt_scope_one._FIR_filter([]), [])
+    
+    def test_FIR_filter_running_average(self):
+        test_list = [1, 2, 3, 4]
+        N = NewtScope_One.FIR_LENGTH
+        result_list = [(1/N)+(2/N)+(3/N)+1, (2/N)+(3/N)+(4/N), (3/N) + 1, 1]  
+        self.assertListEqual(list(self.newt_scope_one._FIR_filter(test_list)), result_list)
