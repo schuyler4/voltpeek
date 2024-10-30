@@ -12,10 +12,10 @@ from voltpeek.measurements import average, rms
 from voltpeek.scope_interface import ScopeInterface, ScopeAction
 from voltpeek.scopes import get_available_scopes
 
-from voltpeek.scope_display import Scope_Display
-from voltpeek.command_input import Command_Input
-from voltpeek.readout import Readout
-from voltpeek.info_panel import InfoPanel
+from voltpeek.gui.scope_display import Scope_Display
+from voltpeek.gui.command_input import Command_Input
+from voltpeek.gui.readout import Readout
+from voltpeek.gui.info_panel import InfoPanel
 
 from voltpeek.trigger import Trigger, TriggerType
 from voltpeek.cursors import Cursors, Cursor_Data

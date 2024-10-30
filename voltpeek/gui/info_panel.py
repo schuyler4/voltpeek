@@ -30,12 +30,10 @@ class InfoPanel:
             vertical_label.pack()
 
     def show(self) -> None:
-        print('showing it')
         self._visible = True
         self.frame.grid(sticky=tk.N, row=2, column=0)
 
     def hide(self) -> None:
-        print('hiding it')
         self._visible = False
         self.frame.grid_forget()
 

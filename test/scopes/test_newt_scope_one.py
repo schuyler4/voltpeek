@@ -6,8 +6,7 @@ import unittest
 from voltpeek.scopes.newt_scope_one import NewtScope_One
 
 class TestNewtScope_One(unittest.TestCase):
-    def setUp(self):
-        self.newt_scope_one = NewtScope_One()
+    def setUp(self): self.newt_scope_one = NewtScope_One()
 
     def test_newt_scope_init(self):
         self.assertEqual(self.newt_scope_one.baudrate, 115200)
@@ -21,8 +20,7 @@ class TestNewtScope_One(unittest.TestCase):
                                                               NewtScope_One.SCOPE_SPECS['voltage_ref']), 
                                                               NewtScope_One.SCOPE_SPECS['voltage_ref'] - LSB)
 
-    def test_zero(self):
-        self.assertEqual(self.newt_scope_one._zero(0.5), 0)    
+    def test_zero(self): self.assertEqual(self.newt_scope_one._zero(0.5), 0)    
 
     def test_reamplify(self):
         gain = NewtScope_One.SCOPE_SPECS['attenuation']['range_high']
@@ -40,11 +38,10 @@ class TestNewtScope_One(unittest.TestCase):
         for v in vv:
             self.assertEqual(v, 0)
 
-    def test_FIR_filter_returns_empty_output_given_empty_input(self):
-        self.assertEqual(self.newt_scope_one._FIR_filter([]), [])
+    def test_FIR_filter_returns_empty_output_given_empty_input(self): self.assertEqual(self.newt_scope_one._FIR_filter([]), [])
     
     def test_FIR_filter_running_average(self):
-        test_list = [1, 2, 3, 4]
         N = NewtScope_One.FIR_LENGTH
-        result_list = [(1/N)+(2/N)+(3/N)+1, (2/N)+(3/N)+(4/N), (3/N) + 1, 1]  
+        test_list = [1, 2, 3, 4]
+        result_list = [(1/N)+(2/N)+(3/N)+(4/N), (2/N)+(3/N)+(4/N), (3/N) + (4/N), (4/N)]  
         self.assertListEqual(list(self.newt_scope_one._FIR_filter(test_list)), result_list)
