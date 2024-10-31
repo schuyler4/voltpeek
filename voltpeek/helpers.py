@@ -1,5 +1,9 @@
 def engineering_units(number: float) -> str:
-    if number >= 1:
+    if number < 1e9 and number >= 1e6:
+        return str(int(number)/1000000) + 'M'
+    elif number < 1e6 and number >= 1e3:
+        return str(int(number)/1000) + 'k'
+    elif number < 1000 and number >= 1:
         return str(number)
     elif number < 1 and number >= 1e-3:
         return str(int(number*1e3)) + 'm'

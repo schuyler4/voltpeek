@@ -5,6 +5,8 @@ from voltpeek import constants
 from voltpeek.cursors import Cursor_Data
 from voltpeek.trigger import TriggerType
 
+from voltpeek.helpers import engineering_units
+
 class Readout:
     AVERAGE_STRING: str = 'average:'
     RMS_STRING: str = 'rms:'
@@ -46,7 +48,7 @@ class Readout:
 
     def get_vertical_str(self) -> str: return str(self._vertical_setting) + ' V/div' 
 
-    def get_horizontal_str(self) -> str: return str(self._horizontal_setting) + ' s/div'
+    def get_horizontal_str(self) -> str: return engineering_units(self._horizontal_setting) + 's/div'
 
     def __call__(self) -> None:
         vertical_label: tk.Label = tk.Label(self.frame, 
@@ -121,7 +123,7 @@ class Readout:
 
     def set_rms(self, rms: float) -> None: self._rms_text.set(self.RMS_STRING + str(rms) + 'Vrms')
 
-    def set_fs(self, fs: float) -> None: self._fs_text.set('fs:' + str(fs) + 'S/s')
+    def set_fs(self, fs: float) -> None: self._fs_text.set('fs:' + engineering_units(fs) + 'S/s')
 
     def set_status(self, status_str: str) -> None: self._status_text.set(status_str)
 
