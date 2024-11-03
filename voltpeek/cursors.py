@@ -2,6 +2,7 @@ from enum import Enum
 from typing import TypedDict
 
 from voltpeek import constants
+from voltpeek.helpers import engineering_units
 
 class Selected_Cursor(Enum):
     HOR1 = 0
@@ -148,7 +149,7 @@ class Cursors:
     def _get_vert_time(self, horizontal_setting: float, cursor_offset: int) -> float:
         pixel_offset: float = float(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
         pixel_resolution: float = horizontal_setting/pixel_offset
-        time: float = float(cursor_offset*pixel_resolution) 
+        time: float = float((cursor_offset*pixel_resolution) - horizontal_setting*(constants.Display.GRID_LINE_COUNT/2)) 
         return time 
 
     def get_hor1_voltage(self, vertical_setting: float) -> float: 
@@ -190,3 +191,13 @@ class Cursors:
             return abs(round(1/self._get_delta_time_unrounded(horizontal_setting), self.MAX_DIGITS))
         else:
             return float('NaN')
+
+    def get_cursor_dict(self, hor_setting:bool, vert_setting:bool) -> Cursor_Data:
+        h1: str = engineering_units(self.get_hor1_voltage(vert_setting)) + 's' if self.hor_visible else ''
+        h2: str = engineering_units(self.get_hor2_voltage(vert_setting)) + 's' if self.hor_visible else '' 
+        hdelta: str = engineering_units(self.get_delta_voltage(vert_setting)) + 's' if self.hor_visible else ''
+        v1: str = engineering_units(self.get_vert1_time(hor_setting)) + 'V' if self.vert_visible else ''
+        v2: str = engineering_units(self.get_vert2_time(hor_setting)) + 'V' if self.vert_visible else ''
+        vdelta: str = engineering_units(self.get_delta_time(hor_setting)) + 'V' if self.vert_visible else ''
+        vdelta_frequency: str = engineering_units(self.get_delta_frequency(hor_setting)) + 'Hz' if self.vert_visible else ''
+        return { 'h1': h1, 'h2': h2, 'hdelta': hdelta, 'v1': v1, 'v2': v2, 'vdelta': vdelta, '1/vdelta': vdelta_frequency }

@@ -324,7 +324,7 @@ class UserInterface:
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
-        self.readout.update_cursors(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))
+        self.readout.update_cursors(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))
         self.scope_display.set_cursors(self.cursors)
     
     def exit_routine(self) -> None:
@@ -495,29 +495,19 @@ class UserInterface:
         self.scope_trigger.trigger_type = TriggerType.FALLING_EDGE
         self.readout.set_trigger_type(self.scope_trigger.trigger_type)
 
-    def get_cursor_dict(self, horizontal:bool, vertical:bool) -> Cursor_Data:
-        h1: str = self.cursors.get_hor1_voltage(self.scale.vert) if horizontal else ''
-        h2: str = self.cursors.get_hor2_voltage(self.scale.vert) if horizontal else '' 
-        hdelta: str = self.cursors.get_delta_voltage(self.scale.vert) if horizontal else ''
-        v1: str = self.cursors.get_vert1_time(self.scale.hor) if vertical else ''
-        v2: str = self.cursors.get_vert2_time(self.scale.hor) if vertical else ''
-        vdelta: str = self.cursors.get_delta_time(self.scale.hor) if vertical else ''
-        vdelta_frequency: str = self.cursors.get_delta_frequency(self.scale.hor) if vertical else ''
-        return { 'h1': h1, 'h2': h2, 'hdelta': hdelta, 'v1': v1, 'v2': v2, 'vdelta': vdelta, '1/vdelta': vdelta_frequency}
-    
     # TODO: Refactor the three methods below that are very similar.
     def toggle_cursors(self) -> None:
         self.cursors.toggle() 
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.hor_visible or self.cursors.vert_visible: 
-            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))   
+            self.readout.enable_cursor_readout(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))   
         else: 
             self.readout.disable_cursor_readout()
 
     def toggle_horizontal_cursors(self) -> None:
         self.cursors.toggle_hor()
         if self.cursors.hor_visible:
-            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))  
+            self.readout.enable_cursor_readout(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))  
         elif not self.cursors.vert_visible: 
             self.readout.disable_cursor_readout()
         else:
@@ -528,7 +518,7 @@ class UserInterface:
     def toggle_vertical_cursors(self) -> None:
         self.cursors.toggle_vert()
         if self.cursors.vert_visible:
-            self.readout.enable_cursor_readout(self.get_cursor_dict(self.cursors.hor_visible, self.cursors.vert_visible))   
+            self.readout.enable_cursor_readout(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))   
         elif not self.cursors.hor_visible: 
             self.readout.disable_cursor_readout()
         else:
