@@ -2,7 +2,7 @@ from enum import Enum
 from typing import TypedDict
 
 from voltpeek import constants
-from voltpeek.helpers import engineering_units
+from voltpeek.helpers import engineering_units, two_sig_figs
 
 class Selected_Cursor(Enum):
     HOR1 = 0
@@ -193,11 +193,16 @@ class Cursors:
             return float('NaN')
 
     def get_cursor_dict(self, hor_setting:bool, vert_setting:bool) -> Cursor_Data:
-        h1: str = engineering_units(self.get_hor1_voltage(vert_setting)) + 'V' if self.hor_visible else ''
-        h2: str = engineering_units(self.get_hor2_voltage(vert_setting)) + 'V' if self.hor_visible else '' 
-        hdelta: str = engineering_units(self.get_delta_voltage(vert_setting)) + 'V' if self.hor_visible else ''
-        v1: str = engineering_units(self.get_vert1_time(hor_setting)) + 's' if self.vert_visible else ''
-        v2: str = engineering_units(self.get_vert2_time(hor_setting)) + 's' if self.vert_visible else ''
-        vdelta: str = engineering_units(self.get_delta_time(hor_setting)) + 's' if self.vert_visible else ''
-        vdelta_frequency: str = engineering_units(self.get_delta_frequency(hor_setting)) + 'Hz' if self.vert_visible else ''
+        h1: str = engineering_units(two_sig_figs(self.get_hor1_voltage(vert_setting))) + 'V' if self.hor_visible else ''
+        h2: str = engineering_units(two_sig_figs(self.get_hor2_voltage(vert_setting))) + 'V' if self.hor_visible else '' 
+        hdelta: str = engineering_units(two_sig_figs(self.get_delta_voltage(vert_setting))) + 'V' if self.hor_visible else ''
+        print(two_sig_figs(self.get_vert1_time(hor_setting)))
+        v1: str = engineering_units(two_sig_figs(self.get_vert1_time(hor_setting))) + 's' if self.vert_visible else ''
+        v2: str = engineering_units(two_sig_figs(self.get_vert2_time(hor_setting))) + 's' if self.vert_visible else ''
+        vdelta: str = engineering_units(two_sig_figs(self.get_delta_time(hor_setting))) + 's' if self.vert_visible else ''
+        vdelta_frequency_number_string = engineering_units(two_sig_figs(self.get_delta_frequency(hor_setting)))
+        if self.vert_visible and vdelta_frequency_number_string is not None:
+            vdelta_frequency: str = vdelta_frequency_number_string + 'Hz' 
+        else:
+            vdelta_frequency = ''
         return { 'h1': h1, 'h2': h2, 'hdelta': hdelta, 'v1': v1, 'v2': v2, 'vdelta': vdelta, '1/vdelta': vdelta_frequency }
