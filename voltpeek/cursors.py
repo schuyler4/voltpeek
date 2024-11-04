@@ -193,11 +193,11 @@ class Cursors:
             return float('NaN')
 
     def get_cursor_dict(self, hor_setting:bool, vert_setting:bool) -> Cursor_Data:
-        h1: str = engineering_units(self.get_hor1_voltage(vert_setting)) + 's' if self.hor_visible else ''
-        h2: str = engineering_units(self.get_hor2_voltage(vert_setting)) + 's' if self.hor_visible else '' 
-        hdelta: str = engineering_units(self.get_delta_voltage(vert_setting)) + 's' if self.hor_visible else ''
-        v1: str = engineering_units(self.get_vert1_time(hor_setting)) + 'V' if self.vert_visible else ''
-        v2: str = engineering_units(self.get_vert2_time(hor_setting)) + 'V' if self.vert_visible else ''
-        vdelta: str = engineering_units(self.get_delta_time(hor_setting)) + 'V' if self.vert_visible else ''
+        h1: str = engineering_units(self.get_hor1_voltage(vert_setting)) + 'V' if self.hor_visible else ''
+        h2: str = engineering_units(self.get_hor2_voltage(vert_setting)) + 'V' if self.hor_visible else '' 
+        hdelta: str = engineering_units(self.get_delta_voltage(vert_setting)) + 'V' if self.hor_visible else ''
+        v1: str = engineering_units(self.get_vert1_time(hor_setting)) + 's' if self.vert_visible else ''
+        v2: str = engineering_units(self.get_vert2_time(hor_setting)) + 's' if self.vert_visible else ''
+        vdelta: str = engineering_units(self.get_delta_time(hor_setting)) + 's' if self.vert_visible else ''
         vdelta_frequency: str = engineering_units(self.get_delta_frequency(hor_setting)) + 'Hz' if self.vert_visible else ''
         return { 'h1': h1, 'h2': h2, 'hdelta': hdelta, 'v1': v1, 'v2': v2, 'vdelta': vdelta, '1/vdelta': vdelta_frequency }
