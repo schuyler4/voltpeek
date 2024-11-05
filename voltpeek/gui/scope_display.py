@@ -24,6 +24,7 @@ class Scope_Display:
         self._draw_grid()
         self.vector:Optional[list[int]] = None
         self.cursors:Optional[Cursors] = cursors
+        self._trigger_level = 0
 
     def __call__(self):
         self.canvas.pack()
@@ -118,7 +119,7 @@ class Scope_Display:
     def set_vector(self, vector:list[int]): self.vector = vector
 
     def set_trigger_level(self, trigger_level) -> None:
-        self.trigger_level:int = trigger_level
+        self._trigger_level:int = trigger_level
         self._redraw()
         if self.vector is not None:
             self._draw_vector()
@@ -127,15 +128,15 @@ class Scope_Display:
     def get_trigger_voltage(self, vertical_setting: float) -> float:
         pixel_division:float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
         pixel_resolution:float = vertical_setting/pixel_division
-        return float((constants.Display.SIZE - self.trigger_level - (constants.Display.SIZE/2))*pixel_resolution)
+        return float((constants.Display.SIZE - self._trigger_level - (constants.Display.SIZE/2))*pixel_resolution)
 
     def increment_trigger_level(self) -> None:
-        if self.trigger_level < constants.Display.SIZE:
-            self.set_trigger_level(self.trigger_level - 1)
+        if self._trigger_level < constants.Display.SIZE:
+            self.set_trigger_level(self._trigger_level - 1)
         
     def decrement_trigger_level(self) -> None: 
-        if self.trigger_level > 0: 
-            self.set_trigger_level(self.trigger_level + 1)    
+        if self._trigger_level > 0: 
+            self.set_trigger_level(self._trigger_level + 1)    
 
     def _draw_horizontal_cursors(self) -> None:
         if self.cursors.selected_cursor == Selected_Cursor.HOR1:
@@ -205,7 +206,7 @@ class Scope_Display:
     def _draw_vertical_line(self, position, color): 
         self.canvas.create_line(position, 0, position, constants.Display.SIZE, fill=color)
 
-    def _draw_trigger_level(self): self._draw_horizontal_line(self.trigger_level, constants.Display.TRIGGER_LINE_COLOR)
+    def _draw_trigger_level(self): self._draw_horizontal_line(self._trigger_level, constants.Display.TRIGGER_LINE_COLOR)
 
     @property
     def image_map(self):

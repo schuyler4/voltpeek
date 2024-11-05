@@ -401,6 +401,7 @@ class UserInterface:
                                       self._scope_interface.scope.SCOPE_SPECS['memory_depth'])
         self._start_event_queue.append(Event.CHANGE_SCALE)
         self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
+        self._start_event_queue.append(Event.SET_TRIGGER_LEVEL)
         self._update_scope_status()
 
     def display_signal(self, xx: list[float]) -> None:
