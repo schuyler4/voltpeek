@@ -88,6 +88,7 @@ class UserInterface:
         self._auto_trigger_running = False
         self._normal_trigger_running = False
         self._calibration = False
+        self._triggered = False
         self._calibration_step = 0
 
         self._fir_length = 5
@@ -320,7 +321,8 @@ class UserInterface:
         self.readout.set_fs(self.scale.fs)
         if self._scope_interface.xx is not None and len(self._scope_interface.xx) > 0:
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
-                                               self._scope_interface.scope.SCOPE_SPECS['memory_depth'], self.scope_trigger.trigger_type)
+                                               self._scope_interface.scope.SCOPE_SPECS['memory_depth'], 
+                                               self.scope_trigger.trigger_type, self._triggered)
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
@@ -404,14 +406,14 @@ class UserInterface:
         self._start_event_queue.append(Event.SET_TRIGGER_LEVEL)
         self._update_scope_status()
 
-    def display_signal(self, xx: list[float]) -> None:
+    def display_signal(self, xx: list[float], triggered: bool) -> None:
         if len(xx) > 0:
             self.readout.set_average(average(xx))
             self.readout.set_rms(rms(xx))
             self.scope_display.set_vector(xx)
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
                                                self._scope_interface.scope.SCOPE_SPECS['memory_depth'], 
-                                               self.scope_trigger.trigger_type)
+                                               self.scope_trigger.trigger_type, triggered)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
 
@@ -422,7 +424,8 @@ class UserInterface:
         self._scope_interface.run()
 
     def _finish_auto_trigger_cycle(self) -> None:
-        self.display_signal(self._scope_interface.xx)
+        self._triggered = False
+        self.display_signal(self._scope_interface.xx, self._triggered)
         if self._auto_trigger_running:
             self._start_event_queue.append(Event.AUTO_TRIGGER)
 
@@ -434,13 +437,15 @@ class UserInterface:
 
     def _finish_normal_trigger_cycle(self) -> None:
         if len(self._scope_interface.xx) > 0: 
-            self.display_signal(self._scope_interface.xx)
+            self._triggered = True
+            self.display_signal(self._scope_interface.xx, self._triggered)
         if self._normal_trigger_running:
             self._start_event_queue.append(Event.NORMAL_TRIGGER)
 
     def _finish_single_trigger(self) -> None:
         if len(self._scope_interface.xx) > 0:
-            self.display_signal(self._scope_interface.xx)
+            self._triggered = True
+            self.display_signal(self._scope_interface.xx, self._triggered)
 
     def _start_force_trigger(self) -> None:
         if self._calibration:

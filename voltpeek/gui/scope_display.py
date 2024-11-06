@@ -45,7 +45,9 @@ class Scope_Display:
         pixel_resolution: float = vertical_setting/pixel_amplitude
         self.vector = [int(v/pixel_resolution) + int(constants.Display.SIZE/2) for v in self.vector] 
 
-    def _resample_horizontal(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType) -> list[int]:
+    def _resample_horizontal(self, hor_setting: float, vert_setting: float, 
+                             fs: float, memory_depth: int, edge: TriggerType, 
+                             triggered: bool) -> list[int]:
         tt:list[float] = [i/fs for i in range(0, len(self.vector))]
         f = interp1d(tt, self.vector, kind='linear', fill_value=0, bounds_error=False)
         new_T: float = (hor_setting)/(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
@@ -55,71 +57,76 @@ class Scope_Display:
         horizontal_pixel_time: float = hor_setting/grid_size
         set_trigger_voltage: float = self.get_trigger_voltage(vert_setting)
         centered_vector: list[float] = f([(i*new_T) + (chop_time/2) for i in range(0, constants.Display.SIZE)])   
-        # This obviously needs to be refactored
-        delta_time: float = 0
-        i = 0
-        if edge == TriggerType.RISING_EDGE:
-            captured_trigger_voltage: float = centered_vector[(constants.Display.SIZE//2)+1]
-            if captured_trigger_voltage > set_trigger_voltage:
-                while captured_trigger_voltage > set_trigger_voltage:
-                    if i > constants.Display.SIZE//4:
+        if triggered:
+            # This obviously needs to be refactored
+            delta_time: float = 0
+            i = 0
+            if edge == TriggerType.RISING_EDGE:
+                captured_trigger_voltage: float = centered_vector[(constants.Display.SIZE//2)+1]
+                if captured_trigger_voltage > set_trigger_voltage:
+                    while captured_trigger_voltage > set_trigger_voltage:
+                        if i > constants.Display.SIZE//4:
+                            delta_time = 0
+                            break
+                        captured_trigger_voltage = centered_vector[(constants.Display.SIZE//2)+1-i]
+                        delta_time -= horizontal_pixel_time
+                        i += 1
+                    if abs(set_trigger_voltage - captured_trigger_voltage) > self.MAX_TRIGGER_CORRECTION_PIXELS*vertical_pixel_amplitude:
                         delta_time = 0
-                        break
-                    captured_trigger_voltage = centered_vector[(constants.Display.SIZE//2)+1-i]
-                    delta_time -= horizontal_pixel_time
-                    i += 1
-                if abs(set_trigger_voltage - captured_trigger_voltage) > self.MAX_TRIGGER_CORRECTION_PIXELS*vertical_pixel_amplitude:
-                    delta_time = 0
-            if captured_trigger_voltage < set_trigger_voltage:
-                while captured_trigger_voltage < set_trigger_voltage:
-                    if i > constants.Display.SIZE//4:
+                if captured_trigger_voltage < set_trigger_voltage:
+                    while captured_trigger_voltage < set_trigger_voltage:
+                        if i > constants.Display.SIZE//4:
+                            delta_time = 0
+                            break
+                        captured_trigger_voltage = centered_vector[(constants.Display.SIZE//2)+1+i]
+                        delta_time += horizontal_pixel_time
+                        i += 1
+                    if abs(set_trigger_voltage - captured_trigger_voltage) > self.MAX_TRIGGER_CORRECTION_PIXELS*vertical_pixel_amplitude:
                         delta_time = 0
-                        break
-                    captured_trigger_voltage = centered_vector[(constants.Display.SIZE//2)+1+i]
-                    delta_time += horizontal_pixel_time
-                    i += 1
-                if abs(set_trigger_voltage - captured_trigger_voltage) > self.MAX_TRIGGER_CORRECTION_PIXELS*vertical_pixel_amplitude:
-                    delta_time = 0
-        elif edge == TriggerType.FALLING_EDGE:
-            captured_trigger_voltage: float = centered_vector[(constants.Display.SIZE//2)+1]
-            if captured_trigger_voltage > set_trigger_voltage:
-                while captured_trigger_voltage > set_trigger_voltage:
-                    if i > constants.Display.SIZE//4:
+            elif edge == TriggerType.FALLING_EDGE:
+                captured_trigger_voltage: float = centered_vector[(constants.Display.SIZE//2)+1]
+                if captured_trigger_voltage > set_trigger_voltage:
+                    while captured_trigger_voltage > set_trigger_voltage:
+                        if i > constants.Display.SIZE//4:
+                            delta_time = 0
+                            break
+                        captured_trigger_voltage = centered_vector[(constants.Display.SIZE//2)+1+i]
+                        delta_time += horizontal_pixel_time
+                        i += 1
+                    if abs(set_trigger_voltage - captured_trigger_voltage) > self.MAX_TRIGGER_CORRECTION_PIXELS*vertical_pixel_amplitude:
                         delta_time = 0
-                        break
-                    captured_trigger_voltage = centered_vector[(constants.Display.SIZE//2)+1+i]
-                    delta_time += horizontal_pixel_time
-                    i += 1
-                if abs(set_trigger_voltage - captured_trigger_voltage) > self.MAX_TRIGGER_CORRECTION_PIXELS*vertical_pixel_amplitude:
-                    delta_time = 0
-            if captured_trigger_voltage < set_trigger_voltage:
-                while captured_trigger_voltage < set_trigger_voltage:
-                    if i > constants.Display.SIZE//4:
+                if captured_trigger_voltage < set_trigger_voltage:
+                    while captured_trigger_voltage < set_trigger_voltage:
+                        if i > constants.Display.SIZE//4:
+                            delta_time = 0
+                            break
+                        captured_trigger_voltage = centered_vector[(constants.Display.SIZE//2)+1-i]
+                        delta_time -= horizontal_pixel_time
+                        i += 1
+                    if abs(set_trigger_voltage - captured_trigger_voltage) > self.MAX_TRIGGER_CORRECTION_PIXELS*vertical_pixel_amplitude:
                         delta_time = 0
-                        break
-                    captured_trigger_voltage = centered_vector[(constants.Display.SIZE//2)+1-i]
-                    delta_time -= horizontal_pixel_time
-                    i += 1
-                if abs(set_trigger_voltage - captured_trigger_voltage) > self.MAX_TRIGGER_CORRECTION_PIXELS*vertical_pixel_amplitude:
-                    delta_time = 0
-        self.vector = f([(i*new_T) + (chop_time/2) + delta_time for i in range(0, constants.Display.SIZE)])
+            self.vector = f([(i*new_T) + (chop_time/2) + delta_time for i in range(0, constants.Display.SIZE)])
+        else:
+            self.vector = centered_vector
 
-    def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType) -> None:
+    def resample_vector(self, hor_setting: float, vert_setting: float, 
+                        fs: float, memory_depth: int, edge: TriggerType, 
+                        triggered: bool) -> None:
         if len(self.vector) == memory_depth:
             # Horizontal resampling must be done before vertical quantization because amplitude information is 
             # needed for trigger point interpolation.
-            self._resample_horizontal(hor_setting, vert_setting, fs, memory_depth, edge)
+            self._resample_horizontal(hor_setting, vert_setting, fs, memory_depth, edge, triggered)
             self._quantize_vertical(vert_setting)
             self._redraw()
 
-    def set_cursors(self, cursors:Cursors):
+    def set_cursors(self, cursors: Cursors):
         self.cursors = cursors
         self._redraw()
 
-    def set_vector(self, vector:list[int]): self.vector = vector
+    def set_vector(self, vector: list[int]): self.vector = vector
 
     def set_trigger_level(self, trigger_level) -> None:
-        self._trigger_level:int = trigger_level
+        self._trigger_level: int = trigger_level
         self._redraw()
         if self.vector is not None:
             self._draw_vector()
