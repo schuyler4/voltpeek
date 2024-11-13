@@ -1,5 +1,4 @@
 class Application:
-    NAME:str = 'Volt Peek'
     PADDING:int = 3
 
 class Window:

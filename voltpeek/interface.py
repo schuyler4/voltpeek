@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 from enum import Enum
 from threading import Event
-from inspect import signature
+from inspect import signature, stack
 
 import tkinter as tk
 
@@ -95,7 +95,7 @@ class UserInterface:
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
-        self.root.title(constants.Application.NAME)
+        self.root.title(__name__.split('.')[0])
         self.root.configure(bg=constants.Window.BACKGROUND_COLOR) 
         self.root.tk.call('tk', 'scaling', 1)
         self.root.after(1, self.check_state)
