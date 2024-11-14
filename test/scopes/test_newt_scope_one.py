@@ -2,16 +2,31 @@ import sys
 sys.path.append('..')
 
 import unittest
+from unittest.mock import patch
 
 from voltpeek.scopes.newt_scope_one import NewtScope_One
+
+from scopes.serial_mock import SerialMock
 
 class TestNewtScope_One(unittest.TestCase):
     def setUp(self): self.newt_scope_one = NewtScope_One()
 
-    def test_newt_scope_init(self):
+    def test_init(self):
         self.assertEqual(self.newt_scope_one.baudrate, 115200)
         self.assertEqual(self.newt_scope_one.port, None)
         self.assertEqual(self.newt_scope_one.error, False)
+
+    @patch('voltpeek.scopes.newt_scope_one.Serial', new=SerialMock)
+    def test_connect(self):
+        self.newt_scope_one.connect()
+        self.assertTrue(self.newt_scope_one.serial_port.created, True)
+        self.assertEqual(self.newt_scope_one.serial_port.baudrate, 115200)
+        self.assertEqual(self.newt_scope_one.serial_port.timeout, 0)
+
+    #@patch('voltpeek.scopes.newt_scope_one.Serial', new=SerialMock)
+    #def test_read_glob_data(self):
+    #    self.newt_scope_one.connect()
+    #    codes = self.newt_scope_one.read_glob_data()
 
     def test_inverse_quantize(self):
         LSB = NewtScope_One.SCOPE_SPECS['voltage_ref']/NewtScope_One.SCOPE_SPECS['resolution']
