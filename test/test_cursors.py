@@ -74,84 +74,84 @@ class TestCursors(unittest.TestCase):
     def test_decrement_hor(self):
         self.cursors.toggle_hor()
         for _ in range(0, 10):
-            self.cursors.decrement_hor()
+            self.cursors.decrement_hor_fine()
         self.assertEqual(self.cursors.hor1_pos, 1)
         self.cursors.next_cursor()
         for _ in range(0, 20):
-            self.cursors.decrement_hor()
+            self.cursors.decrement_hor_fine()
         self.assertEqual(self.cursors.hor2_pos, 1)
         self.cursors.toggle_hor()
 
     def test_decrement_hor_positive(self):
         self.cursors.toggle_hor()
         for _ in range(0, 100):
-            self.cursors.decrement_hor()
+            self.cursors.decrement_hor_fine()
         self.assertEqual(self.cursors.hor1_pos, 1)
         self.cursors.next_cursor()
         for _ in range(0, 100):
-            self.cursors.decrement_hor()
+            self.cursors.decrement_hor_fine()
         self.assertEqual(self.cursors.hor2_pos, 1)
         self.cursors.toggle_hor()
 
     def test_increment_hor(self):
         self.cursors.toggle_hor()
         for _ in range(0, 10):
-            self.cursors.increment_hor()
+            self.cursors.increment_hor_fine()
         self.assertEqual(self.cursors.hor1_pos, 20)
         self.cursors.next_cursor()
         for _ in range(0, 20):
-            self.cursors.increment_hor()
+            self.cursors.increment_hor_fine()
         self.assertEqual(self.cursors.hor2_pos, 40)
         self.cursors.toggle_hor() 
 
     def test_increment_hor_below_screen_size(self):
         self.cursors.toggle_hor()
         for _ in range(0, 900):
-            self.cursors.increment_hor()
+            self.cursors.increment_hor_fine()
         self.assertEqual(self.cursors.hor1_pos, 799)
         self.cursors.next_cursor()
         for _ in range(0, 900):
-            self.cursors.increment_hor()
+            self.cursors.increment_hor_fine()
         self.assertEqual(self.cursors.hor2_pos, 799)
         self.cursors.toggle_hor()
 
     def test_get_hor1_voltage(self):
         self.cursors.toggle_hor()
         for _ in range(0, 390):
-            self.cursors.increment_hor()
+            self.cursors.increment_hor_fine()
         self.assertEqual(self.cursors.get_hor1_voltage(1), 0)
         for _ in range(0, 80):
-            self.cursors.decrement_hor()
+            self.cursors.decrement_hor_fine()
         self.assertEqual(self.cursors.get_hor1_voltage(1), 1)
 
     def test_get_hor2_voltage(self):
         self.cursors.toggle_hor()
         self.cursors.next_cursor()
         for _ in range(0, 380):
-            self.cursors.increment_hor()
+            self.cursors.increment_hor_fine()
         self.assertEqual(self.cursors.get_hor2_voltage(1), 0)
         for _ in range(0, 80):
-            self.cursors.decrement_hor()
+            self.cursors.decrement_hor_fine()
         self.assertEqual(self.cursors.get_hor2_voltage(1), 1)
         self.cursors.toggle_hor()
 
     def test_hor_delta_voltage(self):
         self.cursors.toggle_hor()
         for _ in range(0, 310):
-            self.cursors.increment_hor()
+            self.cursors.increment_hor_fine()
         self.cursors.next_cursor()
         for _ in range(0, 380):
-            self.cursors.increment_hor()
+            self.cursors.increment_hor_fine()
         self.assertEqual(self.cursors.get_delta_voltage(1), 1)
         self.cursors.toggle_hor()
 
     def test_get_vert1_time(self):
         self.cursors.toggle_vert()
         for _ in range(0, 390):
-            self.cursors.increment_vert()
+            self.cursors.increment_vert_fine()
         self.assertEqual(self.cursors.get_vert1_time(1), 0)
         for _ in range(0, 80):
-            self.cursors.increment_vert()
+            self.cursors.increment_vert_fine()
         self.assertEqual(self.cursors.get_vert1_time(1), 1)
         self.cursors.toggle_vert()
 
@@ -159,29 +159,29 @@ class TestCursors(unittest.TestCase):
         self.cursors.toggle_vert()
         self.cursors.next_cursor()
         for _ in range(0, 380):
-            self.cursors.increment_vert()
+            self.cursors.increment_vert_fine()
         self.assertEqual(self.cursors.get_vert2_time(1), 0)
         for _ in range(0, 80):
-            self.cursors.increment_vert()
+            self.cursors.increment_vert_fine()
         self.assertEqual(self.cursors.get_vert2_time(1), 1)
         self.cursors.toggle_vert()
 
     def test_get_vert_delta_time(self):
         self.cursors.toggle_vert()
         for _ in range(0, 390):
-            self.cursors.increment_vert()
+            self.cursors.increment_vert_fine()
         self.cursors.next_cursor()
         for _ in range(0, 300):
-            self.cursors.increment_vert()
+            self.cursors.increment_vert_fine()
         self.assertEqual(self.cursors.get_delta_time(1), 1)
         self.cursors.toggle_vert()
 
     def test_get_delta_frequency(self):
         self.cursors.toggle_vert()
         for _ in range(0, 390):
-            self.cursors.increment_vert()
+            self.cursors.increment_vert_fine()
         self.cursors.next_cursor()
         for _ in range(0, 300):
-            self.cursors.increment_vert()
+            self.cursors.increment_vert_fine()
         self.assertEqual(self.cursors.get_delta_frequency(1), 1)
         self.cursors.toggle_vert()

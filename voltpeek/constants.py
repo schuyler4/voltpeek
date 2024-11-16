@@ -38,19 +38,6 @@ class Readout:
 class Signal:
     COLOR:str = 'blue'
 
-class KeyCodes:
-    CTRL_C: int = 54
-    ESC: int = 9
-    UP_ARROW: int = 111
-    ENTER: int = 36
-
-class Keys:
-    HORIZONTAL_LEFT:str = 'h'    
-    HORIZONTAL_RIGHT:str = 'l'
-    VERTICAL_UP:str = 'k' 
-    VERTICAL_DOWN:str = 'j' 
-    EXIT_COMMAND_MODE = (KeyCodes.CTRL_C, KeyCodes.ESC)
-
 class Vertical:
     LARGE_STEP = 1
     SMALL_STEP = 0.1

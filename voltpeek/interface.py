@@ -54,9 +54,22 @@ class Event(Enum):
     SET_RISING_EDGE_TRIGGER = 12
     SET_FALLING_EDGE_TRIGGER = 13
 
+class KeyCodes:
+    CTRL_C: int = 54
+    ESC: int = 9
+    UP_ARROW: int = 111
+    ENTER: int = 36
+
+class Keys:
+    HORIZONTAL_LEFT:str = 'h'    
+    HORIZONTAL_RIGHT:str = 'l'
+    VERTICAL_UP:str = 'k' 
+    VERTICAL_DOWN:str = 'j' 
+    EXIT_COMMAND_MODE = (KeyCodes.CTRL_C, KeyCodes.ESC)
+
 class UserInterface:
     INVALID_SCOPE_ERROR = 'The scope identifier entered is not supported.'
-        
+
     def __init__(self) -> None:
         self._build_tk_root()
 
@@ -167,38 +180,38 @@ class UserInterface:
         self.root.after(1, self.check_state)
 
     def on_key_press(self, event) -> None:
-        if self.info_panel.visible and event.keycode != constants.KeyCodes.ENTER:
+        if self.info_panel.visible and event.keycode != KeyCodes.ENTER:
             self.info_panel.hide() 
         if self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS:
-            if event.keycode in constants.Keys.EXIT_COMMAND_MODE: 
+            if event.keycode in Keys.EXIT_COMMAND_MODE: 
                 if self.mode == Mode.ADJUST_TRIGGER_LEVEL: 
                     self._start_event_queue.append(Event.SET_TRIGGER_LEVEL)
                 self._set_command_mode()
         if self.mode == Mode.ADJUST_SCALE:
-            if event.char == constants.Keys.VERTICAL_UP:
+            if event.char == Keys.VERTICAL_UP:
                 self._update_scale_vert(self.scale.increment_vert)
-            elif event.char == constants.Keys.VERTICAL_DOWN:
+            elif event.char == Keys.VERTICAL_DOWN:
                 self._update_scale_vert(self.scale.decrement_vert)
-            elif event.char == constants.Keys.HORIZONTAL_RIGHT:
+            elif event.char == Keys.HORIZONTAL_RIGHT:
                 self._set_update_scale(self.scale.increment_hor)
-            elif event.char == constants.Keys.HORIZONTAL_LEFT:
+            elif event.char == Keys.HORIZONTAL_LEFT:
                 self._set_update_scale(self.scale.decrement_hor)
         elif self.mode == Mode.ADJUST_TRIGGER_LEVEL:
-            if event.char == constants.Keys.VERTICAL_UP:
+            if event.char == Keys.VERTICAL_UP:
                 self.scope_display.increment_trigger_level()
-            elif event.char == constants.Keys.VERTICAL_DOWN:
+            elif event.char == Keys.VERTICAL_DOWN:
                 self.scope_display.decrement_trigger_level()
         elif self.mode == Mode.ADJUST_CURSORS:
-            if event.char == constants.Keys.VERTICAL_UP:
+            if event.char == Keys.VERTICAL_UP:
                 self._update_cursor(self.cursors.decrement_hor)
-            elif event.char == constants.Keys.VERTICAL_DOWN:
+            elif event.char == Keys.VERTICAL_DOWN:
                 self._update_cursor(self.cursors.increment_hor)
-            elif event.char == constants.Keys.HORIZONTAL_RIGHT:
+            elif event.char == Keys.HORIZONTAL_RIGHT:
                 self._update_cursor(self.cursors.increment_vert)
-            elif event.char == constants.Keys.HORIZONTAL_LEFT:
+            elif event.char == Keys.HORIZONTAL_LEFT:
                 self._update_cursor(self.cursors.decrement_vert)
         elif self.mode == Mode.COMMAND:
-            if event.keycode == constants.KeyCodes.UP_ARROW:
+            if event.keycode == KeyCodes.UP_ARROW:
                 self.command_input.set_command_stack()
 
     def process_command(self, command:str) -> None:

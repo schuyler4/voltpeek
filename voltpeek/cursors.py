@@ -52,61 +52,61 @@ class Cursors:
     @property
     def selected_cursor(self) -> bool: return self._selected_cursor
 
-    def _increment_hor1(self) -> None: 
+    def _increment_hor1_fine(self) -> None: 
         if self._hor1_pos < constants.Display.SIZE-1: 
             self._hor1_pos += 1 
     
-    def _decrement_hor1(self) -> None: 
+    def _decrement_hor1_fine(self) -> None: 
         if self._hor1_pos > 1: 
             self._hor1_pos -= 1
 
-    def _increment_hor2(self) -> None: 
+    def _increment_hor2_fine(self) -> None: 
         if self._hor2_pos < constants.Display.SIZE-1: 
             self._hor2_pos += 1
 
-    def _decrement_hor2(self) -> None: 
+    def _decrement_hor2_fine(self) -> None: 
         if self._hor2_pos > 1: 
             self._hor2_pos -= 1
 
-    def _increment_vert1(self) -> None: 
+    def _increment_vert1_fine(self) -> None: 
         if self._vert1_pos < constants.Display.SIZE-1: 
             self._vert1_pos += 1
 
-    def _decrement_vert1(self) -> None:
+    def _decrement_vert1_fine(self) -> None:
         if self._vert1_pos > 1: 
             self._vert1_pos -= 1
 
-    def _increment_vert2(self) -> None:
+    def _increment_vert2_fine(self) -> None:
         if self._vert1_pos < constants.Display.SIZE-1: 
             self._vert2_pos += 1
 
-    def _decrement_vert2(self) -> None: 
+    def _decrement_vert2_fine(self) -> None: 
         if self._vert2_pos > 1: 
             self._vert2_pos -= 1
 
-    def increment_hor(self) -> None:
+    def increment_hor_fine(self) -> None:
         if self._selected_cursor == Selected_Cursor.HOR1:
-            self._increment_hor1()
+            self._increment_hor1_fine()
         elif self._selected_cursor == Selected_Cursor.HOR2:
-            self._increment_hor2()
+            self._increment_hor2_fine()
 
-    def decrement_hor(self) -> None:
+    def decrement_hor_fine(self) -> None:
         if self._selected_cursor == Selected_Cursor.HOR1:
-            self._decrement_hor1()
+            self._decrement_hor1_fine()
         elif self._selected_cursor == Selected_Cursor.HOR2:
-            self._decrement_hor2()
+            self._decrement_hor2_fine()
 
-    def increment_vert(self) -> None:
+    def increment_vert_fine(self) -> None:
         if self._selected_cursor == Selected_Cursor.VERT1:
-            self._increment_vert1()
+            self._increment_vert1_fine()
         elif self._selected_cursor == Selected_Cursor.VERT2:
-            self._increment_vert2()
+            self._increment_vert2_fine()
 
-    def decrement_vert(self) -> None:
+    def decrement_vert_fine(self) -> None:
         if self._selected_cursor == Selected_Cursor.VERT1:
-            self._decrement_vert1()
+            self._decrement_vert1_fine()
         elif self._selected_cursor == Selected_Cursor.VERT2:
-            self._decrement_vert2()
+            self._decrement_vert2_fine()
 
     def toggle_hor(self) -> None: 
         self._hor_visible = not self._hor_visible
