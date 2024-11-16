@@ -15,6 +15,9 @@ class SerialMock(MagicMock):
     def flushOutput(self):
         pass
 
+    def inWaiting(self):
+        pass
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.created = True
@@ -24,14 +27,16 @@ class SerialMock(MagicMock):
         self._read_index = 0
 
     def _get_scope_data(self):
-        tt = [i*1e-3 for i in range(0, NewtScope_One.SCOPE_SPECS['memory_depth'])]
-        vv = [5*sin(2*pi*100*t) for t in tt]
-        vv_adc_in = [(v*(215e3+35.7e3)/(750e3+215e3+35.7e3))+0.5 for v in vv]
-        LSB = NewtScope_One.SCOPE_SPECS['voltage_ref']/NewtScope_One.SCOPE_SPECS['resolution']
-        return [int(v/LSB) for v in vv_adc_in]
+        return [300 for _ in range(0, NewtScope_One.SCOPE_SPECS['memory_depth'])]
 
-    def read(self):
+    def read(self, in_waiting):
         continues_buffer = self._get_scope_data()
         quarter_transmit = NewtScope_One.SCOPE_SPECS['memory_depth']//4
-        transmit_buffer = []  
+        transmit_buffer = [continues_buffer[:quarter_transmit], 
+                           continues_buffer[quarter_transmit:2*quarter_transmit], 
+                           continues_buffer[2*quarter_transmit:3*quarter_transmit],
+                           continues_buffer[3*quarter_transmit:]]  
         self._read_index += 1
+        if self._read_index == 5:
+            self._read_index = 1
+        return transmit_buffer[self._read_index-1]

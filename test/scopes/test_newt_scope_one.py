@@ -1,6 +1,8 @@
 import sys
 sys.path.append('..')
 
+from math import pi, sin
+
 import unittest
 from unittest.mock import patch
 
@@ -23,10 +25,12 @@ class TestNewtScope_One(unittest.TestCase):
         self.assertEqual(self.newt_scope_one.serial_port.baudrate, 115200)
         self.assertEqual(self.newt_scope_one.serial_port.timeout, 0)
 
-    #@patch('voltpeek.scopes.newt_scope_one.Serial', new=SerialMock)
-    #def test_read_glob_data(self):
-    #    self.newt_scope_one.connect()
-    #    codes = self.newt_scope_one.read_glob_data()
+    @patch('voltpeek.scopes.newt_scope_one.Serial', new=SerialMock)
+    def test_read_glob_data(self):
+        self.newt_scope_one.connect()
+        codes = self.newt_scope_one.read_glob_data()
+        for code in codes:
+            self.assertEqual(code, 300)
 
     def test_inverse_quantize(self):
         LSB = NewtScope_One.SCOPE_SPECS['voltage_ref']/NewtScope_One.SCOPE_SPECS['resolution']
