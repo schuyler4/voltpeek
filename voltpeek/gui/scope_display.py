@@ -13,6 +13,7 @@ class Scope_Display:
     GRID_LINE_COLOR = (128, 128, 128)
     SIGNAL_COLOR = (17, 176, 249)
     MAX_TRIGGER_CORRECTION_PIXELS: int = 6
+    DASH_PATTERN = (4, 2) # 4 pixels on 2 off
 
     def _hex_string_from_rgb(self, rgb: tuple[int]): return '#%02x%02x%02x' % rgb
 
@@ -147,27 +148,23 @@ class Scope_Display:
 
     def _draw_horizontal_cursors(self) -> None:
         if self.cursors.selected_cursor == Selected_Cursor.HOR1:
-            for position in range(self.cursors.hor1_pos-1,self.cursors.hor1_pos+2):
-                self._draw_horizontal_line(position, constants.Display.CURSOR_COLOR)  
+            self._draw_dashed_horizontal_line(self.cursors.hor1_pos, constants.Display.CURSOR_COLOR)
         else:
             self._draw_horizontal_line(self.cursors.hor1_pos, constants.Display.CURSOR_COLOR)  
 
         if self.cursors.selected_cursor == Selected_Cursor.HOR2:
-            for position in range(self.cursors.hor2_pos-1,self.cursors.hor2_pos+2):
-                self._draw_horizontal_line(position, constants.Display.CURSOR_COLOR)  
+            self._draw_dashed_horizontal_line(self.cursors.hor2_pos, constants.Display.CURSOR_COLOR)
         else:
             self._draw_horizontal_line(self.cursors.hor2_pos, constants.Display.CURSOR_COLOR)
 
     def _draw_vertical_cursors(self) -> None:
         if self.cursors.selected_cursor == Selected_Cursor.VERT1:
-            for position in range(self.cursors.vert1_pos-1,self.cursors.vert1_pos+2):
-                self._draw_vertical_line(position, constants.Display.CURSOR_COLOR)
+            self._draw_dashed_vertical_line(self.cursors.vert1_pos, constants.Display.CURSOR_COLOR)
         else:
             self._draw_vertical_line(self.cursors.vert1_pos, constants.Display.CURSOR_COLOR)
         
         if self.cursors.selected_cursor == Selected_Cursor.VERT2:
-            for position in range(self.cursors.vert2_pos-1,self.cursors.vert2_pos+2):
-                self._draw_vertical_line(position, constants.Display.CURSOR_COLOR)
+            self._draw_dashed_vertical_line(self.cursors.vert2_pos, constants.Display.CURSOR_COLOR)
         else:
             self._draw_vertical_line(self.cursors.vert2_pos, constants.Display.CURSOR_COLOR)
 
@@ -207,8 +204,14 @@ class Scope_Display:
                                             constants.Display.SIZE - point-1, 
                                             fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
 
+    def _draw_dashed_horizontal_line(self, position, color):
+        self.canvas.create_line(0, position, constants.Display.SIZE, position, fill=color, dash=self.DASH_PATTERN)
+    
     def _draw_horizontal_line(self, position, color): 
         self.canvas.create_line(0, position, constants.Display.SIZE, position, fill=color)
+
+    def _draw_dashed_vertical_line(self, position, color):
+        self.canvas.create_line(position, 0, position, constants.Display.SIZE, fill=color, dash=self.DASH_PATTERN)
 
     def _draw_vertical_line(self, position, color): 
         self.canvas.create_line(position, 0, position, constants.Display.SIZE, fill=color)
