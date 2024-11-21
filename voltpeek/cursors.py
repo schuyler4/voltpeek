@@ -21,6 +21,8 @@ class Cursor_Data(TypedDict):
 class Cursors:
     CURSOR_COUNT = 4
     MAX_DIGITS = 4
+    FINE_INCREMENT = 1
+    COURSE_INCREMENT = 10
 
     def __init__(self) -> None:
         self._hor1_pos: int = 10  
@@ -52,61 +54,85 @@ class Cursors:
     @property
     def selected_cursor(self) -> bool: return self._selected_cursor
 
-    def _increment_hor1_fine(self) -> None: 
-        if self._hor1_pos < constants.Display.SIZE-1: 
-            self._hor1_pos += 1 
+    def _increment_hor1(self, count: int) -> None: 
+        if self._hor1_pos < constants.Display.SIZE-count: 
+            self._hor1_pos += count 
     
-    def _decrement_hor1_fine(self) -> None: 
-        if self._hor1_pos > 1: 
-            self._hor1_pos -= 1
+    def _decrement_hor1(self, count: int) -> None: 
+        if self._hor1_pos > count: 
+            self._hor1_pos -= count
 
-    def _increment_hor2_fine(self) -> None: 
-        if self._hor2_pos < constants.Display.SIZE-1: 
-            self._hor2_pos += 1
+    def _increment_hor2(self, count) -> None: 
+        if self._hor2_pos < constants.Display.SIZE-count: 
+            self._hor2_pos += count
 
-    def _decrement_hor2_fine(self) -> None: 
-        if self._hor2_pos > 1: 
-            self._hor2_pos -= 1
+    def _decrement_hor2(self, count) -> None: 
+        if self._hor2_pos > count: 
+            self._hor2_pos -= count
 
-    def _increment_vert1_fine(self) -> None: 
-        if self._vert1_pos < constants.Display.SIZE-1: 
-            self._vert1_pos += 1
+    def _increment_vert1(self, count) -> None: 
+        if self._vert1_pos < constants.Display.SIZE-count: 
+            self._vert1_pos += count
 
-    def _decrement_vert1_fine(self) -> None:
-        if self._vert1_pos > 1: 
-            self._vert1_pos -= 1
+    def _decrement_vert1(self, count) -> None:
+        if self._vert1_pos > count: 
+            self._vert1_pos -= count
 
-    def _increment_vert2_fine(self) -> None:
-        if self._vert1_pos < constants.Display.SIZE-1: 
-            self._vert2_pos += 1
+    def _increment_vert2(self, count) -> None:
+        if self._vert1_pos < constants.Display.SIZE-count: 
+            self._vert2_pos += count
 
-    def _decrement_vert2_fine(self) -> None: 
-        if self._vert2_pos > 1: 
-            self._vert2_pos -= 1
+    def _decrement_vert2(self, count) -> None: 
+        if self._vert2_pos > count: 
+            self._vert2_pos -= count
 
     def increment_hor_fine(self) -> None:
         if self._selected_cursor == Selected_Cursor.HOR1:
-            self._increment_hor1_fine()
+            self._increment_hor1(self.FINE_INCREMENT)
         elif self._selected_cursor == Selected_Cursor.HOR2:
-            self._increment_hor2_fine()
+            self._increment_hor2(self.FINE_INCREMENT)
 
     def decrement_hor_fine(self) -> None:
         if self._selected_cursor == Selected_Cursor.HOR1:
-            self._decrement_hor1_fine()
+            self._decrement_hor1(self.FINE_INCREMENT)
         elif self._selected_cursor == Selected_Cursor.HOR2:
-            self._decrement_hor2_fine()
+            self._decrement_hor2(self.FINE_INCREMENT)
 
     def increment_vert_fine(self) -> None:
         if self._selected_cursor == Selected_Cursor.VERT1:
-            self._increment_vert1_fine()
+            self._increment_vert1(self.FINE_INCREMENT)
         elif self._selected_cursor == Selected_Cursor.VERT2:
-            self._increment_vert2_fine()
+            self._increment_vert2(self.FINE_INCREMENT)
 
     def decrement_vert_fine(self) -> None:
         if self._selected_cursor == Selected_Cursor.VERT1:
-            self._decrement_vert1_fine()
+            self._decrement_vert1(self.FINE_INCREMENT)
         elif self._selected_cursor == Selected_Cursor.VERT2:
-            self._decrement_vert2_fine()
+            self._decrement_vert2(self.FINE_INCREMENT)
+
+    def increment_hor_course(self) -> None:
+        if self._selected_cursor == Selected_Cursor.HOR1:
+            self._increment_hor1(self.COURSE_INCREMENT)
+        elif self._selected_cursor == Selected_Cursor.HOR2:
+            self._increment_hor2(self.COURSE_INCREMENT)
+
+    def decrement_hor_course(self) -> None:
+        if self._selected_cursor == Selected_Cursor.HOR1:
+            self._decrement_hor1(self.COURSE_INCREMENT)
+        elif self._selected_cursor == Selected_Cursor.HOR2:
+            self._decrement_hor2(self.COURSE_INCREMENT)
+
+    def increment_vert_course(self) -> None:
+        if self._selected_cursor == Selected_Cursor.VERT1:
+            self._increment_vert1(self.COURSE_INCREMENT)
+        elif self._selected_cursor == Selected_Cursor.VERT2:
+            self._increment_vert2(self.COURSE_INCREMENT)
+
+    def decrement_vert_course(self) -> None:
+        if self._selected_cursor == Selected_Cursor.VERT1:
+            self._decrement_vert1(self.COURSE_INCREMENT)
+        elif self._selected_cursor == Selected_Cursor.VERT2:
+            self._decrement_vert2(self.COURSE_INCREMENT)
 
     def toggle_hor(self) -> None: 
         self._hor_visible = not self._hor_visible
@@ -196,7 +222,6 @@ class Cursors:
         h1: str = engineering_units(two_sig_figs(self.get_hor1_voltage(vert_setting))) + 'V' if self.hor_visible else ''
         h2: str = engineering_units(two_sig_figs(self.get_hor2_voltage(vert_setting))) + 'V' if self.hor_visible else '' 
         hdelta: str = engineering_units(two_sig_figs(self.get_delta_voltage(vert_setting))) + 'V' if self.hor_visible else ''
-        print(two_sig_figs(self.get_vert1_time(hor_setting)))
         v1: str = engineering_units(two_sig_figs(self.get_vert1_time(hor_setting))) + 's' if self.vert_visible else ''
         v2: str = engineering_units(two_sig_figs(self.get_vert2_time(hor_setting))) + 's' if self.vert_visible else ''
         vdelta: str = engineering_units(two_sig_figs(self.get_delta_time(hor_setting))) + 's' if self.vert_visible else ''

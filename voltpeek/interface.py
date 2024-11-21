@@ -56,6 +56,8 @@ class Event(Enum):
 
 class KeyCodes:
     CTRL_C: int = 54
+    CTRL_U: int = 37
+    CTRL_D: int = 40
     ESC: int = 9
     UP_ARROW: int = 111
     ENTER: int = 36
@@ -179,11 +181,12 @@ class UserInterface:
                 self._start_event_queue.pop(0)
         self.root.after(1, self.check_state)
 
+    # TODO: This all needs to be refactored
     def on_key_press(self, event) -> None:
         if self.info_panel.visible and event.keycode != KeyCodes.ENTER:
             self.info_panel.hide() 
         if self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS:
-            if event.keycode in Keys.EXIT_COMMAND_MODE: 
+            if (event.keysym == 'Escape') or (event.state & 0x4 and event.keysym == 'c'): 
                 if self.mode == Mode.ADJUST_TRIGGER_LEVEL: 
                     self._start_event_queue.append(Event.SET_TRIGGER_LEVEL)
                 self._set_command_mode()
@@ -202,14 +205,24 @@ class UserInterface:
             elif event.char == Keys.VERTICAL_DOWN:
                 self.scope_display.decrement_trigger_level()
         elif self.mode == Mode.ADJUST_CURSORS:
-            if event.char == Keys.VERTICAL_UP:
-                self._update_cursor(self.cursors.decrement_hor)
-            elif event.char == Keys.VERTICAL_DOWN:
-                self._update_cursor(self.cursors.increment_hor)
-            elif event.char == Keys.HORIZONTAL_RIGHT:
-                self._update_cursor(self.cursors.increment_vert)
-            elif event.char == Keys.HORIZONTAL_LEFT:
-                self._update_cursor(self.cursors.decrement_vert)
+            if event.state & 0x4:
+                if event.keysym == 'u':
+                    self._update_cursor(self.cursors.decrement_hor_course)
+                elif event.keysym == 'd':
+                    self._update_cursor(self.cursors.increment_hor_course)
+            else:
+                if event.char == Keys.VERTICAL_UP:
+                    self._update_cursor(self.cursors.decrement_hor_fine)
+                elif event.char == Keys.VERTICAL_DOWN:
+                    self._update_cursor(self.cursors.increment_hor_fine)
+                elif event.char == Keys.HORIZONTAL_RIGHT:
+                    self._update_cursor(self.cursors.increment_vert_fine)
+                elif event.char == Keys.HORIZONTAL_LEFT:
+                    self._update_cursor(self.cursors.decrement_vert_fine)
+                elif event.keysym == 'less':
+                    self._update_cursor(self.cursors.decrement_vert_course)
+                elif event.keysym == 'greater':
+                    self._update_cursor(self.cursors.increment_vert_course)
         elif self.mode == Mode.COMMAND:
             if event.keycode == KeyCodes.UP_ARROW:
                 self.command_input.set_command_stack()

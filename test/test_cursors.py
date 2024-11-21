@@ -71,7 +71,7 @@ class TestCursors(unittest.TestCase):
         self.assertEqual(self.cursors.selected_cursor, Selected_Cursor.VERT1)
         self.cursors.toggle_vert()
 
-    def test_decrement_hor(self):
+    def test_decrement_hor_fine(self):
         self.cursors.toggle_hor()
         for _ in range(0, 10):
             self.cursors.decrement_hor_fine()
@@ -82,7 +82,7 @@ class TestCursors(unittest.TestCase):
         self.assertEqual(self.cursors.hor2_pos, 1)
         self.cursors.toggle_hor()
 
-    def test_decrement_hor_positive(self):
+    def test_decrement_hor_fine_positive(self):
         self.cursors.toggle_hor()
         for _ in range(0, 100):
             self.cursors.decrement_hor_fine()
@@ -93,7 +93,7 @@ class TestCursors(unittest.TestCase):
         self.assertEqual(self.cursors.hor2_pos, 1)
         self.cursors.toggle_hor()
 
-    def test_increment_hor(self):
+    def test_increment_hor_fine(self):
         self.cursors.toggle_hor()
         for _ in range(0, 10):
             self.cursors.increment_hor_fine()
@@ -104,7 +104,7 @@ class TestCursors(unittest.TestCase):
         self.assertEqual(self.cursors.hor2_pos, 40)
         self.cursors.toggle_hor() 
 
-    def test_increment_hor_below_screen_size(self):
+    def test_increment_hor_fine_below_screen_size(self):
         self.cursors.toggle_hor()
         for _ in range(0, 900):
             self.cursors.increment_hor_fine()
@@ -113,6 +113,50 @@ class TestCursors(unittest.TestCase):
         for _ in range(0, 900):
             self.cursors.increment_hor_fine()
         self.assertEqual(self.cursors.hor2_pos, 799)
+        self.cursors.toggle_hor()
+
+    def test_decrement_hor_course(self):
+        self.cursors.toggle_hor()
+        self.cursors.increment_hor_fine()
+        self.cursors.decrement_hor_course()
+        self.assertEqual(self.cursors.hor1_pos, 1)
+        self.cursors.next_cursor()
+        self.cursors.increment_hor_fine()
+        for _ in range(0, 2):
+            self.cursors.decrement_hor_course()
+        self.assertEqual(self.cursors.hor2_pos, 1)
+        self.cursors.toggle_hor()
+
+    def test_decrement_hor_course_positive(self):
+        self.cursors.toggle_hor()
+        for _ in range(0, 10):
+            self.cursors.decrement_hor_course()
+        self.assertEqual(self.cursors.hor1_pos, 10)
+        self.cursors.next_cursor()
+        for _ in range(0, 10):
+            self.cursors.decrement_hor_course()
+        self.assertEqual(self.cursors.hor2_pos, 10)
+        self.cursors.toggle_hor()
+
+    def test_increment_hor_course(self):
+        self.cursors.toggle_hor()
+        self.cursors.increment_hor_course()
+        self.assertEqual(self.cursors.hor1_pos, 20)
+        self.cursors.next_cursor()
+        for _ in range(0, 2):
+            self.cursors.increment_hor_course()
+        self.assertEqual(self.cursors.hor2_pos, 40)
+        self.cursors.toggle_hor() 
+
+    def test_increment_hor_course_below_screen_size(self):
+        self.cursors.toggle_hor()
+        for _ in range(0, 900):
+            self.cursors.increment_hor_course()
+        self.assertEqual(self.cursors.hor1_pos, 790)
+        self.cursors.next_cursor()
+        for _ in range(0, 900):
+            self.cursors.increment_hor_course()
+        self.assertEqual(self.cursors.hor2_pos, 790)
         self.cursors.toggle_hor()
 
     def test_get_hor1_voltage(self):
