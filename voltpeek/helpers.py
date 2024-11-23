@@ -1,5 +1,7 @@
 from math import log10, floor, isnan
 
+import numpy as np
+
 def two_sig_figs(number: float) -> float:
     if isnan(number):
         return float('NaN')
@@ -26,3 +28,13 @@ def engineering_units(number: float) -> str:
         return str(number)
     else:
         return None
+
+def sinc(x: float): return np.where(x == 0, 1.0, np.sin(x)/x) 
+
+#https://gist.github.com/fschwar4/eb462151da065178144d53fe65e8c9fc
+def sinc_interpolation(fs: float, x, new_length: int):
+    X = np.fft.rfft(x)
+    X_padded = np.zeros(new_length // 2 + 1, dtype=complex)
+    X_padded[:X.shape[0]] = X
+    x_interpolated = np.fft.irfft(X_padded, n=new_length)
+    return x_interpolated*(new_length/len(x))
