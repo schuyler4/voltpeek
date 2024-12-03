@@ -13,7 +13,7 @@ class NewtScope_One(ScopeBase):
 
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
-        'attenuation': {'range_high':0.03568, 'range_low':0.2505},
+        'attenuation': {'range_high':0.07136, 'range_low':0.501},
         'offset': {'range_high':0.515, 'range_low':0.511},
         'resolution': 256,    
         'voltage_ref': 1.0,
@@ -28,6 +28,8 @@ class NewtScope_One(ScopeBase):
     STOP_COMMAND: bytes = b'S'
     LOW_RANGE_COMMAND: bytes = b'r' 
     HIGH_RANGE_COMMAND: bytes = b'R'
+    AMPLIFIER_GAIN_COMMAND: bytes = b'A'
+    AMPLIFIER_UNITY_COMMAND: bytes = b'a'
     CLOCK_DIV_COMMAND: bytes = b'c'
     SET_CAL_COMMAND: bytes = b'C'
     READ_CAL_COMMAND: bytes = b'k'
@@ -88,6 +90,8 @@ class NewtScope_One(ScopeBase):
                 print(new_data) 
             '''
             codes += list(new_data)
+        if self._stop.is_set():
+            self._stop.clear()
         return codes
     
     def _FIR_filter(self, xx: list[int]) -> list[float]:
@@ -146,6 +150,15 @@ class NewtScope_One(ScopeBase):
             self.serial_port.write(self.LOW_RANGE_COMMAND)
         else:
             self.serial_port.write(self.HIGH_RANGE_COMMAND)
+
+    def set_amplifier_gain(self, full_scale: float) -> None:
+        # TODO: Optimize so we only send a flip command when necessary
+        if full_scale == 5 or full_scale == 0.5:
+            print('set gain')
+            self.serial_port.write(self.AMPLIFIER_GAIN_COMMAND)
+        else:
+            print('release gain')
+            self.serial_port.write(self.AMPLIFIER_UNITY_COMMAND)
 
     def set_trigger_voltage(self, trigger_voltage: float, full_scale: float) -> None:
         if full_scale <= self.LOW_RANGE_THRESHOLD:

@@ -53,6 +53,7 @@ class Event(Enum):
     SET_RANGE = 11
     SET_RISING_EDGE_TRIGGER = 12
     SET_FALLING_EDGE_TRIGGER = 13
+    SET_AMPLIFIER_GAIN = 14
 
 class KeyCodes:
     CTRL_C: int = 54
@@ -170,6 +171,8 @@ class UserInterface:
                 if self._start_event_queue[0] == Event.SET_RANGE:
                     self._start_set_range()  
                     self._end_event_queue.append(Event.SET_RANGE)
+                if self._start_event_queue[0] == Event.SET_AMPLIFIER_GAIN:
+                    self._start_set_amplifier_gain()
                 if self._start_event_queue[0] == Event.EXIT:
                     self.exit_routine()
                 if self._start_event_queue[0] == Event.SET_RISING_EDGE_TRIGGER:
@@ -305,6 +308,7 @@ class UserInterface:
     def _update_scale_vert(self, update_fn: Callable[[], None]) -> None:
         update_fn()
         self._start_event_queue.append(Event.SET_RANGE)
+        self._start_event_queue.append(Event.SET_AMPLIFIER_GAIN)
         self._render_update_scale()
 
     def _start_set_calibration(self) -> None:
@@ -328,6 +332,12 @@ class UserInterface:
             self._scope_interface.set_value(self.scale.vert*(self.scale.GRID_COUNT/2))
         self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
         self._scope_interface.set_scope_action(ScopeAction.SET_RANGE)
+        self._scope_interface.run()
+
+    def _start_set_amplifier_gain(self) -> None:
+        print('start set amplifier gain')
+        self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
+        self._scope_interface.set_scope_action(ScopeAction.SET_AMPLIFIER_GAIN)
         self._scope_interface.run()
 
     def _finish_set_range(self) -> None:

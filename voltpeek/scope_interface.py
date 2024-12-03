@@ -16,6 +16,7 @@ class ScopeAction(Enum):
     READ_CAL_OFFSETS = 8
     SET_RISING_EDGE_TRIGGER = 9
     SET_FALLING_EDGE_TRIGGER = 10
+    SET_AMPLIFIER_GAIN = 11
 
 class ScopeInterface:
     def __init__(self, scope):
@@ -54,6 +55,11 @@ class ScopeInterface:
 
     def _set_range(self):
         self._scope.set_range(self._value)
+        self._action_complete = True
+        self._data_available.release()
+
+    def _set_amplifier_gain(self):
+        self._scope.set_amplifier_gain(self._value)
         self._action_complete = True
         self._data_available.release()
 
@@ -105,6 +111,8 @@ class ScopeInterface:
             thread: Thread = Thread(target=self._set_rising_edge_trigger)
         if self._action == ScopeAction.SET_FALLING_EDGE_TRIGGER and not self._action_complete:
             thread: Thread = Thread(target=self._set_falling_edge_trigger)
+        if self._action == ScopeAction.SET_AMPLIFIER_GAIN and not self._action_complete:
+            thread: Thread = Thread(target=self._set_amplifier_gain)
         thread.start()
 
     @property 
@@ -147,8 +155,7 @@ class ScopeInterface:
         self._stop_flag = True
         self._scope.stop_trigger()
 
-    def reset_stop_flag(self):
-        self._stop_flag = False
+    def reset_stop_flag(self): self._stop_flag = False
 
     @property
     def fs(self): return self._fs
