@@ -200,10 +200,16 @@ class UserInterface:
             elif event.char == Keys.HORIZONTAL_LEFT:
                 self._set_update_scale(self.scale.decrement_hor)
         elif self.mode == Mode.ADJUST_TRIGGER_LEVEL:
-            if event.char == Keys.VERTICAL_UP:
-                self.scope_display.increment_trigger_level()
-            elif event.char == Keys.VERTICAL_DOWN:
-                self.scope_display.decrement_trigger_level()
+            if event.state & 0x4:
+                if event.keysym == 'u':
+                    self.scope_display.increment_trigger_level_course()
+                elif event.keysym == 'd':
+                    self.scope_display.decrement_trigger_level_course()
+            else:
+                if event.char == Keys.VERTICAL_UP:
+                    self.scope_display.increment_trigger_level_fine()
+                elif event.char == Keys.VERTICAL_DOWN:
+                    self.scope_display.decrement_trigger_level_fine()
         elif self.mode == Mode.ADJUST_CURSORS:
             if event.state & 0x4:
                 if event.keysym == 'u':
@@ -297,6 +303,7 @@ class UserInterface:
         self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = low_range_offset_int/1000
 
     def _start_update_scale_hor(self) -> None:
+        print(self.scale.clock_div)
         self._scope_interface.set_value(self.scale.clock_div)
         self._scope_interface.set_scope_action(ScopeAction.SET_CLOCK_DIV)
         self._change_scale = True
@@ -444,12 +451,14 @@ class UserInterface:
             self._update_scope_status()
 
     def _start_auto_trigger_cycle(self) -> None:
+        print('start auto trigger')
         self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
         self._auto_trigger_running = True
         self._scope_interface.fs = self.scale.fs
         self._scope_interface.run()
 
     def _finish_auto_trigger_cycle(self) -> None:
+        print('finish auto trigger')
         self._triggered = False
         self.display_signal(self._scope_interface.xx, self._triggered)
         if self._auto_trigger_running:

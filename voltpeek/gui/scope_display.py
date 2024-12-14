@@ -15,6 +15,9 @@ class Scope_Display:
     MAX_TRIGGER_CORRECTION_PIXELS: int = 6
     DASH_PATTERN = (4, 2) # 4 pixels on 2 off
 
+    COURSE_STEP = 10
+    FINE_STEP = 1
+
     def _hex_string_from_rgb(self, rgb: tuple[int]): return '#%02x%02x%02x' % rgb
 
     def __init__(self, master, cursors) -> None:
@@ -129,8 +132,6 @@ class Scope_Display:
     def set_trigger_level(self, trigger_level) -> None:
         self._trigger_level: int = trigger_level
         self._redraw()
-        if self.vector is not None:
-            self._draw_vector()
         self._draw_trigger_level()
 
     def get_trigger_voltage(self, vertical_setting: float) -> float:
@@ -138,13 +139,21 @@ class Scope_Display:
         pixel_resolution:float = vertical_setting/pixel_division
         return float((constants.Display.SIZE - self._trigger_level - (constants.Display.SIZE/2))*pixel_resolution)
 
-    def increment_trigger_level(self) -> None:
-        if self._trigger_level < constants.Display.SIZE:
-            self.set_trigger_level(self._trigger_level - 1)
-        
-    def decrement_trigger_level(self) -> None: 
-        if self._trigger_level > 0: 
-            self.set_trigger_level(self._trigger_level + 1)    
+    def _increment_trigger_level(self, count) -> None:
+        if self._trigger_level < constants.Display.SIZE - count:
+            self.set_trigger_level(self._trigger_level - count)
+
+    def _decrement_trigger_level(self, count) -> None:
+        if self._trigger_level > count:
+            self.set_trigger_level(self._trigger_level + count)
+
+    def increment_trigger_level_fine(self) -> None: self._increment_trigger_level(self.FINE_STEP) 
+
+    def decrement_trigger_level_fine(self) -> None: self._decrement_trigger_level(self.FINE_STEP)
+
+    def increment_trigger_level_course(self) -> None: self._increment_trigger_level(self.COURSE_STEP)
+
+    def decrement_trigger_level_course(self) -> None: self._decrement_trigger_level(self.COURSE_STEP)
 
     def _draw_horizontal_cursors(self) -> None:
         if self.cursors.selected_cursor == Selected_Cursor.HOR1:
