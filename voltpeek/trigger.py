@@ -5,6 +5,7 @@ class TriggerType(Enum):
     RISING_EDGE = 0 
     FALLING_EDGE = 1
 
+#TODO: Possibly get rid of the class below
 class Trigger:
     def __init__(self) -> None:
         self._trigger_type: TriggerType = TriggerType.RISING_EDGE
