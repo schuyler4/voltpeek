@@ -1,8 +1,6 @@
 from typing import Optional
 from enum import Enum
-from threading import Thread, Event, Lock
-
-from voltpeek.scopes.newt_scope_one import NewtScope_One
+from threading import Thread, Lock
 
 class ScopeAction(Enum):
     CONNECT = 0

@@ -6,7 +6,7 @@ from math import pi, sin
 import unittest
 from unittest.mock import patch
 
-from voltpeek.scopes.newt_scope_one import NewtScope_One
+from voltpeek.scopes.NS1 import NewtScope_One
 
 from scopes.serial_mock import SerialMock
 

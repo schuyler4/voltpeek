@@ -23,7 +23,7 @@ from voltpeek.scale import Scale
 
 from voltpeek.export import export_png
 
-from voltpeek.scopes.newt_scope_one import NewtScope_One
+from voltpeek.scopes.NS1 import NS1
 
 class Mode(Enum):
     COMMAND = 0
@@ -388,7 +388,7 @@ class UserInterface:
                 self._scope_interface: ScopeInterface = ScopeInterface(scope[identifier])
                 self._start_event_queue.append(Event.CONNECT)
                 self._start_event_queue.append(Event.SET_RANGE)
-                if isinstance(self._scope_interface.scope, NewtScope_One):
+                if isinstance(self._scope_interface.scope, NS1):
                     self._start_event_queue.append(Event.READ_CAL_OFFSETS)
                 self._set_update_scale(None)
                 return

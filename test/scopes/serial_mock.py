@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 from math import sin, pi
 
-from voltpeek.scopes.newt_scope_one import NewtScope_One
+from voltpeek.scopes.NS1 import NewtScope_One
 
 class SerialMock(MagicMock):
     def open(self): self.opened = True

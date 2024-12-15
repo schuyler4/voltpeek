@@ -5,7 +5,7 @@ sys.path.append('..')
 
 import unittest
 
-from voltpeek.scopes.newt_scope_one import NewtScope_One
+from voltpeek.scopes.NS1 import NewtScope_One
 from voltpeek.scope_interface import ScopeInterface, ScopeAction
 
 class MockRange(Enum):

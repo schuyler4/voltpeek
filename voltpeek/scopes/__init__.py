@@ -1,6 +1,4 @@
-import inspect
-from voltpeek.scopes.newt_scope_one import NewtScope_One
+from voltpeek.scopes.NS1 import NS1
 from voltpeek.scopes.AD3 import AD3
 
-def get_available_scopes():
-    return [{NewtScope_One.ID:NewtScope_One}, {AD3.ID:AD3}]
+def get_available_scopes(): return [{NS1.ID:NS1}, {AD3.ID:AD3}]
