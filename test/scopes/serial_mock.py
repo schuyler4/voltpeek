@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 from math import sin, pi
 
-from voltpeek.scopes.NS1 import NewtScope_One
+from voltpeek.scopes.NS1 import NS1
 
 class SerialMock(MagicMock):
     def open(self): self.opened = True
@@ -26,12 +26,11 @@ class SerialMock(MagicMock):
         self.timeout = None
         self._read_index = 0
 
-    def _get_scope_data(self):
-        return [300 for _ in range(0, NewtScope_One.SCOPE_SPECS['memory_depth'])]
+    def _get_scope_data(self): return [300 for _ in range(0, NS1.SCOPE_SPECS['memory_depth'])]
 
     def read(self, in_waiting):
         continues_buffer = self._get_scope_data()
-        quarter_transmit = NewtScope_One.SCOPE_SPECS['memory_depth']//4
+        quarter_transmit = NS1.SCOPE_SPECS['memory_depth']//4
         transmit_buffer = [continues_buffer[:quarter_transmit], 
                            continues_buffer[quarter_transmit:2*quarter_transmit], 
                            continues_buffer[2*quarter_transmit:3*quarter_transmit],
