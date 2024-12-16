@@ -2,6 +2,7 @@ from typing import Optional
 
 import tkinter as tk
 from scipy.interpolate import interp1d
+import numpy as np
 
 from voltpeek import constants 
 from voltpeek.cursors import Cursors, Selected_Cursor
@@ -47,7 +48,7 @@ class Scope_Display:
     def _quantize_vertical(self, vertical_setting: float) -> list[int]:
         pixel_amplitude: float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
         pixel_resolution: float = vertical_setting/pixel_amplitude
-        self.vector = [int(v/pixel_resolution) + int(constants.Display.SIZE/2) for v in self.vector] 
+        self.vector = np.add(np.multiply(self.vector, 1/pixel_resolution), int(constants.Display.SIZE/2))
 
     def _resample_horizontal(self, hor_setting: float, vert_setting: float, 
                              fs: float, memory_depth: int, edge: TriggerType, 
@@ -189,29 +190,20 @@ class Scope_Display:
         self._draw_trigger_level()
 
     def _draw_vector(self):
-        for i, point in enumerate(self.vector):
-            if point > 0: 
-                if i < len(self.vector) - 1:
-                    next_point: int = self.vector[i+1]
-                    self.canvas.create_line(i-1, constants.Display.SIZE - point, i+2, 
-                                            constants.Display.SIZE - next_point, 
-                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-                    self.canvas.create_line(i-1, constants.Display.SIZE - point + 1, i+2, 
-                                            constants.Display.SIZE - next_point + 1, 
-                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-                    self.canvas.create_line(i-1, constants.Display.SIZE - point - 1, i+2, 
-                                            constants.Display.SIZE - next_point-1, 
-                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-                else:
-                    self.canvas.create_line(i-1, constants.Display.SIZE - point, i+2, 
-                                            constants.Display.SIZE - point, 
-                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR)) 
-                    self.canvas.create_line(i-1, constants.Display.SIZE - point + 1, i+2, 
-                                            constants.Display.SIZE - point + 1, 
-                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-                    self.canvas.create_line(i-1, constants.Display.SIZE - point - 1, i+2, 
-                                            constants.Display.SIZE - point-1, 
-                                            fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+        x = np.arange(len(self.vector))
+        y = constants.Display.SIZE - np.array(self.vector)
+        coords = np.column_stack((x[:-1], y[:-1], x[1:], y[1:]))
+        coords = coords.reshape(-1).tolist()
+        self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+        self.canvas.create_line(*[c + (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], 
+                                fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+        self.canvas.create_line(*[c - (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], 
+                                fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+        if len(x) > 0:
+            last_x, last_y = x[-1], y[-1]
+            for offset in [-1, 0, 1]:
+                self.canvas.create_line(last_x-1, last_y+offset, last_x+2, last_y+offset, 
+                                        fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
 
     def _draw_dashed_horizontal_line(self, position, color):
         self.canvas.create_line(0, position, constants.Display.SIZE, position, fill=color, dash=self.DASH_PATTERN)
