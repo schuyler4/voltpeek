@@ -3,3 +3,4 @@
 */.mypy_cache
 */scopes/__pycache__
 */gui/__pycache__
+.coverage
