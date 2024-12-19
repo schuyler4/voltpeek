@@ -56,8 +56,7 @@ class Command_Input:
         if self.command_stack_pointer < len(self.command_stack) - 1: 
             self.command_stack_pointer += 1
 
-    def clear_input(self) -> None:
-        self.input_text.set('')
+    def clear_input(self) -> None: self.input_text.set('')
 
     def set_error(self, message:str) -> None:
         self.error = True
