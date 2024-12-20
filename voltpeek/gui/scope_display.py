@@ -62,6 +62,13 @@ class Scope_Display:
         horizontal_pixel_time: float = hor_setting/grid_size
         set_trigger_voltage: float = self.get_trigger_voltage(vert_setting)
         centered_vector: list[float] = f([(i*new_T) + (chop_time/2) for i in range(0, constants.Display.SIZE)])   
+        self.vector = centered_vector
+        if triggered:
+            trigger_crossings = np.where(np.diff(np.sign(np.subtract(centered_vector, set_trigger_voltage))))[0]
+            if len(trigger_crossings) > 0:
+                error_distance_index = np.abs(trigger_crossings - (constants.Display.SIZE//2)+1).argmin()
+                print(trigger_crossings[error_distance_index] - (constants.Display//2)+1)
+        '''
         if triggered:
             # This obviously needs to be refactored
             delta_time: float = 0
@@ -113,6 +120,7 @@ class Scope_Display:
             self.vector = f([(i*new_T) + (chop_time/2) + delta_time for i in range(0, constants.Display.SIZE)])
         else:
             self.vector = centered_vector
+        '''
 
     def resample_vector(self, hor_setting: float, vert_setting: float, 
                         fs: float, memory_depth: int, edge: TriggerType, 
