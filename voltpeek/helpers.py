@@ -29,8 +29,6 @@ def engineering_units(number: float) -> str:
     else:
         return None
 
-def sinc(x: float): return np.where(x == 0, 1.0, np.sin(x)/x) 
-
 #https://gist.github.com/fschwar4/eb462151da065178144d53fe65e8c9fc
 def sinc_interpolation(fs: float, x, new_length: int):
     X = np.fft.rfft(x)
