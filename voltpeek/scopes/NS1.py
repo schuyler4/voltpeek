@@ -7,7 +7,7 @@ from serial.tools import list_ports
 
 from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 
-class NewtScope_One(ScopeBase):
+class NS1(ScopeBase):
     PICO_VID: int = 0x2E8A
     FIR_LENGTH = 4
 
@@ -19,7 +19,8 @@ class NewtScope_One(ScopeBase):
         'voltage_ref': 1.0,
         'sample_rate': 62.5e6, 
         'memory_depth': 16384, 
-        'trigger_resolution': 256
+        'trigger_resolution': 256, 
+        'bias': 0.5
     }
 
     TRIGGER_LEVEL_COMMAND: bytes = b'l'
@@ -73,7 +74,7 @@ class NewtScope_One(ScopeBase):
         except Exception as _:
             self.error = True
 
-    def read_glob_data(self) -> Optional[str]:
+    def read_glob_data(self):
         self.serial_port.flushInput()
         self.serial_port.flushOutput()
         self._stop.clear()
@@ -83,51 +84,31 @@ class NewtScope_One(ScopeBase):
                 self._stop.clear()
                 return None
             new_data = self.serial_port.read(self.serial_port.inWaiting())
-            '''
-            USED for on data receive debugging.
-
-            if new_data != b'':
-                print(new_data) 
-            '''
             codes += list(new_data)
         if self._stop.is_set():
             self._stop.clear()
         return codes
     
-    def _FIR_filter(self, xx: list[int]) -> list[float]:
+    def _FIR_filter(self, xx: list[int]):
         if len(xx) > 0:
             filtered_signal = np.convolve(xx, np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]))
             return filtered_signal[self.FIR_LENGTH-1:len(filtered_signal)]
         else:
             return []
 
-    # We don't need all these arguments
-    def inverse_quantize(self, code: float, resolution: float, voltage_ref: float) -> float:
-        return float((voltage_ref/resolution)*code)
-
-    def _zero(self, x: float) -> float: return x - 0.5 
-
-    def _reamplify(self, x: float, attenuator_range: float) -> float: 
-        return (x*(1/attenuator_range))
-    
     def _reconstruct(self, xx: list[float], full_scale: float, offset_null: bool=True, force_low_range=False) -> list[float]:
-        attenuation: Optional[float] = None
-        offset: Optional[float] = None
         if full_scale <= self.LOW_RANGE_THRESHOLD or force_low_range:
             attenuation = self.SCOPE_SPECS['attenuation']['range_low']
             offset = self.SCOPE_SPECS['offset']['range_low']
         else: 
             attenuation = self.SCOPE_SPECS['attenuation']['range_high']
             offset = self.SCOPE_SPECS['offset']['range_high']
-        # TODO: Make this a matrix operation with numpy
-        reconstructed_signal: list[float] = []
-        for x in xx:
-            adc_input = self.inverse_quantize(x, self.SCOPE_SPECS['resolution'], self.SCOPE_SPECS['voltage_ref'])
-            zeroed = self._zero(adc_input)
-            if offset is not None and offset_null:
-                reconstructed_signal.append(self._reamplify(zeroed, attenuation) + offset)
-            else:
-                reconstructed_signal.append(self._reamplify(zeroed, attenuation))
+        LSB: float = self.SCOPE_SPECS['voltage_ref']/self.SCOPE_SPECS['resolution']
+        zeroed_adc_input = np.subtract(np.multiply(np.array(xx), LSB), self.SCOPE_SPECS['bias'])
+        if offset is not None and offset_null:
+            reconstructed_signal = np.add(np.multiply(zeroed_adc_input, 1/attenuation), offset)
+        else:
+            reconstructed_signal = np.multiply(zeroed_adc_input, 1/attenuation)
         return reconstructed_signal
 
     def get_scope_trigger_data(self, full_scale: float) -> list[float]:

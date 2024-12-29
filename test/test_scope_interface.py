@@ -5,7 +5,7 @@ sys.path.append('..')
 
 import unittest
 
-from voltpeek.scopes.newt_scope_one import NewtScope_One
+from voltpeek.scopes.NS1 import NS1
 from voltpeek.scope_interface import ScopeInterface, ScopeAction
 
 class MockRange(Enum):
@@ -33,22 +33,22 @@ class MockNewtScopeOne:
             if self.stop_flag: 
                 return None
             time.sleep(0.01)
-        return [0 for _ in range(0, NewtScope_One.SCOPE_SPECS['memory_depth'])]
+        return [0 for _ in range(0, NS1.SCOPE_SPECS['memory_depth'])]
     
     def get_scope_force_trigger_data(self, full_scale: float) -> list[float]:
-        return [0 for _ in range(0, NewtScope_One.SCOPE_SPECS['memory_depth'])]
+        return [0 for _ in range(0, NS1.SCOPE_SPECS['memory_depth'])]
 
     def set_range(self, full_scale: float) -> None:
-        self.range = MockRange.HIGH if full_scale > NewtScope_One.LOW_RANGE_THRESHOLD else MockRange.LOW
+        self.range = MockRange.HIGH if full_scale > NS1.LOW_RANGE_THRESHOLD else MockRange.LOW
 
     def set_trigger_voltage(self, trigger_voltage: float, full_scale: float) -> None:
-        if full_scale <= NewtScope_One.LOW_RANGE_THRESHOLD:
-            attenuation = NewtScope_One.SCOPE_SPECS['attenuation']['range_low']
+        if full_scale <= NS1.LOW_RANGE_THRESHOLD:
+            attenuation = NS1.SCOPE_SPECS['attenuation']['range_low']
         else: 
-            attenuation = NewtScope_One.SCOPE_SPECS['attenuation']['range_high']
+            attenuation = NS1.SCOPE_SPECS['attenuation']['range_high']
         # TODO: Add error handling for non-compliant trigger voltages
-        max_input_voltage: float = (NewtScope_One.SCOPE_SPECS['voltage_ref']/attenuation)/2   
-        self.trigger_code = int(((trigger_voltage + max_input_voltage)/(max_input_voltage*2))*(NewtScope_One.SCOPE_SPECS['trigger_resolution']-1))
+        max_input_voltage: float = (NS1.SCOPE_SPECS['voltage_ref']/attenuation)/2   
+        self.trigger_code = int(((trigger_voltage + max_input_voltage)/(max_input_voltage*2))*(NS1.SCOPE_SPECS['trigger_resolution']-1))
 
     def set_clock_div(self, clock_div: int) -> None:
         self.clock_div = clock_div
@@ -107,16 +107,16 @@ class TestScopeInterface(unittest.TestCase):
             ticks += 1
         self.assertTrue(ticks > 0)
         self.assertLess(ticks, 12)
-        self.assertEqual(len(self.scope_interface._xx), NewtScope_One.SCOPE_SPECS['memory_depth'])
-        self.assertEqual(self.scope_interface._xx, [0 for _ in range(0, NewtScope_One.SCOPE_SPECS['memory_depth'])])
+        self.assertEqual(len(self.scope_interface._xx), NS1.SCOPE_SPECS['memory_depth'])
+        self.assertEqual(self.scope_interface._xx, [0 for _ in range(0, NS1.SCOPE_SPECS['memory_depth'])])
         self.assertTrue(self.scope_interface._action_complete)
         self.assertFalse(self.scope_interface._data_available.locked())
 
     def test_scope_interface_force_trigger(self):
         self.scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
         self.scope_interface.run()
-        self.assertEqual(len(self.scope_interface._xx), NewtScope_One.SCOPE_SPECS['memory_depth'])
-        self.assertEqual(self.scope_interface._xx, [0 for _ in range(0, NewtScope_One.SCOPE_SPECS['memory_depth'])])
+        self.assertEqual(len(self.scope_interface._xx), NS1.SCOPE_SPECS['memory_depth'])
+        self.assertEqual(self.scope_interface._xx, [0 for _ in range(0, NS1.SCOPE_SPECS['memory_depth'])])
         self.assertTrue(self.scope_interface._action_complete)
         self.assertFalse(self.scope_interface._data_available.locked())
 
@@ -129,7 +129,7 @@ class TestScopeInterface(unittest.TestCase):
         self.assertEqual(self.scope_interface._scope.clock_div, 2)
 
     def test_scope_interface_set_high_range(self):
-        self.scope_interface.set_value(NewtScope_One.LOW_RANGE_THRESHOLD + 1)
+        self.scope_interface.set_value(NS1.LOW_RANGE_THRESHOLD + 1)
         self.scope_interface.set_scope_action(ScopeAction.SET_RANGE)
         self.scope_interface.run()
         self.assertTrue(self.scope_interface._action_complete)
@@ -137,7 +137,7 @@ class TestScopeInterface(unittest.TestCase):
         self.assertEqual(self.scope_interface._scope.range, MockRange.HIGH)
 
     def test_scope_interface_set_low_range(self):
-        self.scope_interface.set_value(NewtScope_One.LOW_RANGE_THRESHOLD - 1)
+        self.scope_interface.set_value(NS1.LOW_RANGE_THRESHOLD - 1)
         self.scope_interface.set_scope_action(ScopeAction.SET_RANGE)
         self.scope_interface.run()
         self.assertTrue(self.scope_interface._action_complete)

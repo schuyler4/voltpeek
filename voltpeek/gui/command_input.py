@@ -27,7 +27,7 @@ class Command_Input:
 
     def on_command_enter(self, event) -> None:
         command = self.input_text.get()
-        if len(self.command_stack) == 0 or command != self.command_stack[0]:
+        if (len(self.command_stack) == 0 or command != self.command_stack[0]) and command != '':
             self.command_stack.insert(0, command)
         self.command_stack_pointer = 0
         self.on_command(command)
@@ -53,11 +53,10 @@ class Command_Input:
 
     def set_command_stack(self) -> None:
         self.input_text.set(self.command_stack[self.command_stack_pointer])
-        if(self.command_stack_pointer < len(self.command_stack) - 1): 
+        if self.command_stack_pointer < len(self.command_stack) - 1: 
             self.command_stack_pointer += 1
 
-    def clear_input(self) -> None:
-        self.input_text.set('')
+    def clear_input(self) -> None: self.input_text.set('')
 
     def set_error(self, message:str) -> None:
         self.error = True
