@@ -9,7 +9,7 @@ from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 
 class NS1(ScopeBase):
     PICO_VID: int = 0x2E8A
-    FIR_LENGTH = 4
+    FIR_LENGTH = 6
 
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {

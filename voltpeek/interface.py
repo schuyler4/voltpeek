@@ -179,6 +179,8 @@ class UserInterface:
                     if self._start_event_queue[0] == Event.SET_RANGE:
                         self._start_set_range()  
                         self._end_event_queue.append(Event.SET_RANGE)
+                    if self._start_event_queue[0] == Event.SET_AMPLIFIER_GAIN:
+                        self._start_set_amplifier_gain()
                     if self._start_event_queue[0] == Event.EXIT:
                         self.exit_routine()
                     if self._start_event_queue[0] == Event.SET_RISING_EDGE_TRIGGER:
@@ -348,7 +350,6 @@ class UserInterface:
         self._scope_interface.run()
 
     def _start_set_amplifier_gain(self) -> None:
-        print('start set amplifier gain')
         self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
         self._scope_interface.set_scope_action(ScopeAction.SET_AMPLIFIER_GAIN)
         self._scope_interface.run()
