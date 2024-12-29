@@ -153,11 +153,10 @@ class NewtScope_One(ScopeBase):
 
     def set_amplifier_gain(self, full_scale: float) -> None:
         # TODO: Optimize so we only send a flip command when necessary
-        if full_scale == 5 or full_scale == 0.5:
-            print('set gain')
+        print(full_scale)
+        if full_scale == 5 or full_scale == 1:
             self.serial_port.write(self.AMPLIFIER_GAIN_COMMAND)
         else:
-            print('release gain')
             self.serial_port.write(self.AMPLIFIER_UNITY_COMMAND)
 
     def set_trigger_voltage(self, trigger_voltage: float, full_scale: float) -> None:
