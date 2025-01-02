@@ -36,3 +36,9 @@ def sinc_interpolation(fs: float, x, new_length: int):
     X_padded[:X.shape[0]] = X
     x_interpolated = np.fft.irfft(X_padded, n=new_length)
     return x_interpolated*(new_length/len(x))
+
+def pad_zero(number_string) -> str:
+    for i in range(1, 4):
+        if len(number_string) < i:
+            number_string = '0' + number_string
+    return number_string

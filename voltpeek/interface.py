@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable
 from enum import Enum
 from threading import Event
 from inspect import signature, stack
@@ -24,6 +24,8 @@ from voltpeek.scale import Scale
 from voltpeek.export import export_png
 
 from voltpeek.scopes.NS1 import NS1
+
+from voltpeek.helpers import pad_zero
 
 class Mode(Enum):
     COMMAND = 0
@@ -135,14 +137,10 @@ class UserInterface:
                         self._finish_auto_trigger_cycle()
                     if self._end_event_queue[0] == Event.NORMAL_TRIGGER:
                         self._finish_normal_trigger_cycle()
-                    if self._end_event_queue[0] == Event.FORCE_TRIGGER:
-                        self._finish_force_trigger()
                     if self._end_event_queue[0] == Event.SINGLE_TRIGGER:
                         self._finish_single_trigger()
                     if self._end_event_queue[0] == Event.CHANGE_SCALE:
                         self._render_update_scale()
-                    if self._end_event_queue[0] == Event.SET_RANGE:
-                        self._finish_set_range()
                     if self._end_event_queue[0] == Event.READ_CAL_OFFSETS:
                         self._finish_read_cal_offsets() 
                     if self._end_event_queue[0] == Event.SET_RISING_EDGE_TRIGGER:
@@ -178,7 +176,6 @@ class UserInterface:
                         self._start_set_calibration()
                     if self._start_event_queue[0] == Event.SET_RANGE:
                         self._start_set_range()  
-                        self._end_event_queue.append(Event.SET_RANGE)
                     if self._start_event_queue[0] == Event.SET_AMPLIFIER_GAIN:
                         self._start_set_amplifier_gain()
                     if self._start_event_queue[0] == Event.EXIT:
@@ -308,11 +305,14 @@ class UserInterface:
         self._scope_interface.run()
 
     def _finish_read_cal_offsets(self) -> None:
+        pass
+        '''
         if self._scope_interface.calibration_ints is not None:
             high_range_offset_int: int = self._scope_interface.calibration_ints[1] << 8 | self._scope_interface.calibration_ints[0]
             low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
             self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = high_range_offset_int/10000
             self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = low_range_offset_int/1000
+        '''
 
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
@@ -327,44 +327,20 @@ class UserInterface:
         self._render_update_scale()
 
     def _start_set_calibration(self) -> None:
-        self._scope_interface.set_value(self._cal_offset_data)
+        self._scope_interface.set_value('poop')
         self._scope_interface.set_scope_action(ScopeAction.SET_CAL_OFFSETS)
         self._scope_interface.run()
 
-    def _pad_zero(self, number_string) -> str:
-        for i in range(1, 4):
-            if len(number_string) < i:
-                number_string = '0' + number_string
-        return number_string
-
     def _start_set_range(self) -> None:
-        if self._calibration:
-            if self._calibration_step == 2:
-                self._scope_interface.set_value(self._scope_interface.scope.LOW_RANGE_THRESHOLD)
-            else:
-                self._scope_interface.set_value(10)
-        else: 
-            self._scope_interface.set_value(self.scale.vert*(self.scale.GRID_COUNT/2))
+        print(self.scale.vert)
         self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
         self._scope_interface.set_scope_action(ScopeAction.SET_RANGE)
         self._scope_interface.run()
-
+    
     def _start_set_amplifier_gain(self) -> None:
         self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
         self._scope_interface.set_scope_action(ScopeAction.SET_AMPLIFIER_GAIN)
         self._scope_interface.run()
-
-    def _finish_set_range(self) -> None:
-        if self._calibration:
-            self._calibration_step += 1
-            if self._calibration_step >= 5:
-                self._calibration = False
-                self._calibration_step = 0
-                range_high_integer: int = int(self._scope_interface.scope.SCOPE_SPECS['offset']['range_high']*1000)
-                range_low_integer: int = int(self._scope_interface.scope.SCOPE_SPECS['offset']['range_low']*1000)
-                self._cal_offset_data: str = self._pad_zero(str(range_high_integer)) + self._pad_zero(str(range_low_integer))
-                self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
-                self._start_event_queue.append(Event.SET_CAL_OFFSETS)
 
     def _render_update_scale(self) -> None:
         self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
@@ -391,18 +367,12 @@ class UserInterface:
             self._auto_trigger_running = False
             self._stop_and_exit = True
 
-    def _start_calibrate_offsets(self):
-        CAL_ROUTINE: list[Event] = [Event.SET_RANGE, Event.FORCE_TRIGGER, Event.SET_RANGE, Event.FORCE_TRIGGER, Event.SET_RANGE]
-        self._start_event_queue.extend(CAL_ROUTINE)
-        self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = 0
-        self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = 0
-        self._calibration = True
-
     def _connect(self, identifier: str):
         for scope in get_available_scopes():
             if list(scope.keys())[0] == identifier:
                 self._connect_initiated = True
                 self._scope_interface: ScopeInterface = ScopeInterface(scope[identifier])
+                print(self.scale.vert)
                 self._start_event_queue.append(Event.CONNECT)
                 self._start_event_queue.append(Event.SET_RANGE)
                 if isinstance(self._scope_interface.scope, NS1):
@@ -433,7 +403,7 @@ class UserInterface:
             commands.HELP: self.info_panel.show,
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
-            commands.CAL: self._start_calibrate_offsets,
+            commands.CAL: lambda: self._start_event_queue.append(Event.SET_CAL_OFFSETS),
             commands.FIR10: lambda: self._set_fir(10),
             commands.FIR100: lambda: self._set_fir(100),
             commands.PNG: lambda filename: export_png(self.scope_display.image_map, 
@@ -501,25 +471,8 @@ class UserInterface:
             self.display_signal(self._scope_interface.xx, self._triggered)
 
     def _start_force_trigger(self) -> None:
-        if self._calibration:
-            if self._calibration_step == 1:
-                self._scope_interface.set_full_scale(5)
-            elif self._calibration_step == 3:
-                self._scope_interface.set_full_scale(0.4)
         self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
         self._scope_interface.run()
-
-    def _finish_force_trigger(self) -> None:
-        if self._calibration:
-            average_offset: float = 0
-            for _ in range(0, 100):
-                average_offset += -1*average(self._scope_interface.xx)
-            average_offset /= 100
-            if self._calibration_step == 1:
-                self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = average_offset
-            elif self._calibration_step == 3:
-                self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = average_offset
-            self._calibration_step += 1 
 
     def _start_single_trigger(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.TRIGGER)

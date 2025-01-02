@@ -1,5 +1,6 @@
 from typing import Optional
 from threading import Event
+from time import sleep
 
 import numpy as np
 from serial import Serial
@@ -7,14 +8,16 @@ from serial.tools import list_ports
 
 from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 
+from voltpeek.measurements import average
+
 class NS1(ScopeBase):
     PICO_VID: int = 0x2E8A
     FIR_LENGTH = 6
 
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
-        'attenuation': {'range_high':0.07136, 'range_low':0.501},
-        'offset': {'range_high':0.515, 'range_low':0.511},
+        'attenuation': {'range_high':0.0372, 'range_low':0.2185},
+        'offset': {'range_high':0, 'range_high_gain':0, 'range_low':0, 'range_low_gain':0},
         'resolution': 256,    
         'voltage_ref': 1.0,
         'sample_rate': 62.5e6, 
@@ -38,6 +41,7 @@ class NS1(ScopeBase):
     FALLING_EDGE_TRIGGER_COMMAND: bytes = b'\\'
 
     LOW_RANGE_THRESHOLD: float = 4
+    CAL_DELAY = 0.1
 
     def __init__(self, baudrate: int=115200, port: Optional[str]=None):
         self.baudrate: int = baudrate
@@ -99,10 +103,19 @@ class NS1(ScopeBase):
     def _reconstruct(self, xx: list[float], full_scale: float, offset_null: bool=True, force_low_range=False) -> list[float]:
         if full_scale <= self.LOW_RANGE_THRESHOLD or force_low_range:
             attenuation = self.SCOPE_SPECS['attenuation']['range_low']
-            offset = self.SCOPE_SPECS['offset']['range_low']
+            if full_scale == 1:
+                offset = self.SCOPE_SPECS['offset']['range_low_gain']
+            else:
+                offset = self.SCOPE_SPECS['offset']['range_low']
         else: 
             attenuation = self.SCOPE_SPECS['attenuation']['range_high']
-            offset = self.SCOPE_SPECS['offset']['range_high']
+            if full_scale == 5:
+                offset = self.SCOPE_SPECS['offset']['range_high_gain']
+            else:
+                offset = self.SCOPE_SPECS['offset']['range_high']
+        # Adjust for amplification 
+        if full_scale == 5 or full_scale == 1:
+            attenuation *= 2
         LSB: float = self.SCOPE_SPECS['voltage_ref']/self.SCOPE_SPECS['resolution']
         zeroed_adc_input = np.subtract(np.multiply(np.array(xx), LSB), self.SCOPE_SPECS['bias'])
         if offset is not None and offset_null:
@@ -118,11 +131,11 @@ class NS1(ScopeBase):
             self._xx = self._reconstruct(self._FIR_filter(new_codes), full_scale)
         return self._xx
 
-    def get_scope_force_trigger_data(self, full_scale: float) -> list[float]:
+    def get_scope_force_trigger_data(self, full_scale: float, offset_null=True) -> list[float]:
         self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
         new_codes = self.read_glob_data()
         if len(new_codes) > 0:
-            self._xx = self._reconstruct(self._FIR_filter(new_codes), full_scale)
+            self._xx = self._reconstruct(self._FIR_filter(new_codes), full_scale, offset_null=offset_null)
         return self._xx 
 
     def set_range(self, full_scale: float) -> None:
@@ -132,13 +145,18 @@ class NS1(ScopeBase):
         else:
             self.serial_port.write(self.HIGH_RANGE_COMMAND)
 
+    def _set_high_range(self) -> None: self.serial_port.write(self.HIGH_RANGE_COMMAND)
+    def _set_low_range(self) -> None: self.serial_port.write(self.LOW_RANGE_COMMAND)
+
     def set_amplifier_gain(self, full_scale: float) -> None:
-        # TODO: Optimize so we only send a flip command when necessary
-        print(full_scale)
+        # TODO: Optimize so we only send a gain command when necessary
         if full_scale == 5 or full_scale == 1:
             self.serial_port.write(self.AMPLIFIER_GAIN_COMMAND)
         else:
             self.serial_port.write(self.AMPLIFIER_UNITY_COMMAND)
+
+    def _set_amplifier_gain_on(self) -> None: self.serial_port.write(self.AMPLIFIER_GAIN_COMMAND)
+    def _set_amplifier_gain_off(self) -> None: self.serial_port.write(self.AMPLIFIER_UNITY_COMMAND)
 
     def set_trigger_voltage(self, trigger_voltage: float, full_scale: float) -> None:
         if full_scale <= self.LOW_RANGE_THRESHOLD:
@@ -156,9 +174,25 @@ class NS1(ScopeBase):
         self.serial_port.write(self.CLOCK_DIV_COMMAND) 
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
 
-    def set_calibration_offsets(self, calibration_offsets_str:str) -> None:
+    def set_calibration_offsets(self) -> None:
+        self._set_amplifier_gain_off()
+        self._set_high_range()
+        sleep(self.CAL_DELAY)
+        self.SCOPE_SPECS['offset']['range_high'] = -1*average(self.get_scope_force_trigger_data(10, offset_null=False))
+        self._set_amplifier_gain_on()
+        sleep(self.CAL_DELAY)
+        self.SCOPE_SPECS['offset']['range_high_gain'] = -1*average(self.get_scope_force_trigger_data(5, offset_null=False))
+        self._set_amplifier_gain_off()
+        self._set_low_range()
+        sleep(self.CAL_DELAY)
+        self.SCOPE_SPECS['offset']['range_low'] = -1*average(self.get_scope_force_trigger_data(2, offset_null=False))
+        self._set_amplifier_gain_on()
+        sleep(self.CAL_DELAY)
+        self.SCOPE_SPECS['offset']['range_low_gain'] = -1*average(self.get_scope_force_trigger_data(1, offset_null=False))
+        self._set_amplifier_gain_off()
+        self._set_high_range()
         self.serial_port.write(self.SET_CAL_COMMAND)
-        self.serial_port.write(bytes(str(calibration_offsets_str) + '\0', 'utf-8')) 
+        self.serial_port.write(bytes(str(12345) + '\0', 'utf-8')) 
 
     def set_rising_edge_trigger(self) -> None: self.serial_port.write(self.RISING_EDGE_TRIGGER_COMMAND)
 
@@ -173,8 +207,9 @@ class NS1(ScopeBase):
         self.serial_port.flushOutput()
         self.serial_port.write(self.READ_CAL_COMMAND)
         offset_bytes: list[str] = []
-        while len(offset_bytes) < 4:
+        while len(offset_bytes) < 8:
             offset_bytes += list(self.serial_port.read(self.serial_port.inWaiting()))
+        print(offset_bytes)
         return offset_bytes
 
     def stop_trigger(self): 

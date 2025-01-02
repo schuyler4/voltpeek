@@ -34,11 +34,11 @@ class ScopeInterface:
         self._disconnected_error: bool = False
 
     def _scope_available(self, scope_action: Callable):
-        try:
-            scope_action()
-        except Exception or OSError as _:
-            print(_)
-            self._disconnected_error = True
+        #try:
+        scope_action()
+        #except Exception or OSError as _:
+        #    print(_)
+        #    self._disconnected_error = True
 
     def _connect_scope(self):
         self._scope.connect()
@@ -62,12 +62,12 @@ class ScopeInterface:
         self._data_available.release()
 
     def _set_range(self):
-        self._scope.set_range(self._value)
+        self._scope.set_range(self._full_scale)
         self._action_complete = True
         self._data_available.release()
 
     def _set_amplifier_gain(self):
-        self._scope.set_amplifier_gain(self._value)
+        self._scope.set_amplifier_gain(self._full_scale)
         self._action_complete = True
         self._data_available.release()
 
