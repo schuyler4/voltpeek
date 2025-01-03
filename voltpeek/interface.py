@@ -25,8 +25,6 @@ from voltpeek.export import export_png
 
 from voltpeek.scopes.NS1 import NS1
 
-from voltpeek.helpers import pad_zero
-
 class Mode(Enum):
     COMMAND = 0
     ADJUST_SCALE = 1
@@ -327,7 +325,7 @@ class UserInterface:
         self._render_update_scale()
 
     def _start_set_calibration(self) -> None:
-        self._scope_interface.set_value('poop')
+        self._scope_interface.set_value(self.scale.vert)
         self._scope_interface.set_scope_action(ScopeAction.SET_CAL_OFFSETS)
         self._scope_interface.run()
 

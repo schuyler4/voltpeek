@@ -9,6 +9,7 @@ from serial.tools import list_ports
 from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 
 from voltpeek.measurements import average
+from voltpeek.helpers import pad_zero, twos_complement_base10_encode
 
 class NS1(ScopeBase):
     PICO_VID: int = 0x2E8A
@@ -42,6 +43,7 @@ class NS1(ScopeBase):
 
     LOW_RANGE_THRESHOLD: float = 4
     CAL_DELAY = 0.1
+    CAL_BITS = 13
 
     def __init__(self, baudrate: int=115200, port: Optional[str]=None):
         self.baudrate: int = baudrate
@@ -174,7 +176,14 @@ class NS1(ScopeBase):
         self.serial_port.write(self.CLOCK_DIV_COMMAND) 
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
 
-    def set_calibration_offsets(self) -> None:
+    def _encode_calibration_offsets(self) -> str:
+        range_high: int = twos_complement_base10_encode(int(self.SCOPE_SPECS['offset']['range_high']*1000), self.CAL_BITS)
+        range_high_gain: int = twos_complement_base10_encode(int(self.SCOPE_SPECS['offset']['range_high_gain']*1000), self.CAL_BITS)
+        range_low: int = twos_complement_base10_encode(int(self.SCOPE_SPECS['offset']['range_high']*1000), self.CAL_BITS)
+        range_low_gain: int = twos_complement_base10_encode(int(self.SCOPE_SPECS['offset']['range_low_gain']*1000), self.CAL_BITS)
+        return pad_zero(str(range_high)) + pad_zero(str(range_high_gain)) + pad_zero(str(range_low)) + pad_zero(str(range_low_gain))
+
+    def set_calibration_offsets(self, full_scale:float) -> None:
         self._set_amplifier_gain_off()
         self._set_high_range()
         sleep(self.CAL_DELAY)
@@ -192,7 +201,10 @@ class NS1(ScopeBase):
         self._set_amplifier_gain_off()
         self._set_high_range()
         self.serial_port.write(self.SET_CAL_COMMAND)
-        self.serial_port.write(bytes(str(12345) + '\0', 'utf-8')) 
+        self.serial_port.write(bytes(self._encode_calibration_offsets() + '\0', 'utf-8'))
+        # Reset to the starting vertical setting
+        self.set_amplifier_gain(full_scale)
+        self.set_range(full_scale)
 
     def set_rising_edge_trigger(self) -> None: self.serial_port.write(self.RISING_EDGE_TRIGGER_COMMAND)
 
@@ -209,6 +221,13 @@ class NS1(ScopeBase):
         offset_bytes: list[str] = []
         while len(offset_bytes) < 8:
             offset_bytes += list(self.serial_port.read(self.serial_port.inWaiting()))
+        '''
+        if self._scope_interface.calibration_ints is not None:
+            high_range_offset_int: int = self._scope_interface.calibration_ints[1] << 8 | self._scope_interface.calibration_ints[0]
+            low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
+            self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = high_range_offset_int/10000
+            self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = low_range_offset_int/1000
+        '''
         print(offset_bytes)
         return offset_bytes
 

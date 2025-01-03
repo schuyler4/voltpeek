@@ -37,7 +37,6 @@ class ScopeInterface:
         #try:
         scope_action()
         #except Exception or OSError as _:
-        #    print(_)
         #    self._disconnected_error = True
 
     def _connect_scope(self):
@@ -82,7 +81,7 @@ class ScopeInterface:
         self._data_available.release()
     
     def _set_cal_offsets(self):
-        self._scope.set_calibration_offsets(self._value)
+        self._scope.set_calibration_offsets(self._full_scale)
         self._action_complete = True
         self._data_available.release()
 

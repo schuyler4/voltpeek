@@ -42,3 +42,15 @@ def pad_zero(number_string) -> str:
         if len(number_string) < i:
             number_string = '0' + number_string
     return number_string
+
+def twos_complement_base10_encode(number: int, exponent: int):
+    if number > (((2**exponent)/2) - 1) or number < (2**exponent)/-2:
+        print(number)
+        return None
+    if number < 0:
+        return (2**exponent)-number
+    else:
+        return number
+
+def twos_complement_base10_decode(number: int, exponent: int):
+    pass
