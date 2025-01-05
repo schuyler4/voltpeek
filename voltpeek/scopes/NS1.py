@@ -239,19 +239,6 @@ class NS1(ScopeBase):
         self.SCOPE_SPECS['offset']['range_high_gain'] = high_range_gain_offset/self.CAL_INT_MULTIPLIER
         self.SCOPE_SPECS['offset']['range_low'] = low_range_offset/self.CAL_INT_MULTIPLIER
         self.SCOPE_SPECS['offset']['range_low_gain'] = low_range_gain_offset/self.CAL_INT_MULTIPLIER
-        print('read')
-        print(high_range_offset)
-        print(high_range_gain_offset)
-        print(low_range_offset)
-        print(low_range_gain_offset)
-        '''
-        if self._scope_interface.calibration_ints is not None:
-            high_range_offset_int: int = self._scope_interface.calibration_ints[1] << 8 | self._scope_interface.calibration_ints[0]
-            low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
-            self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = high_range_offset_int/10000
-            self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = low_range_offset_int/1000
-        '''
-        return offset_bytes
 
     def stop_trigger(self): 
         self.stop()

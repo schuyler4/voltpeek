@@ -139,8 +139,6 @@ class UserInterface:
                         self._finish_single_trigger()
                     if self._end_event_queue[0] == Event.CHANGE_SCALE:
                         self._render_update_scale()
-                    if self._end_event_queue[0] == Event.READ_CAL_OFFSETS:
-                        self._finish_read_cal_offsets() 
                     if self._end_event_queue[0] == Event.SET_RISING_EDGE_TRIGGER:
                         self._finish_set_rising_edge_trigger()
                     if self._end_event_queue[0] == Event.SET_FALLING_EDGE_TRIGGER:
@@ -169,7 +167,6 @@ class UserInterface:
                         self._start_set_trigger_level()
                     if self._start_event_queue[0] == Event.READ_CAL_OFFSETS:
                         self._start_read_cal_offsets()
-                        self._end_event_queue.append(Event.READ_CAL_OFFSETS)
                     if self._start_event_queue[0] == Event.SET_CAL_OFFSETS:
                         self._start_set_calibration()
                     if self._start_event_queue[0] == Event.SET_RANGE:
@@ -301,16 +298,6 @@ class UserInterface:
     def _start_read_cal_offsets(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.READ_CAL_OFFSETS)
         self._scope_interface.run()
-
-    def _finish_read_cal_offsets(self) -> None:
-        pass
-        '''
-        if self._scope_interface.calibration_ints is not None:
-            high_range_offset_int: int = self._scope_interface.calibration_ints[1] << 8 | self._scope_interface.calibration_ints[0]
-            low_range_offset_int: int = self._scope_interface.calibration_ints[3] << 8 | self._scope_interface.calibration_ints[2]
-            self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = high_range_offset_int/10000
-            self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = low_range_offset_int/1000
-        '''
 
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
