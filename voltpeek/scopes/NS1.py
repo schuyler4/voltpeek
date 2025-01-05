@@ -9,7 +9,7 @@ from serial.tools import list_ports
 from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 
 from voltpeek.measurements import average
-from voltpeek.helpers import pad_zero, twos_complement_base10_encode
+from voltpeek.helpers import pad_zero, twos_complement_base10_encode, twos_complement_base10_decode
 
 class NS1(ScopeBase):
     PICO_VID: int = 0x2E8A
@@ -44,6 +44,8 @@ class NS1(ScopeBase):
     LOW_RANGE_THRESHOLD: float = 4
     CAL_DELAY = 0.1
     CAL_BITS = 13
+    CAL_MEMORY_DIGITS = 4
+    CAL_INT_MULTIPLIER = 1000
 
     def __init__(self, baudrate: int=115200, port: Optional[str]=None):
         self.baudrate: int = baudrate
@@ -177,11 +179,19 @@ class NS1(ScopeBase):
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
 
     def _encode_calibration_offsets(self) -> str:
-        range_high: int = twos_complement_base10_encode(int(self.SCOPE_SPECS['offset']['range_high']*1000), self.CAL_BITS)
-        range_high_gain: int = twos_complement_base10_encode(int(self.SCOPE_SPECS['offset']['range_high_gain']*1000), self.CAL_BITS)
-        range_low: int = twos_complement_base10_encode(int(self.SCOPE_SPECS['offset']['range_high']*1000), self.CAL_BITS)
-        range_low_gain: int = twos_complement_base10_encode(int(self.SCOPE_SPECS['offset']['range_low_gain']*1000), self.CAL_BITS)
-        return pad_zero(str(range_high)) + pad_zero(str(range_high_gain)) + pad_zero(str(range_low)) + pad_zero(str(range_low_gain))
+        range_high_int = int(self.SCOPE_SPECS['offset']['range_high']*self.CAL_INT_MULTIPLIER)
+        range_high_gain_int = int(self.SCOPE_SPECS['offset']['range_high_gain']*self.CAL_INT_MULTIPLIER)
+        range_low_int = int(self.SCOPE_SPECS['offset']['range_low']*self.CAL_INT_MULTIPLIER)
+        range_low_gain_int = int(self.SCOPE_SPECS['offset']['range_low_gain']*self.CAL_INT_MULTIPLIER)
+        range_high: int = twos_complement_base10_encode(range_high_int, self.CAL_BITS)
+        range_high_gain: int = twos_complement_base10_encode(range_high_gain_int, self.CAL_BITS)
+        range_low: int = twos_complement_base10_encode(range_low_int, self.CAL_BITS)
+        range_low_gain: int = twos_complement_base10_encode(range_low_gain_int, self.CAL_BITS)
+        range_high_str = pad_zero(str(range_high), self.CAL_MEMORY_DIGITS)
+        range_high_gain_str = pad_zero(str(range_high_gain), self.CAL_MEMORY_DIGITS)
+        range_low_str = pad_zero(str(range_low), self.CAL_MEMORY_DIGITS)
+        range_low_gain_str = pad_zero(str(range_low_gain), self.CAL_MEMORY_DIGITS)
+        return range_high_str + range_high_gain_str + range_low_str + range_low_gain_str
 
     def set_calibration_offsets(self, full_scale:float) -> None:
         self._set_amplifier_gain_off()
@@ -214,13 +224,26 @@ class NS1(ScopeBase):
         self.serial_port.write(self.STOP_COMMAND)
         self.serial_port.flush()
 
-    def read_calibration_offsets(self) -> list[int]:
+    def read_calibration_offsets(self) -> None:
         self.serial_port.flushInput()
         self.serial_port.flushOutput()
         self.serial_port.write(self.READ_CAL_COMMAND)
         offset_bytes: list[str] = []
         while len(offset_bytes) < 8:
             offset_bytes += list(self.serial_port.read(self.serial_port.inWaiting()))
+        high_range_offset = twos_complement_base10_decode(offset_bytes[1] << 8 | offset_bytes[0], self.CAL_BITS)
+        high_range_gain_offset = twos_complement_base10_decode(offset_bytes[3] << 8 | offset_bytes[2], self.CAL_BITS)
+        low_range_offset = twos_complement_base10_decode(offset_bytes[5] << 8 | offset_bytes[4], self.CAL_BITS)
+        low_range_gain_offset = twos_complement_base10_decode(offset_bytes[7] << 8 | offset_bytes[6], self.CAL_BITS)
+        self.SCOPE_SPECS['offset']['range_high'] = high_range_offset/self.CAL_INT_MULTIPLIER
+        self.SCOPE_SPECS['offset']['range_high_gain'] = high_range_gain_offset/self.CAL_INT_MULTIPLIER
+        self.SCOPE_SPECS['offset']['range_low'] = low_range_offset/self.CAL_INT_MULTIPLIER
+        self.SCOPE_SPECS['offset']['range_low_gain'] = low_range_gain_offset/self.CAL_INT_MULTIPLIER
+        print('read')
+        print(high_range_offset)
+        print(high_range_gain_offset)
+        print(low_range_offset)
+        print(low_range_gain_offset)
         '''
         if self._scope_interface.calibration_ints is not None:
             high_range_offset_int: int = self._scope_interface.calibration_ints[1] << 8 | self._scope_interface.calibration_ints[0]
@@ -228,7 +251,6 @@ class NS1(ScopeBase):
             self._scope_interface.scope.SCOPE_SPECS['offset']['range_high'] = high_range_offset_int/10000
             self._scope_interface.scope.SCOPE_SPECS['offset']['range_low'] = low_range_offset_int/1000
         '''
-        print(offset_bytes)
         return offset_bytes
 
     def stop_trigger(self): 

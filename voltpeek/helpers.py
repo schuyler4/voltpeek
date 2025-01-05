@@ -37,15 +37,14 @@ def sinc_interpolation(fs: float, x, new_length: int):
     x_interpolated = np.fft.irfft(X_padded, n=new_length)
     return x_interpolated*(new_length/len(x))
 
-def pad_zero(number_string) -> str:
-    for i in range(1, 4):
+def pad_zero(number_string, digits) -> str:
+    for i in range(1, digits+1):
         if len(number_string) < i:
             number_string = '0' + number_string
     return number_string
 
 def twos_complement_base10_encode(number: int, exponent: int):
-    if number > (((2**exponent)/2) - 1) or number < (2**exponent)/-2:
-        print(number)
+    if number >= (((2**exponent)/2) - 1) or number < (2**exponent)/-2:
         return None
     if number < 0:
         return (2**exponent)-number
@@ -53,4 +52,7 @@ def twos_complement_base10_encode(number: int, exponent: int):
         return number
 
 def twos_complement_base10_decode(number: int, exponent: int):
-    pass
+    if number >= 0 and number < (2**exponent)/2:
+        return number
+    else:
+        return -1*number + (2**exponent)
