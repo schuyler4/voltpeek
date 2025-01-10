@@ -317,7 +317,6 @@ class UserInterface:
         self._scope_interface.run()
 
     def _start_set_range(self) -> None:
-        print(self.scale.vert)
         self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
         self._scope_interface.set_scope_action(ScopeAction.SET_RANGE)
         self._scope_interface.run()
@@ -357,7 +356,6 @@ class UserInterface:
             if list(scope.keys())[0] == identifier:
                 self._connect_initiated = True
                 self._scope_interface: ScopeInterface = ScopeInterface(scope[identifier])
-                print(self.scale.vert)
                 self._start_event_queue.append(Event.CONNECT)
                 self._start_event_queue.append(Event.SET_RANGE)
                 if isinstance(self._scope_interface.scope, NS1):

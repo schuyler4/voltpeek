@@ -34,10 +34,10 @@ class ScopeInterface:
         self._disconnected_error: bool = False
 
     def _scope_available(self, scope_action: Callable):
-        #try:
-        scope_action()
-        #except Exception or OSError as _:
-        #    self._disconnected_error = True
+        try:
+            scope_action()
+        except Exception or OSError as _:
+            self._disconnected_error = True
 
     def _connect_scope(self):
         self._scope.connect()
