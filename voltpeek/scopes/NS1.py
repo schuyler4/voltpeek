@@ -17,7 +17,7 @@ class NS1(ScopeBase):
 
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
-        'attenuation': {'range_high':0.0372, 'range_low':0.2185},
+        'attenuation': {'range_high':0.03582, 'range_low':0.2104},
         'offset': {'range_high':0, 'range_high_gain':0, 'range_low':0, 'range_low_gain':0},
         'resolution': 256,    
         'voltage_ref': 1.0,
