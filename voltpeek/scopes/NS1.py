@@ -24,7 +24,8 @@ class NS1(ScopeBase):
         'sample_rate': 62.5e6, 
         'memory_depth': 16384, 
         'trigger_resolution': 256, 
-        'bias': 0.5
+        'bias': 0.5,
+        'ranges': (1, 2, 5, 10)
     }
 
     TRIGGER_LEVEL_COMMAND: bytes = b'l'
