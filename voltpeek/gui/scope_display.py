@@ -64,11 +64,11 @@ class Scope_Display:
             if len(trigger_crossings) > 0:
                 error_distance_index = np.abs(trigger_crossings - (constants.Display.SIZE//2)+1).argmin()
                 error_sign = np.sign(trigger_crossings[error_distance_index] - (constants.Display.SIZE//2)+1)
-                error_magnitude_time = np.abs(trigger_crossings[error_distance_index] - (constants.Display.SIZE/2)+1)*hor_pixel_time 
+                error_magnitude_time = np.abs(trigger_crossings[error_distance_index] - (constants.Display.SIZE//2)+1)*hor_pixel_time 
                 if error_sign:
-                    self.vector = f((np.arange(constants.Display.SIZE)*new_T) + (chop_time/2) + error_magnitude_time)
-                else:
                     self.vector = f((np.arange(constants.Display.SIZE)*new_T) + (chop_time/2) - error_magnitude_time)
+                else:
+                    self.vector = f((np.arange(constants.Display.SIZE)*new_T) + (chop_time/2) + error_magnitude_time)
                 return True
             return False
         else:
