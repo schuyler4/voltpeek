@@ -17,14 +17,14 @@ class NS1(ScopeBase):
 
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
-        'attenuation': {'range_high':0.03582, 'range_low':0.2104},
+        'attenuation': {'range_high':0.0578, 'range_low':0.3327},
         'offset': {'range_high':0, 'range_high_gain':0, 'range_low':0, 'range_low_gain':0},
         'resolution': 256,    
-        'voltage_ref': 1.0,
+        'voltage_ref': 1.6,
         'sample_rate': 62.5e6, 
         'memory_depth': 16384, 
         'trigger_resolution': 256, 
-        'bias': 0.5,
+        'bias': 0.8,
         'ranges': (1, 2, 5, 10)
     }
 
