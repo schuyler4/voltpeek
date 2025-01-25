@@ -166,8 +166,21 @@ class NS1(ScopeBase):
     def set_trigger_voltage(self, trigger_voltage: float, full_scale: float) -> None:
         if full_scale <= self.LOW_RANGE_THRESHOLD:
             attenuation = self.SCOPE_SPECS['attenuation']['range_low']
+            if full_scale == 1:
+                offset = self.SCOPE_SPECS['offset']['range_low_gain']
+            else:
+                offset = self.SCOPE_SPECS['offset']['range_low']
         else: 
             attenuation = self.SCOPE_SPECS['attenuation']['range_high']
+            if full_scale == 5:
+                offset = self.SCOPE_SPECS['offset']['range_high_gain']
+            else:
+                offset = self.SCOPE_SPECS['offset']['range_high']
+        # Adjust for amplification 
+        if full_scale == 5 or full_scale == 1:
+            attenuation *= 2
+        # Adjust for calibration offset
+        trigger_voltage -= offset
         # TODO: Add error handling for non-compliant trigger voltages
         max_input_voltage: float = (self.SCOPE_SPECS['voltage_ref']/attenuation)/2   
         trigger_code: int = int(((trigger_voltage + max_input_voltage)/(max_input_voltage*2))*(self.SCOPE_SPECS['trigger_resolution']-1))
