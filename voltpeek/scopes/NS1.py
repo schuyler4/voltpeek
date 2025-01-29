@@ -96,6 +96,9 @@ class NS1(ScopeBase):
             codes += list(new_data)
         if self._stop.is_set():
             self._stop.clear()
+        # Clear anything that is left in the serial buffer
+        while self.serial_port.in_waiting:
+            self.serial_port.read(self.serial_port.in_waiting)
         return codes
     
     def _FIR_filter(self, xx: list[int]):
