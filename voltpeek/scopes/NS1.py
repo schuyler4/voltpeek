@@ -13,7 +13,7 @@ from voltpeek.helpers import pad_zero, twos_complement_base10_encode, twos_compl
 
 class NS1(ScopeBase):
     PICO_VID: int = 0x2E8A
-    FIR_LENGTH = 4
+    FIR_LENGTH = 3
 
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
