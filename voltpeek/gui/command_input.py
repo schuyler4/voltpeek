@@ -11,14 +11,27 @@ class Command_Input:
         self.on_command:Callable[[str], None] = on_command
         self.master:tk.Tk = master
         self.input_text:tk.StringVar = tk.StringVar()
-        self.input:tk.Entry = tk.Entry(master, 
+        self.frame = tk.Frame(
+            master,
+            highlightbackground='white',
+            highlightcolor='white',
+            highlightthickness=2,
+            bg=constants.Input.BACKGROUND_COLOR,
+            width=constants.Display.SIZE,  # Match canvas width
+            height=25  # Set a fixed height for the input
+        )
+        self.frame.pack_propagate(False)
+        self.input:tk.Entry = tk.Entry(
+            self.frame,
             textvariable=self.input_text,
-            width=constants.Input.WIDTH, 
             bg=constants.Input.BACKGROUND_COLOR, 
             disabledbackground=constants.Input.BACKGROUND_COLOR,
             fg=constants.Input.INSERT_COLOR,
             insertbackground=constants.Input.INSERT_COLOR, 
-            insertwidth=constants.Input.INSERT_WIDTH)       
+            insertwidth=constants.Input.INSERT_WIDTH,  # Prevent frame from shrinking to fit content,
+            bd=0
+        )       
+        self.input.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)  # Reduced padding from 5 to 2
         self.input.bind(constants.Input.TRIGGER_KEY, self.on_command_enter)
         self.input.bind('<KeyPress>', self.on_key_press)
         self.error:bool = False
@@ -67,7 +80,9 @@ class Command_Input:
         self.input_text.set(self.error_message)
 
     def __call__(self) -> None: 
-        self.input.grid(row=1, 
-            column=0, 
+        self.frame.grid(
+            row=1, 
+            column=0,  # Changed from columnspan=2 to match canvas position
             pady=constants.Application.PADDING, 
-            padx=constants.Application.PADDING)
+            padx=constants.Application.PADDING
+        )

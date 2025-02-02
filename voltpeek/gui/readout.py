@@ -149,7 +149,7 @@ class Readout:
 
     def set_status(self, status_str: str) -> None: self._status_text.set(status_str)
 
-    def enable_cursor_readout(self, cursor_data: Cursor_Data) -> None:
+    def enable_cursor_readout(self, cursor_data: Cursor_Data) -> None: 
         self.update_cursors(cursor_data)
 
     def disable_cursor_readout(self) -> None:
