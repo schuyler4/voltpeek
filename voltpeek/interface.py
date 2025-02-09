@@ -21,7 +21,7 @@ from voltpeek.trigger import Trigger, TriggerType
 from voltpeek.cursors import Cursors, Cursor_Data
 from voltpeek.scale import Scale
 
-from voltpeek.export import export_png
+from voltpeek.export import export_png, ExportSettings
 
 from voltpeek.scopes.NS1 import NS1
 
@@ -366,6 +366,14 @@ class UserInterface:
 
     def _set_fir(self, new_length: int): self._fir_length = new_length
 
+    def _run_png_export(self, filename: str) -> None:
+        settings = ExportSettings(
+            vertical_setting=self.scale.vert,
+            horizontal_setting=self.scale.hor,
+            probe_div=self.scale.probe_div,
+            map=self.scope_display.image_map)
+        export_png(settings, filename)
+
     def get_commands(self): 
         return {
             commands.EXIT_COMMAND: lambda: self._start_event_queue.append(Event.EXIT) if self._connect_initiated else exit(),
@@ -389,8 +397,7 @@ class UserInterface:
             commands.CAL: lambda: self._start_event_queue.append(Event.SET_CAL_OFFSETS),
             commands.FIR10: lambda: self._set_fir(10),
             commands.FIR100: lambda: self._set_fir(100),
-            commands.PNG: lambda filename: export_png(self.scope_display.image_map, 
-                                                      self.scale.vert, self.scale.hor, filename, self.scale.probe_div)
+            commands.PNG: lambda filename: self._run_png_export(filename)
         }
 
     def _set_disconnected(self) -> None:

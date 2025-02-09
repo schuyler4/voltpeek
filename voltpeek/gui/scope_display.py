@@ -13,6 +13,7 @@ class Scope_Display:
     BACKGROUND_COLOR = (0, 0, 0)
     GRID_LINE_COLOR = (128, 128, 128)
     SIGNAL_COLOR = (17, 176, 249)
+    CURSOR_COLOR = (255, 0, 0)  # Added red cursor color
     MAX_TRIGGER_CORRECTION_PIXELS: int = 6
     DASH_PATTERN = (4, 2) # 4 pixels on 2 off
 
@@ -184,6 +185,16 @@ class Scope_Display:
 
     def _draw_trigger_level(self): self._draw_horizontal_line(self._trigger_level, constants.Display.TRIGGER_LINE_COLOR)
 
+    def _draw_horizontal_line_on_map(self, map: list[list[tuple[int]]], position: int, color: tuple[int]) -> None:
+        if 0 <= position < constants.Display.SIZE:
+            for x in range(constants.Display.SIZE):
+                map[position][x] = color
+
+    def _draw_vertical_line_on_map(self, map: list[list[tuple[int]]], position: int, color: tuple[int]) -> None:
+        if 0 <= position < constants.Display.SIZE:
+            for y in range(constants.Display.SIZE):
+                map[y][position] = color
+
     @property
     def image_map(self):
         map: list[list[tuple[int]]] = [[self.BACKGROUND_COLOR for _ in range(0, constants.Display.SIZE)] 
@@ -203,4 +214,12 @@ class Scope_Display:
                         x_point: int = int(x) + x_padding
                         if y_point >= 0 and y_point < constants.Display.SIZE and x_point >= 0 and x_point < constants.Display.SIZE: 
                             map[y_point][x_point] = self.SIGNAL_COLOR 
+        # Draw horizontal cursors
+        if self.cursors and self.cursors.hor_visible:
+            self._draw_horizontal_line_on_map(map, self.cursors.hor1_pos, self.CURSOR_COLOR)
+            self._draw_horizontal_line_on_map(map, self.cursors.hor2_pos, self.CURSOR_COLOR)
+        # Draw vertical cursors
+        if self.cursors and self.cursors.vert_visible:
+            self._draw_vertical_line_on_map(map, self.cursors.vert1_pos, self.CURSOR_COLOR)
+            self._draw_vertical_line_on_map(map, self.cursors.vert2_pos, self.CURSOR_COLOR)
         return map
