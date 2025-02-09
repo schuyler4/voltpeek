@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from PIL import Image, ImageDraw, ImageFont 
 
 from voltpeek import constants
+from voltpeek.cursors import Cursor_Data
 
 @dataclass
 class ExportSettings:
@@ -9,6 +10,7 @@ class ExportSettings:
     horizontal_setting: float
     probe_div: int
     map: list[list[tuple[int]]]
+    cursor_data: Cursor_Data
 
 def export_png(settings: ExportSettings, filename: str):
     flat_map = []
@@ -19,7 +21,13 @@ def export_png(settings: ExportSettings, filename: str):
     # TODO: make the font universal
     font = ImageFont.truetype('/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf', 20)
     draw = ImageDraw.Draw(image)
-    draw.text((10, 5), str(settings.vertical_setting*settings.probe_div) + ' V/div', font=font)
-    draw.text((10, 30), str(settings.horizontal_setting) + ' s/div', font=font)
-    draw.text((10, 55), 'Probe: ' + str(settings.probe_div) + 'X', font=font)
+    y_offset = 5
+    draw.text((10, y_offset), str(settings.vertical_setting*settings.probe_div) + ' V/div', font=font, fill='white')
+    draw.text((10, y_offset + 25), str(settings.horizontal_setting) + ' s/div', font=font, fill='white')
+    draw.text((10, y_offset + 50), 'Probe: ' + str(settings.probe_div) + 'X', font=font, fill='white')
+    y_offset = 100  # Start cursor readouts below settings
+    for key, value in settings.cursor_data.items():
+        if value:  # Only draw if there's a value
+            draw.text((10, y_offset), f"{key}: {value}", font=font, fill='white')
+            y_offset += 25
     image.save(filename + '.png')

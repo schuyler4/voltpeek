@@ -371,7 +371,9 @@ class UserInterface:
             vertical_setting=self.scale.vert,
             horizontal_setting=self.scale.hor,
             probe_div=self.scale.probe_div,
-            map=self.scope_display.image_map)
+            map=self.scope_display.image_map,
+            cursor_data=self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert)
+        )
         export_png(settings, filename)
 
     def get_commands(self): 
