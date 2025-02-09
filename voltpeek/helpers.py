@@ -2,13 +2,13 @@ from math import log10, floor, isnan
 
 import numpy as np
 
-def two_sig_figs(number: float) -> float:
+def three_sig_figs(number: float) -> float:
     if isnan(number):
         return float('NaN')
     elif number == 0:
         return number
     else:
-        return round(number, -int(floor(log10(abs(number)))) + 1)
+        return round(number, -int(floor(log10(abs(number)))) + 2)
 
 def engineering_units(number: float) -> str:
     if abs(number) < 1e9 and abs(number) >= 1e6:
