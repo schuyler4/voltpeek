@@ -126,7 +126,7 @@ class Readout:
         self.status_label.grid(row=0, column=0, sticky='ew')
         self.status_separator.grid(row=1, column=0, sticky='ew', pady=2)
         for i, label in enumerate(self.main_labels):
-            label.grid(row=i+2, column=0, sticky='ew')  # Offset by 2 to account for status and separator
+            label.grid(row=i+2, column=0, sticky='ew')
         self._vertical_text.set(self.get_vertical_str())
         self._horizontal_text.set(self.get_horizontal_str())
         self._average_text.set(f"{self.AVERAGE_STRING}----")
