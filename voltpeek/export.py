@@ -27,7 +27,7 @@ def export_png(settings: ExportSettings, filename: str):
     draw.text((10, y_offset + 50), 'Probe: ' + str(settings.probe_div) + 'X', font=font, fill='white')
     y_offset = 100  # Start cursor readouts below settings
     for key, value in settings.cursor_data.items():
-        if value:  # Only draw if there's a value
+        if value:
             draw.text((10, y_offset), f"{key}: {value}", font=font, fill='white')
             y_offset += 25
     image.save(filename + '.png')
