@@ -224,7 +224,7 @@ class Cursors:
         hdelta: str = engineering_units(three_sig_figs(self.get_delta_voltage(vert_setting))) + 'V' if self.hor_visible else ''
         v1: str = engineering_units(three_sig_figs(self._get_vert1_time_unrounded(hor_setting))) + 's' if self.vert_visible else ''
         v2: str = engineering_units(three_sig_figs(self._get_vert2_time_unrounded(hor_setting))) + 's' if self.vert_visible else ''
-        vdelta: str = engineering_units(three_sig_figs(self.get_delta_time(hor_setting))) + 's' if self.vert_visible else ''
+        vdelta: str = engineering_units(three_sig_figs(self._get_delta_time_unrounded(hor_setting))) + 's' if self.vert_visible else ''
         vdelta_frequency_number_string = engineering_units(three_sig_figs(self.get_delta_frequency(hor_setting)))
         if self.vert_visible and vdelta_frequency_number_string is not None:
             vdelta_frequency: str = vdelta_frequency_number_string + 'Hz' 
