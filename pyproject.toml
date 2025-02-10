@@ -2,7 +2,7 @@
 name = "voltpeek"
 version = "0.1.0"
 description = "A command based instrument control software."
-license = {file: "LICENSE.txt"}
+license = {file = "LICENSE.txt"}
 requires-python = ">=3.10"
 dependencies = [
     "pyserial>=3.5"
