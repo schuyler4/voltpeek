@@ -2,6 +2,9 @@
 
 from voltpeek.interface import UserInterface
 
-if __name__ == '__main__':
+def main():
     user_scope_interface = UserInterface()
     user_scope_interface()
+
+if __name__ == '__main__':
+    main()
