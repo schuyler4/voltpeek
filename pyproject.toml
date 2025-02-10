@@ -8,6 +8,7 @@ dependencies = [
     "pyserial>=3.5",
     "numpy>=1.26.2",
     "scipy>=1.11.4",
+    "pillow>=10.2.0",
 ]
 
 [build-system]
