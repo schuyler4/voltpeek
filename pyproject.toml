@@ -13,3 +13,6 @@ dependencies = [
 where = ["voltpeek"]
 include = ["voltpeek*"]
 namespaces = false
+
+[project.scripts]
+voltpeek = "voltpeek.__main__:main"
