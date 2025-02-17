@@ -20,7 +20,6 @@ class ScopeAction(Enum):
     SET_AMPLIFIER_GAIN = 11
 
 def scope_action_handler(func):
-    """Decorator for handling scope actions with common cleanup."""
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         result = func(self, *args, **kwargs)
@@ -74,10 +73,14 @@ class ScopeInterface:
     @scope_action_handler
     def _force_trigger(self):
         self._xx = self._scope.get_scope_force_trigger_data(self._full_scale)
+        if self._xx is None:
+            self._disconnected_error = True
 
     @scope_action_handler
     def _trigger(self):
         self._xx = self._scope.get_scope_trigger_data(self._full_scale)
+        if self._xx is None:
+            self._disconnected_error = True
 
     @scope_action_handler
     def _set_clock_div(self):
@@ -98,24 +101,21 @@ class ScopeInterface:
     @scope_action_handler
     def _read_cal_offsets(self):
         self._calibration_ints = self._scope.read_calibration_offsets()
+        if self._calibration_ints is None:
+            self._disconnected_error = True
 
     @scope_action_handler
-    def _set_cal_offsets(self):
-        self._scope.set_calibration_offsets(self._full_scale)
+    def _set_cal_offsets(self): self._scope.set_calibration_offsets(self._full_scale)
 
     @scope_action_handler
-    def _set_rising_edge_trigger(self):
-        self._scope.set_rising_edge_trigger()
+    def _set_rising_edge_trigger(self): self._scope.set_rising_edge_trigger()
 
     @scope_action_handler
-    def _set_falling_edge_trigger(self):
-        self._scope.set_falling_edge_trigger()
+    def _set_falling_edge_trigger(self): self._scope.set_falling_edge_trigger()
 
     def run(self):
         if not self._action_complete and self._action in self._action_handlers:
-            thread = Thread(
-                target=lambda: self._scope_available(self._action_handlers[self._action])
-            )
+            thread = Thread(target=lambda: self._scope_available(self._action_handlers[self._action]))
             thread.start()
 
     @property

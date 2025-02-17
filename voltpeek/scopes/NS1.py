@@ -77,7 +77,7 @@ class NS1(ScopeBase):
             self.serial_port: Serial = Serial()
             self.serial_port.baudrate = self.baudrate
             self.serial_port.port = self.port
-            self.serial_port.timeout = 0
+            self.serial_port.timeout = 100 #ms
             self.serial_port.open()
             self.serial_port.flush()
         except Exception as _:
@@ -92,13 +92,17 @@ class NS1(ScopeBase):
             if self._stop.is_set():
                 self._stop.clear()
                 return None
-            new_data = self.serial_port.read(self.serial_port.inWaiting())
-            codes += list(new_data)
+            try:
+                new_data = self.serial_port.read(self.serial_port.inWaiting())
+                if new_data is None: # timeout
+                    return None
+                codes += list(new_data)
+            except (OSError, IOError) as _:
+                return None
+            except Exception as _:
+                return None
         if self._stop.is_set():
             self._stop.clear()
-        # Clear anything that is left in the serial buffer
-        while self.serial_port.in_waiting:
-            self.serial_port.read(self.serial_port.in_waiting)
         return codes
     
     def _FIR_filter(self, xx: list[int]):
@@ -241,13 +245,21 @@ class NS1(ScopeBase):
         self.serial_port.write(self.STOP_COMMAND)
         self.serial_port.flush()
 
-    def read_calibration_offsets(self) -> None:
-        self.serial_port.flushInput()
-        self.serial_port.flushOutput()
+    def read_calibration_offsets(self) -> Optional[bool]:
+        self.serial_port.reset_input_buffer()
+        self.serial_port.reset_output_buffer()
         self.serial_port.write(self.READ_CAL_COMMAND)
         offset_bytes: list[str] = []
         while len(offset_bytes) < 8:
-            offset_bytes += list(self.serial_port.read(self.serial_port.inWaiting()))
+            try:
+                new_data = self.serial_port.read(self.serial_port.inWaiting())
+                if new_data is None: # timeout
+                    return None
+                offset_bytes += list(new_data)
+            except (OSError, IOError) as _:
+                return None
+            except Exception as _:
+                return None
         high_range_offset = twos_complement_base10_decode(offset_bytes[1] << 8 | offset_bytes[0], self.CAL_BITS)
         high_range_gain_offset = twos_complement_base10_decode(offset_bytes[3] << 8 | offset_bytes[2], self.CAL_BITS)
         low_range_offset = twos_complement_base10_decode(offset_bytes[5] << 8 | offset_bytes[4], self.CAL_BITS)
@@ -256,6 +268,7 @@ class NS1(ScopeBase):
         self.SCOPE_SPECS['offset']['range_high_gain'] = high_range_gain_offset/self.CAL_INT_MULTIPLIER
         self.SCOPE_SPECS['offset']['range_low'] = low_range_offset/self.CAL_INT_MULTIPLIER
         self.SCOPE_SPECS['offset']['range_low_gain'] = low_range_gain_offset/self.CAL_INT_MULTIPLIER
+        return True
 
     def stop_trigger(self): 
         self.stop()

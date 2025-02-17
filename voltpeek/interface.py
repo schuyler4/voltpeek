@@ -358,6 +358,7 @@ class UserInterface:
                 self._scope_interface: ScopeInterface = ScopeInterface(scope[identifier])
                 self._start_event_queue.append(Event.CONNECT)
                 self._start_event_queue.append(Event.SET_RANGE)
+                self._start_event_queue.append(Event.SET_AMPLIFIER_GAIN)
                 if isinstance(self._scope_interface.scope, NS1):
                     self._start_event_queue.append(Event.READ_CAL_OFFSETS)
                 self._set_update_scale(None)
