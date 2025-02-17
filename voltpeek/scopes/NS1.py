@@ -93,10 +93,13 @@ class NS1(ScopeBase):
                 self._stop.clear()
                 return None
             try:
-                new_data = self.serial_port.read(self.SCOPE_SPECS['memory_depth']-len(codes))
+                new_data = self.serial_port.read(self.serial_port.inWaiting())
                 if new_data is None: # timeout
+                    print('timeout')
                     return None
-                codes += list(new_data)
+                else:
+                    codes += list(new_data)
+                    sleep(0.001)
             except (OSError, IOError) as _:
                 return None
             except Exception as _:
@@ -270,7 +273,7 @@ class NS1(ScopeBase):
         self.SCOPE_SPECS['offset']['range_low_gain'] = low_range_gain_offset/self.CAL_INT_MULTIPLIER
         return True
 
-    def stop_trigger(self): 
+    def stop_trigger(self) -> None: 
         self.stop()
         self._stop.set()
 
