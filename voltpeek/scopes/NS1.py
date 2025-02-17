@@ -93,7 +93,7 @@ class NS1(ScopeBase):
                 self._stop.clear()
                 return None
             try:
-                new_data = self.serial_port.read(self.serial_port.inWaiting())
+                new_data = self.serial_port.read(self.SCOPE_SPECS['memory_depth']-len(codes))
                 if new_data is None: # timeout
                     return None
                 codes += list(new_data)
