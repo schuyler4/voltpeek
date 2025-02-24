@@ -197,29 +197,27 @@ class Scope_Display:
 
     @property
     def image_map(self):
-        map: list[list[tuple[int]]] = [[self.BACKGROUND_COLOR for _ in range(0, constants.Display.SIZE)] 
-                                       for _ in range(0, constants.Display.SIZE)]
-        grid_spacing: int = int(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
-        # Draw the grid lines.
-        for y, row in enumerate(map):
-            for x, _ in enumerate(row):
-                if y % grid_spacing == 0 or x % grid_spacing == 0 or x == len(map) - 1 or y == len(row) - 1:
-                    map[y][x] = self.GRID_LINE_COLOR
-        # Draw the signal.
+        map = np.full((constants.Display.SIZE, constants.Display.SIZE, 3), self.BACKGROUND_COLOR, dtype=np.uint8)
+        grid_spacing = int(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        grid_lines = np.arange(0, constants.Display.SIZE, grid_spacing)
+        map[grid_lines, :] = self.GRID_LINE_COLOR
+        map[:, grid_lines] = self.GRID_LINE_COLOR
         if self.vector is not None:
-            for x, point in enumerate(self.vector):
-                for x_padding in range(-1, 2):
-                    for y_padding in range(-1, 2):
-                        y_point: int = constants.Display.SIZE - int(point) + y_padding
-                        x_point: int = int(x) + x_padding
-                        if y_point >= 0 and y_point < constants.Display.SIZE and x_point >= 0 and x_point < constants.Display.SIZE: 
-                            map[y_point][x_point] = self.SIGNAL_COLOR 
-        # Draw horizontal cursors
+            x = np.arange(len(self.vector))
+            y = constants.Display.SIZE - np.array(self.vector)
+            y_indices = y.astype(int)
+            valid_y = (y_indices >= 0) & (y_indices < constants.Display.SIZE)
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    y_shifted = y_indices[valid_y] + dy
+                    x_shifted = x[valid_y] + dx
+                    valid_points = (y_shifted >= 0) & (y_shifted < constants.Display.SIZE) & \
+                                 (x_shifted >= 0) & (x_shifted < constants.Display.SIZE)
+                    map[y_shifted[valid_points], x_shifted[valid_points]] = self.SIGNAL_COLOR
         if self.cursors and self.cursors.hor_visible:
-            self._draw_horizontal_line_on_map(map, self.cursors.hor1_pos, self.CURSOR_COLOR)
-            self._draw_horizontal_line_on_map(map, self.cursors.hor2_pos, self.CURSOR_COLOR)
-        # Draw vertical cursors
+            map[self.cursors.hor1_pos] = self.CURSOR_COLOR
+            map[self.cursors.hor2_pos] = self.CURSOR_COLOR
         if self.cursors and self.cursors.vert_visible:
-            self._draw_vertical_line_on_map(map, self.cursors.vert1_pos, self.CURSOR_COLOR)
-            self._draw_vertical_line_on_map(map, self.cursors.vert2_pos, self.CURSOR_COLOR)
-        return map
+            map[:, self.cursors.vert1_pos] = self.CURSOR_COLOR
+            map[:, self.cursors.vert2_pos] = self.CURSOR_COLOR
+        return [[(int(r), int(g), int(b)) for r, g, b in row] for row in map]

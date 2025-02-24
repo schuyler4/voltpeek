@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from PIL import Image, ImageDraw, ImageFont 
 
 from voltpeek import constants
@@ -13,6 +14,7 @@ class ExportSettings:
     cursor_data: Cursor_Data
 
 def export_png(settings: ExportSettings, filename: str):
+    print(settings.map)
     flat_map = []
     for row in settings.map:
         flat_map += row
