@@ -377,6 +377,30 @@ class UserInterface:
         )
         export_png(settings, filename)
 
+    def _on_auto_trigger_command(self):
+        if self._normal_trigger_running:
+            self._start_event_queue += [Event.STOP, Event.AUTO_TRIGGER]
+            self._normal_trigger_running = False
+        else:
+            self._start_event_queue.append(Event.AUTO_TRIGGER)
+
+    def _on_normal_trigger_command(self):
+        if self._auto_trigger_running:
+            self._start_event_queue += [Event.STOP, Event.NORMAL_TRIGGER]
+            self._auto_trigger_running = False
+        else:
+            self._start_event_queue.append(Event.NORMAL_TRIGGER) 
+
+    def _on_single_trigger_command(self):
+        if self._auto_trigger_running:
+            self._start_event_queue += [Event.STOP, Event.SINGLE_TRIGGER]
+            self._auto_trigger_running = False
+        elif self._normal_trigger_running:
+            self._start_event_queue += [Event.STOP, Event.SINGLE_TRIGGER]
+            self._normal_trigger_running = False
+        else:
+            self._start_event_queue.append(Event.SINGLE_TRIGGER)
+
     def get_commands(self): 
         return {
             commands.EXIT_COMMAND: lambda: self._start_event_queue.append(Event.EXIT) if self._connect_initiated else exit(),
@@ -388,9 +412,9 @@ class UserInterface:
             commands.TOGGLE_VCURS: self.toggle_vertical_cursors,
             commands.NEXT_CURS: self.next_cursor, 
             commands.ADJUST_CURS: self._set_adjust_cursor_mode, 
-            commands.AUTO_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.AUTO_TRIGGER), 
-            commands.NORMAL_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.NORMAL_TRIGGER),
-            commands.SINGLE_TRIGGER_COMMAND: lambda: self._start_event_queue.append(Event.SINGLE_TRIGGER),
+            commands.AUTO_TRIGGER_COMMAND: self._on_auto_trigger_command, 
+            commands.NORMAL_TRIGGER_COMMAND: self._on_normal_trigger_command,
+            commands.SINGLE_TRIGGER_COMMAND: self._on_single_trigger_command,
             commands.STOP: self._stop_trigger,
             commands.TRIGGER_RISING_EDGE_COMMAND: lambda: self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER),
             commands.TRIGGER_FALLING_EDGE_COMMAND: lambda: self._start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER),
