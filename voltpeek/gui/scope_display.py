@@ -34,12 +34,7 @@ class Scope_Display:
 
     def __call__(self):
         self.canvas.pack()
-        self.frame.grid(
-            row=0, 
-            column=0, 
-            pady=constants.Application.PADDING,
-            padx=constants.Application.PADDING
-        )
+        self.frame.grid(row=0, column=0, pady=constants.Application.PADDING, padx=constants.Application.PADDING)
 
     def _draw_grid(self) -> None:
         grid_spacing:int = int(self._size/constants.Display.GRID_LINE_COUNT)
@@ -51,42 +46,41 @@ class Scope_Display:
             self.canvas.create_line(0, grid_spacing*i,  self._size, grid_spacing*i, 
                                     fill=self._hex_string_from_rgb(self.GRID_LINE_COLOR))
                         
-    def _quantize_vertical(self, vertical_setting: float) -> list[int]:
-        pixel_resolution: float = vertical_setting/(self._size/constants.Display.GRID_LINE_COUNT)
-        self.vector = np.add(np.multiply(self.vector, 1/pixel_resolution), int(self._size/2))
+    def _quantize_vertical(self, vertical_setting: float, size) -> list[int]:
+        pixel_resolution: float = vertical_setting/(size/constants.Display.GRID_LINE_COUNT)
+        return np.add(np.multiply(self.display_vector, 1/pixel_resolution), int(self._size/2))
 
     def _resample_horizontal(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
-                             triggered: bool) -> bool:
+                             triggered: bool, size: int) -> list[int]:
         f = interp1d(np.arange(len(self.vector))/fs, self.vector, kind='linear', fill_value=0, bounds_error=False)
-        new_T: float = (hor_setting)/(self._size/constants.Display.GRID_LINE_COUNT)
+        new_T: float = (hor_setting)/(size/constants.Display.GRID_LINE_COUNT)
         chop_time: float = (1/fs)*memory_depth - hor_setting*constants.Display.GRID_LINE_COUNT
-        hor_pixel_time: float = hor_setting/(self._size/constants.Display.GRID_LINE_COUNT)
+        hor_pixel_time: float = hor_setting/(size/constants.Display.GRID_LINE_COUNT)
         set_trigger_voltage: float = self.get_trigger_voltage(vert_setting)
-        centered_vector: list[float] = f(np.add(np.arange(self._size)*new_T,(chop_time/2)))
+        centered_vector: list[float] = f(np.add(np.arange(size)*new_T,(chop_time/2)))
         if triggered:
             # Trigger Position Correction
             trigger_crossings = np.where(np.diff(np.sign(np.subtract(centered_vector, set_trigger_voltage))))[0]
             if len(trigger_crossings) > 0:
-                error_distance_index = np.abs(trigger_crossings - (self._size//2)+1).argmin()
-                error_sign = np.sign(trigger_crossings[error_distance_index] - (self._size//2)+1)
-                error_magnitude_time = np.abs(trigger_crossings[error_distance_index] - (self._size//2)+1)*hor_pixel_time 
+                error_distance_index = np.abs(trigger_crossings - (size//2)+1).argmin()
+                error_sign = np.sign(trigger_crossings[error_distance_index] - (size//2)+1)
+                error_magnitude_time = np.abs(trigger_crossings[error_distance_index] - (size//2)+1)*hor_pixel_time 
                 if error_sign:
-                    self.vector = f((np.arange(self._size)*new_T) + (chop_time/2) + error_magnitude_time)
+                    return f((np.arange(size)*new_T) + (chop_time/2) + error_magnitude_time)
                 else:
-                    self.vector = f((np.arange(self._size)*new_T) + (chop_time/2) - error_magnitude_time)
-                return True
-            return False
+                    return f((np.arange(size)*new_T) + (chop_time/2) - error_magnitude_time)
+            return []
         else:
-            self.vector = centered_vector
-            return True
+            return centered_vector
 
     def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
                         triggered: bool) -> None:
         if len(self.vector) == memory_depth:
             # Horizontal resampling must be done before vertical quantization because amplitude information is 
             # needed for trigger point interpolation.
-            if self._resample_horizontal(hor_setting, vert_setting, fs, memory_depth, edge, triggered):
-                self._quantize_vertical(vert_setting)
+            self.display_vector = self._resample_horizontal(hor_setting, vert_setting, fs, memory_depth, edge, triggered, self._size)
+            if len(self.display_vector) > 0:
+                self.display_vector = self._quantize_vertical(vert_setting, self._size)
                 self._redraw()
 
     def set_cursors(self, cursors: Cursors):
@@ -145,7 +139,7 @@ class Scope_Display:
     def _redraw(self) -> None:
         self.canvas.delete('all')
         self._draw_grid()
-        if self.vector is not None:
+        if self.display_vector is not None:
             self._draw_vector()
         if self.cursors.hor_visible:
             self._draw_horizontal_cursors()
@@ -154,8 +148,8 @@ class Scope_Display:
         self._draw_trigger_level()
 
     def _draw_vector(self):
-        x = np.arange(len(self.vector))
-        y = self._size - np.array(self.vector)
+        x = np.arange(len(self.display_vector))
+        y = self._size - np.array(self.display_vector)
         coords = np.column_stack((x[:-1], y[:-1], x[1:], y[1:]))
         coords = coords.reshape(-1).tolist()
         self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
@@ -212,5 +206,4 @@ class Scope_Display:
     def size(self) -> int: return self._size
         
     @size.setter
-    def size(self, value: int) -> None:
-        self._size = value
+    def size(self, value: int) -> None: self._size = value
