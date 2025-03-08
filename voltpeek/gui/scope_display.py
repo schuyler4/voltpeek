@@ -22,11 +22,11 @@ class Scope_Display:
 
     def _hex_string_from_rgb(self, rgb: tuple[int]): return '#%02x%02x%02x' % rgb
 
-    def __init__(self, master, cursors) -> None:
+    def __init__(self, master, cursors, size) -> None:
         self.master:tk.Tk = master        
+        self._size = size
         self.frame = tk.Frame(self.master)
-        self.canvas = tk.Canvas(self.frame, height=constants.Display.SIZE, width=constants.Display.SIZE, 
-                                bg=self._hex_string_from_rgb(self.BACKGROUND_COLOR))
+        self.canvas = tk.Canvas(self.frame, height=self._size, width=self._size, bg=self._hex_string_from_rgb(self.BACKGROUND_COLOR))
         self._draw_grid()
         self.vector:Optional[list[int]] = None
         self.cursors:Optional[Cursors] = cursors
@@ -42,39 +42,38 @@ class Scope_Display:
         )
 
     def _draw_grid(self) -> None:
-        grid_spacing:int = int(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        grid_spacing:int = int(self._size/constants.Display.GRID_LINE_COUNT)
         for i in range(1, constants.Display.GRID_LINE_COUNT+1):
             # Draw Vertical Grid Lines
-            self.canvas.create_line(grid_spacing*i, 0, grid_spacing*i, constants.Display.SIZE, 
+            self.canvas.create_line(grid_spacing*i, 0, grid_spacing*i, self._size, 
                                     fill=self._hex_string_from_rgb(self.GRID_LINE_COLOR))
             # Draw Horizontal Grid Lines
-            self.canvas.create_line(0, grid_spacing*i,  constants.Display.SIZE, grid_spacing*i, 
+            self.canvas.create_line(0, grid_spacing*i,  self._size, grid_spacing*i, 
                                     fill=self._hex_string_from_rgb(self.GRID_LINE_COLOR))
                         
     def _quantize_vertical(self, vertical_setting: float) -> list[int]:
-        pixel_amplitude: float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
-        pixel_resolution: float = vertical_setting/pixel_amplitude
-        self.vector = np.add(np.multiply(self.vector, 1/pixel_resolution), int(constants.Display.SIZE/2))
+        pixel_resolution: float = vertical_setting/(self._size/constants.Display.GRID_LINE_COUNT)
+        self.vector = np.add(np.multiply(self.vector, 1/pixel_resolution), int(self._size/2))
 
     def _resample_horizontal(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
                              triggered: bool) -> bool:
         f = interp1d(np.arange(len(self.vector))/fs, self.vector, kind='linear', fill_value=0, bounds_error=False)
-        new_T: float = (hor_setting)/(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        new_T: float = (hor_setting)/(self._size/constants.Display.GRID_LINE_COUNT)
         chop_time: float = (1/fs)*memory_depth - hor_setting*constants.Display.GRID_LINE_COUNT
-        hor_pixel_time: float = hor_setting/(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        hor_pixel_time: float = hor_setting/(self._size/constants.Display.GRID_LINE_COUNT)
         set_trigger_voltage: float = self.get_trigger_voltage(vert_setting)
-        centered_vector: list[float] = f(np.add(np.arange(constants.Display.SIZE)*new_T,(chop_time/2)))
+        centered_vector: list[float] = f(np.add(np.arange(self._size)*new_T,(chop_time/2)))
         if triggered:
             # Trigger Position Correction
             trigger_crossings = np.where(np.diff(np.sign(np.subtract(centered_vector, set_trigger_voltage))))[0]
             if len(trigger_crossings) > 0:
-                error_distance_index = np.abs(trigger_crossings - (constants.Display.SIZE//2)+1).argmin()
-                error_sign = np.sign(trigger_crossings[error_distance_index] - (constants.Display.SIZE//2)+1)
-                error_magnitude_time = np.abs(trigger_crossings[error_distance_index] - (constants.Display.SIZE//2)+1)*hor_pixel_time 
+                error_distance_index = np.abs(trigger_crossings - (self._size//2)+1).argmin()
+                error_sign = np.sign(trigger_crossings[error_distance_index] - (self._size//2)+1)
+                error_magnitude_time = np.abs(trigger_crossings[error_distance_index] - (self._size//2)+1)*hor_pixel_time 
                 if error_sign:
-                    self.vector = f((np.arange(constants.Display.SIZE)*new_T) + (chop_time/2) + error_magnitude_time)
+                    self.vector = f((np.arange(self._size)*new_T) + (chop_time/2) + error_magnitude_time)
                 else:
-                    self.vector = f((np.arange(constants.Display.SIZE)*new_T) + (chop_time/2) - error_magnitude_time)
+                    self.vector = f((np.arange(self._size)*new_T) + (chop_time/2) - error_magnitude_time)
                 return True
             return False
         else:
@@ -102,12 +101,11 @@ class Scope_Display:
         self._draw_trigger_level()
 
     def get_trigger_voltage(self, vertical_setting: float) -> float:
-        pixel_division:float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
-        pixel_resolution:float = vertical_setting/pixel_division
-        return float((constants.Display.SIZE - self._trigger_level - (constants.Display.SIZE/2))*pixel_resolution)
+        pixel_resolution:float = vertical_setting/(self._size/constants.Display.GRID_LINE_COUNT)
+        return float((self._size - self._trigger_level - (self._size/2))*pixel_resolution)
 
     def _increment_trigger_level(self, count) -> None:
-        if self._trigger_level < constants.Display.SIZE - count:
+        if self._trigger_level < self._size - count:
             self.set_trigger_level(self._trigger_level - count)
 
     def _decrement_trigger_level(self, count) -> None:
@@ -157,7 +155,7 @@ class Scope_Display:
 
     def _draw_vector(self):
         x = np.arange(len(self.vector))
-        y = constants.Display.SIZE - np.array(self.vector)
+        y = self._size - np.array(self.vector)
         coords = np.column_stack((x[:-1], y[:-1], x[1:], y[1:]))
         coords = coords.reshape(-1).tolist()
         self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
@@ -172,47 +170,35 @@ class Scope_Display:
                                         fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
 
     def _draw_dashed_horizontal_line(self, position, color):
-        self.canvas.create_line(0, position, constants.Display.SIZE, position, fill=color, dash=self.DASH_PATTERN)
+        self.canvas.create_line(0, position, self._size, position, fill=color, dash=self.DASH_PATTERN)
     
     def _draw_horizontal_line(self, position, color): 
-        self.canvas.create_line(0, position, constants.Display.SIZE, position, fill=color)
+        self.canvas.create_line(0, position, self._size, position, fill=color)
 
     def _draw_dashed_vertical_line(self, position, color):
-        self.canvas.create_line(position, 0, position, constants.Display.SIZE, fill=color, dash=self.DASH_PATTERN)
+        self.canvas.create_line(position, 0, position, self._size, fill=color, dash=self.DASH_PATTERN)
 
     def _draw_vertical_line(self, position, color): 
-        self.canvas.create_line(position, 0, position, constants.Display.SIZE, fill=color)
+        self.canvas.create_line(position, 0, position, self._size, fill=color)
 
     def _draw_trigger_level(self): self._draw_horizontal_line(self._trigger_level, constants.Display.TRIGGER_LINE_COLOR)
 
-    def _draw_horizontal_line_on_map(self, map: list[list[tuple[int]]], position: int, color: tuple[int]) -> None:
-        if 0 <= position < constants.Display.SIZE:
-            for x in range(constants.Display.SIZE):
-                map[position][x] = color
-
-    def _draw_vertical_line_on_map(self, map: list[list[tuple[int]]], position: int, color: tuple[int]) -> None:
-        if 0 <= position < constants.Display.SIZE:
-            for y in range(constants.Display.SIZE):
-                map[y][position] = color
-
-    @property
-    def image_map(self):
-        map = np.full((constants.Display.SIZE, constants.Display.SIZE, 3), self.BACKGROUND_COLOR, dtype=np.uint8)
-        grid_spacing = int(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
-        grid_lines = np.arange(0, constants.Display.SIZE, grid_spacing)
+    def image_map(self, image_size):
+        map = np.full((image_size, image_size, 3), self.BACKGROUND_COLOR, dtype=np.uint8)
+        grid_spacing = int(image_size/constants.Display.GRID_LINE_COUNT)
+        grid_lines = np.arange(0, image_size, grid_spacing)
         map[grid_lines, :] = self.GRID_LINE_COLOR
         map[:, grid_lines] = self.GRID_LINE_COLOR
         if self.vector is not None:
             x = np.arange(len(self.vector))
-            y = constants.Display.SIZE - np.array(self.vector)
+            y = image_size - np.array(self.vector)
             y_indices = y.astype(int)
-            valid_y = (y_indices >= 0) & (y_indices < constants.Display.SIZE)
+            valid_y = (y_indices >= 0) & (y_indices < image_size)
             for dx in [-1, 0, 1]:
                 for dy in [-1, 0, 1]:
                     y_shifted = y_indices[valid_y] + dy
                     x_shifted = x[valid_y] + dx
-                    valid_points = (y_shifted >= 0) & (y_shifted < constants.Display.SIZE) & \
-                                 (x_shifted >= 0) & (x_shifted < constants.Display.SIZE)
+                    valid_points = (y_shifted >= 0) & (y_shifted < image_size) & (x_shifted >= 0) & (x_shifted < image_size)
                     map[y_shifted[valid_points], x_shifted[valid_points]] = self.SIGNAL_COLOR
         if self.cursors and self.cursors.hor_visible:
             map[self.cursors.hor1_pos] = self.CURSOR_COLOR
@@ -221,3 +207,10 @@ class Scope_Display:
             map[:, self.cursors.vert1_pos] = self.CURSOR_COLOR
             map[:, self.cursors.vert2_pos] = self.CURSOR_COLOR
         return [[(int(r), int(g), int(b)) for r, g, b in row] for row in map]
+
+    @property
+    def size(self) -> int: return self._size
+        
+    @size.setter
+    def size(self, value: int) -> None:
+        self._size = value

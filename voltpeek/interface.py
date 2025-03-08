@@ -74,14 +74,17 @@ class UserInterface:
     INVALID_SCOPE_ERROR = 'The scope identifier entered is not supported.'
     SCOPE_NOT_CONNECTED_ERROR = 'The scope is not connected.'
 
+    IMAGE_SIZE = 400 #px
+
     def __init__(self) -> None:
         self._build_tk_root()
 
+        self._display_size = 800
         self.scale: Scale = Scale()
         self.scope_trigger: Trigger = Trigger()
         self.cursors: Cursors = Cursors()
 
-        self.scope_display: Scope_Display = Scope_Display(self.root, self.cursors)
+        self.scope_display: Scope_Display = Scope_Display(self.root, self.cursors, self._display_size)
         self.command_input: Command_Input = Command_Input(self.root, self.process_command)
         self.readout: Readout = Readout(self.root, self.scale.vert, self.scale.hor)
         self.info_panel: InfoPanel = InfoPanel(self.root)
@@ -107,6 +110,7 @@ class UserInterface:
         self._calibration = False
         self._triggered = False
         self._calibration_step = 0
+
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -372,10 +376,10 @@ class UserInterface:
             vertical_setting=self.scale.vert,
             horizontal_setting=self.scale.hor,
             probe_div=self.scale.probe_div,
-            map=self.scope_display.image_map,
+            map=self.scope_display.image_map(self.IMAGE_SIZE),
             cursor_data=self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert)
         )
-        export_png(settings, filename)
+        export_png(settings, filename, self.IMAGE_SIZE)
 
     def _on_auto_trigger_command(self):
         if self._normal_trigger_running:

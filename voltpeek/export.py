@@ -2,7 +2,6 @@ from dataclasses import dataclass
 
 from PIL import Image, ImageDraw, ImageFont 
 
-from voltpeek import constants
 from voltpeek.cursors import Cursor_Data
 
 @dataclass
@@ -13,12 +12,11 @@ class ExportSettings:
     map: list[list[tuple[int]]]
     cursor_data: Cursor_Data
 
-def export_png(settings: ExportSettings, filename: str):
-    print(settings.map)
+def export_png(settings: ExportSettings, filename: str, image_size: int):
     flat_map = []
     for row in settings.map:
         flat_map += row
-    image = Image.new('RGB', (constants.Display.SIZE, constants.Display.SIZE))
+    image = Image.new('RGB', (image_size, image_size))
     image.putdata(flat_map) 
     # TODO: make the font universal
     font = ImageFont.truetype('/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf', 20)

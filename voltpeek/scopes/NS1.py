@@ -95,7 +95,6 @@ class NS1(ScopeBase):
             try:
                 new_data = self.serial_port.read(self.serial_port.inWaiting())
                 if new_data is None: # timeout
-                    print('timeout')
                     return None
                 else:
                     codes += list(new_data)
