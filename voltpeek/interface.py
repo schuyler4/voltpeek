@@ -73,8 +73,7 @@ class Keys:
 class UserInterface:
     INVALID_SCOPE_ERROR = 'The scope identifier entered is not supported.'
     SCOPE_NOT_CONNECTED_ERROR = 'The scope is not connected.'
-
-    IMAGE_SIZE = 400 #px
+    IMAGE_PLOT_ERROR = 'Cannot plot image. There is no signal displayed.'
 
     def __init__(self) -> None:
         self._build_tk_root()
@@ -372,14 +371,12 @@ class UserInterface:
     def _set_fir(self, new_length: int): self._fir_length = new_length
 
     def _run_png_export(self, filename: str) -> None:
-        settings = ExportSettings(
-            vertical_setting=self.scale.vert,
-            horizontal_setting=self.scale.hor,
-            probe_div=self.scale.probe_div,
-            map=self.scope_display.image_map(self.IMAGE_SIZE),
-            cursor_data=self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert)
-        )
-        export_png(settings, filename, self.IMAGE_SIZE)
+        settings = ExportSettings(vertical_setting=self.scale.vert,
+                                  horizontal_setting=self.scale.hor,
+                                  probe_div=self.scale.probe_div,
+                                  map=self.scope_display.image_map,
+                                  cursor_data=self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))
+        export_png(settings, filename, self.scope_display.size)
 
     def _on_auto_trigger_command(self):
         if self._normal_trigger_running:

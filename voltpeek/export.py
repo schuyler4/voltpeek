@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from tkinter import filedialog
 
 from PIL import Image, ImageDraw, ImageFont 
 
@@ -30,4 +31,9 @@ def export_png(settings: ExportSettings, filename: str, image_size: int):
         if value:
             draw.text((10, y_offset), f"{key}: {value}", font=font, fill='white')
             y_offset += 25
-    image.save(filename + '.png')
+    save_path = filedialog.asksaveasfilename(
+        defaultextension='.png',
+        filetypes=[('PNG files', '*.png')],
+        initialfile=filename+'.png')
+    if save_path:
+        image.save(save_path)
