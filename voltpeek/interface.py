@@ -80,7 +80,7 @@ class UserInterface:
 
         self.scale: Scale = Scale()
         self.scope_trigger: Trigger = Trigger()
-        self.cursors: Cursors = Cursors()
+        self.cursors: Cursors = Cursors(self._display_size)
 
         self.scope_display: Scope_Display = Scope_Display(self.root, self.cursors, self._display_size)
         self.command_input: Command_Input = Command_Input(self.root, self.process_command, self._display_size)

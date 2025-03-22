@@ -24,7 +24,7 @@ class Cursors:
     FINE_INCREMENT = 1
     COURSE_INCREMENT = 10
 
-    def __init__(self) -> None:
+    def __init__(self, size) -> None:
         self._hor1_pos: int = 10  
         self._hor2_pos: int = 20
         self._vert1_pos: int = 10
@@ -32,6 +32,7 @@ class Cursors:
         self._hor_visible: bool = False
         self._vert_visible: bool = False
         self._selected_cursor: Selected_Cursor = Selected_Cursor.HOR1
+        self._graticule_size = size
 
     @property
     def hor1_pos(self) -> int: return self._hor1_pos
@@ -55,7 +56,7 @@ class Cursors:
     def selected_cursor(self) -> bool: return self._selected_cursor
 
     def _increment_hor1(self, count: int) -> None: 
-        if self._hor1_pos < constants.Display.SIZE-count: 
+        if self._hor1_pos < self._graticule_size-count: 
             self._hor1_pos += count 
     
     def _decrement_hor1(self, count: int) -> None: 
@@ -63,7 +64,7 @@ class Cursors:
             self._hor1_pos -= count
 
     def _increment_hor2(self, count) -> None: 
-        if self._hor2_pos < constants.Display.SIZE-count: 
+        if self._hor2_pos < self._graticule_size-count: 
             self._hor2_pos += count
 
     def _decrement_hor2(self, count) -> None: 
@@ -71,7 +72,7 @@ class Cursors:
             self._hor2_pos -= count
 
     def _increment_vert1(self, count) -> None: 
-        if self._vert1_pos < constants.Display.SIZE-count: 
+        if self._vert1_pos < self._graticule_size-count: 
             self._vert1_pos += count
 
     def _decrement_vert1(self, count) -> None:
@@ -79,7 +80,7 @@ class Cursors:
             self._vert1_pos -= count
 
     def _increment_vert2(self, count) -> None:
-        if self._vert1_pos < constants.Display.SIZE-count: 
+        if self._vert1_pos < self._graticule_size-count: 
             self._vert2_pos += count
 
     def _decrement_vert2(self, count) -> None: 
@@ -166,14 +167,14 @@ class Cursors:
             self._selected_cursor = Selected_Cursor.VERT1
 
     def _get_hor_voltage(self, vertical_setting: float, cursor_height: int) -> float:
-        pixel_amplitude: float = (constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        pixel_amplitude: float = (self._graticule_size/constants.Display.GRID_LINE_COUNT)
         pixel_resolution: float = vertical_setting/pixel_amplitude
-        corrected_height: int = constants.Display.SIZE - cursor_height
-        voltage: float = float((corrected_height-(constants.Display.SIZE/2))*pixel_resolution)
+        corrected_height: int = self._graticule_size - cursor_height
+        voltage: float = float((corrected_height-(self._graticule_size/2))*pixel_resolution)
         return voltage 
 
     def _get_vert_time(self, horizontal_setting: float, cursor_offset: int) -> float:
-        pixel_offset: float = float(constants.Display.SIZE/constants.Display.GRID_LINE_COUNT)
+        pixel_offset: float = float(self._graticule_size/constants.Display.GRID_LINE_COUNT)
         pixel_resolution: float = horizontal_setting/pixel_offset
         time: float = float((cursor_offset*pixel_resolution) - horizontal_setting*(constants.Display.GRID_LINE_COUNT/2)) 
         return time 

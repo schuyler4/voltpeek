@@ -19,21 +19,17 @@ def export_png(settings: ExportSettings, filename: str, image_size: int):
         flat_map += row
     image = Image.new('RGB', (image_size, image_size))
     image.putdata(flat_map) 
-    # TODO: make the font universal
-    font = ImageFont.truetype('/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf', 20)
+    font = ImageFont.load_default()
     draw = ImageDraw.Draw(image)
     y_offset = 5
     draw.text((10, y_offset), str(settings.vertical_setting*settings.probe_div) + ' V/div', font=font, fill='white')
-    draw.text((10, y_offset + 25), str(settings.horizontal_setting) + ' s/div', font=font, fill='white')
-    draw.text((10, y_offset + 50), 'Probe: ' + str(settings.probe_div) + 'X', font=font, fill='white')
-    y_offset = 100  # Start cursor readouts below settings
+    draw.text((10, y_offset + 10), str(settings.horizontal_setting) + ' s/div', font=font, fill='white')
+    draw.text((10, y_offset + 20), 'Probe: ' + str(settings.probe_div) + 'X', font=font, fill='white')
+    y_offset = 45  # Start cursor readouts below settings
     for key, value in settings.cursor_data.items():
         if value:
             draw.text((10, y_offset), f"{key}: {value}", font=font, fill='white')
-            y_offset += 25
-    save_path = filedialog.asksaveasfilename(
-        defaultextension='.png',
-        filetypes=[('PNG files', '*.png')],
-        initialfile=filename+'.png')
+            y_offset += 10
+    save_path = filedialog.asksaveasfilename(defaultextension='.png', filetypes=[('PNG files', '*.png')], initialfile=filename+'.png')
     if save_path:
         image.save(save_path)
