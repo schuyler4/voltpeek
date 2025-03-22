@@ -78,13 +78,12 @@ class UserInterface:
     def __init__(self) -> None:
         self._build_tk_root()
 
-        self._display_size = 800
         self.scale: Scale = Scale()
         self.scope_trigger: Trigger = Trigger()
         self.cursors: Cursors = Cursors()
 
         self.scope_display: Scope_Display = Scope_Display(self.root, self.cursors, self._display_size)
-        self.command_input: Command_Input = Command_Input(self.root, self.process_command)
+        self.command_input: Command_Input = Command_Input(self.root, self.process_command, self._display_size)
         self.readout: Readout = Readout(self.root, self.scale.vert, self.scale.hor)
         self.info_panel: InfoPanel = InfoPanel(self.root)
 
@@ -110,7 +109,6 @@ class UserInterface:
         self._triggered = False
         self._calibration_step = 0
 
-
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
         self.root.title(__name__.split('.')[0])
@@ -118,6 +116,8 @@ class UserInterface:
         self.root.tk.call('tk', 'scaling', 1)
         self.root.after(1, self.check_state)
         self.root.bind('<KeyPress>', self.on_key_press)
+        # set the initial graticule size based on the users display
+        self._display_size: int = int(0.75*min(self.root.winfo_screenwidth(), self.root.winfo_screenheight()))
 
     def check_state(self):
         if self._connect_initiated:
@@ -273,7 +273,7 @@ class UserInterface:
         self.mode = Mode.ADJUST_TRIGGER_LEVEL
         self.command_input.set_adjust_mode()
         self.root.focus_set()
-        self.scope_display.set_trigger_level(constants.Display.SIZE/2)
+        self.scope_display.set_trigger_level(self._display_size/2)
 
     def _set_command_mode(self) -> None:
         self.mode = Mode.COMMAND

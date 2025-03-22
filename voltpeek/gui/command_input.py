@@ -7,7 +7,7 @@ from voltpeek import messages
 from voltpeek import commands
 
 class Command_Input:
-    def __init__(self, master:tk.Tk, on_command: Callable[[str], None]) -> None:
+    def __init__(self, master:tk.Tk, on_command: Callable[[str], None], width) -> None:
         self.on_command:Callable[[str], None] = on_command
         self.master:tk.Tk = master
         self.input_text:tk.StringVar = tk.StringVar()
@@ -17,7 +17,7 @@ class Command_Input:
             highlightcolor='white',
             highlightthickness=2,
             bg=constants.Input.BACKGROUND_COLOR,
-            width=constants.Display.SIZE,  # Match canvas width
+            width=width,  # Match canvas width
             height=25  # Set a fixed height for the input
         )
         self.frame.pack_propagate(False)
