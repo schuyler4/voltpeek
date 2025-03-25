@@ -22,9 +22,10 @@ class ScopeAction(Enum):
 def scope_action_handler(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
+        result = func(self, *args, **kwargs) 
         self._action_complete = True
         self._data_available.release()
-        return func(self, *args, **kwargs)
+        return result
     return wrapper
 
 class ScopeInterface:

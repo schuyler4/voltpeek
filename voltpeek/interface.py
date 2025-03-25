@@ -417,8 +417,6 @@ class UserInterface:
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
             commands.CAL: lambda: self._start_event_queue.append(Event.SET_CAL_OFFSETS),
-            commands.FIR10: lambda: self._set_fir(10),
-            commands.FIR100: lambda: self._set_fir(100),
             commands.PNG: lambda filename: self._run_png_export(filename)
         }
 
