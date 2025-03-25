@@ -15,7 +15,6 @@ from voltpeek.scopes import get_available_scopes
 from voltpeek.gui.scope_display import Scope_Display
 from voltpeek.gui.command_input import Command_Input
 from voltpeek.gui.readout import Readout
-from voltpeek.gui.info_panel import InfoPanel
 
 from voltpeek.trigger import Trigger, TriggerType
 from voltpeek.cursors import Cursors, Cursor_Data
@@ -85,12 +84,10 @@ class UserInterface:
         self.scope_display: Scope_Display = Scope_Display(self.root, self.cursors, self._display_size)
         self.command_input: Command_Input = Command_Input(self.root, self.process_command, self._display_size)
         self.readout: Readout = Readout(self.root, self.scale.vert, self.scale.hor)
-        self.info_panel: InfoPanel = InfoPanel(self.root)
 
         self.readout()
         self.scope_display()
         self.command_input()
-        self.info_panel()
 
         self.mode: Mode = Mode.COMMAND
         self.command_input.set_focus()
@@ -189,8 +186,6 @@ class UserInterface:
 
     # TODO: This all needs to be refactored
     def on_key_press(self, event) -> None:
-        if self.info_panel.visible and event.keycode != KeyCodes.ENTER:
-            self.info_panel.hide() 
         if self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS:
             if (event.keysym == 'Escape') or (event.state & 0x4 and event.keysym == 'c'): 
                 if self.mode == Mode.ADJUST_TRIGGER_LEVEL: 
@@ -419,7 +414,6 @@ class UserInterface:
             commands.STOP: self._stop_trigger,
             commands.TRIGGER_RISING_EDGE_COMMAND: lambda: self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER),
             commands.TRIGGER_FALLING_EDGE_COMMAND: lambda: self._start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER),
-            commands.HELP: self.info_panel.show,
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
             commands.CAL: lambda: self._start_event_queue.append(Event.SET_CAL_OFFSETS),
