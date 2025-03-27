@@ -1,43 +1,43 @@
 '''
-Commands:
+<h2>Commands:</h2>
 
-exit - Exit the voltpeek program.
+<b>exit</b> - Exit the voltpeek program. <br><br>
 
-connect {scope identifier} - Connect voltpeek to an oscilloscope. For example "connect NS1" would be used to connect to the NS1.
+<b>connect</b> {scope identifier} - Connect voltpeek to an oscilloscope. For example "connect NS1" would be used to connect to the NS1. <br><br>
 
-atrigger - Auto Trigger the oscilloscope. This will continuously retrigger the scope without a trigger event.
+<b>atrigger</b> - Auto Trigger the oscilloscope. This will continuously retrigger the scope without a trigger event. <br><br>
 
-ntrigger - Normal Trigger the oscilloscope. This will continuously retrigger the scope, but only when there is a trigger event.
+<b>ntrigger</b> - Normal Trigger the oscilloscope. This will continuously retrigger the scope, but only when there is a trigger event. <br><br>
 
-strigger - Single Trigger the oscilloscope. This will capture a single waveform when there is a trigger event.
+<b>strigger</b> - Single Trigger the oscilloscope. This will capture a single waveform when there is a trigger event. <br><br>
 
-stop - Stop any armed or continues trigger.
+<b>stop</b> - Stop any armed or continues trigger. <br><br>
 
-scale - Enter adjust mode to adjust the horizontal and vertical scales.
+<b>scale</b> - Enter adjust mode to adjust the horizontal and vertical scales. <br><br>
 
-triglevel - Enter adjust mode to adjust the trigger level.
+<b>triglevel</b> - Enter adjust mode to adjust the trigger level. <br><br>
 
-trigrising - Trigger on a rising edge.
+<b>trigrising</b> - Trigger on a rising edge. <br><br>
 
-trigfalling - Trigger on a falling edge.
+<b>trigfalling</b> - Trigger on a falling edge. <br><br>
 
-togglecurs - Toggle both the horizontal and vertical cursors.
+<b>togglecurs</b> - Toggle both the horizontal and vertical cursors. <br><br>
 
-togglehcurs - Toggle just the horizontal cursors.
+<b>togglehcurs</b> - Toggle just the horizontal cursors. <br><br>
 
-togglevcurs - Toggle just the vertical cursors.
+<b>togglevcurs</b> - Toggle just the vertical cursors. <br><br>
 
-nextcurs - Increment the selected cursor.
+<b>nextcurs</b> - Increment the selected cursor. <br><br>
 
-adjustcurs - Enter adjust mode to adjust the selected cursor.
+<b>adjustcurs</b> - Enter adjust mode to adjust the selected cursor. <br><br>
 
-probe1 - Multiply readings and scales by 1.
+<b>probe1</b> - Multiply readings and scales by 1. <br><br>
 
-probe10 - Multiply readings and scales by 10.
+<b>probe10</b> - Multiply readings and scales by 10. <br><br>
 
-cal - Recalibrate the oscilloscope offsets. Scope input must be disconnected.
+<b>cal</b> - Recalibrate the oscilloscope offsets. Scope input must be disconnected. <br><br>
 
-png - Export a png of the current graticule display.
+<b>png</b> - Export a png of the current graticule display. <br><br>
 '''
 
 EXIT_COMMAND: str = 'exit'
