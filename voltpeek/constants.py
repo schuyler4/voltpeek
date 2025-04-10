@@ -19,15 +19,6 @@ class Display:
     CURSOR_COLOR = 'red'
     LAYER:str = '-topmost'
 
-class Input:
-    HEIGHT:int = 1
-    WIDTH:int = 65
-    BACKGROUND_COLOR:str = 'black'
-    ERROR_BACKGROUND_COLOR:str = 'red'
-    INSERT_COLOR:str = 'white'
-    INSERT_WIDTH:int = 10
-    TRIGGER_KEY:str = '<Return>'
-
 class Readout:
     BACKGROUND_COLOR = 'black'
     BORDER_COLOR = 'white'

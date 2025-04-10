@@ -13,7 +13,7 @@ from voltpeek.scope_interface import ScopeInterface, ScopeAction
 from voltpeek.scopes import get_available_scopes
 
 from voltpeek.gui.scope_display import Scope_Display
-from voltpeek.gui.command_input import Command_Input
+from voltpeek.gui.command_input import CommandInput
 from voltpeek.gui.readout import Readout
 
 from voltpeek.trigger import Trigger, TriggerType
@@ -60,6 +60,7 @@ class KeyCodes:
     CTRL_D: int = 40
     ESC: int = 9
     UP_ARROW: int = 111
+    DOWN_ARROW: int = 116
     ENTER: int = 36
 
 class Keys:
@@ -82,7 +83,7 @@ class UserInterface:
         self.cursors: Cursors = Cursors(self._display_size)
 
         self.scope_display: Scope_Display = Scope_Display(self.root, self.cursors, self._display_size)
-        self.command_input: Command_Input = Command_Input(self.root, self.process_command, self._display_size)
+        self.command_input: CommandInput = CommandInput(self.root, self.process_command, self._display_size)
         self.readout: Readout = Readout(self.root, self.scale.vert, self.scale.hor)
 
         self.readout()
@@ -232,7 +233,9 @@ class UserInterface:
                     self._update_cursor(self.cursors.increment_vert_course)
         elif self.mode == Mode.COMMAND:
             if event.keycode == KeyCodes.UP_ARROW:
-                self.command_input.set_command_stack()
+                self.command_input.set_command_stack_increment()
+            elif event.keycode == KeyCodes.DOWN_ARROW:
+                self.command_input.set_command_stack_decrement()
 
     def process_command(self, command:str) -> None:
         argument = None
