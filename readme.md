@@ -1,6 +1,6 @@
 ## Voltpeek
 Voltpeek is a command based PC oscilloscope software. Voltpeek works
-with the NewtScope headless oscilloscope hardware which is still in  development.
+with the NS1 headless oscilloscope hardware.
 
 <p align="center">
 <img src="./picture.png" width=400>
@@ -12,3 +12,9 @@ click and drag or text entry like many other oscilloscope softwares that run on 
 scale command will put the oscilloscope/software in adjustment mode. The horizontal and vertical
 scales can then be adjusted using the `h`, `j`, `k`, and `l` keys. `ctrl-c` or `esc` will put the software back into 
 command mode. As may be obvious, this is inspired by the Vim text editor. 
+
+### Installation
+Install from source:
+
+`git clone https://github.com/schuyler4/voltpeek.git`  
+`python3 -m pip install -e voltpeek`
