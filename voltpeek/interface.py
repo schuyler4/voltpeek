@@ -146,6 +146,8 @@ class UserInterface:
                         self._finish_set_falling_edge_trigger()
                     self._end_event_queue.pop(0)
                 if self._scope_interface.data_available and len(self._start_event_queue) > 0:
+                    if self._start_event_queue[0] == Event.STOP:
+                        self._stop_trigger()
                     if self._start_event_queue[0] == Event.CONNECT:
                         self.start_connect()
                         self._end_event_queue.append(Event.CONNECT)
@@ -174,8 +176,6 @@ class UserInterface:
                         self._start_set_range()  
                     if self._start_event_queue[0] == Event.SET_AMPLIFIER_GAIN:
                         self._start_set_amplifier_gain()
-                    if self._start_event_queue[0] == Event.EXIT:
-                        self.exit_routine()
                     if self._start_event_queue[0] == Event.SET_RISING_EDGE_TRIGGER:
                         self._start_set_rising_edge_trigger()
                         self._end_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
@@ -340,18 +340,6 @@ class UserInterface:
         self.readout.update_cursors(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))
         self.scope_display.set_cursors(self.cursors)
     
-    def exit_routine(self) -> None:
-        if not self._auto_trigger_running and not self._normal_trigger_running:
-            self._scope_interface.scope.disconnect()
-            exit()
-        elif self._normal_trigger_running:
-            self._stop_and_exit = True
-            self._normal_trigger_running = False
-            self._scope_interface.set_scope_action(ScopeAction.STOP)
-        elif self._auto_trigger_running:
-            self._auto_trigger_running = False
-            self._stop_and_exit = True
-
     def _connect(self, identifier: str):
         for scope in get_available_scopes():
             if list(scope.keys())[0] == identifier:
@@ -402,7 +390,7 @@ class UserInterface:
 
     def get_commands(self): 
         return {
-            commands.EXIT_COMMAND: lambda: self._start_event_queue.append(Event.EXIT) if self._connect_initiated else exit(),
+            commands.EXIT_COMMAND: lambda: exit(),
             commands.CONNECT_COMMAND: lambda identifier: self._connect(identifier),
             commands.SCALE_COMMAND: self._set_adjust_scale_mode, 
             commands.TRIGGER_LEVEL_COMMAND: self._set_adjust_trigger_level_mode,  
