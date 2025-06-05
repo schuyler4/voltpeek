@@ -2,9 +2,12 @@
 
 from voltpeek.interface import UserInterface
 
-def main():
-    user_scope_interface = UserInterface()
-    user_scope_interface()
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--debug', action='store_true')
+args = parser.parse_args()
 
 if __name__ == '__main__':
-    main()
+    user_scope_interface = UserInterface(debug=args.debug)
+    user_scope_interface()

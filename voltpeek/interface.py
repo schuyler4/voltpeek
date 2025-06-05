@@ -1,7 +1,9 @@
 from typing import Callable
 from enum import Enum
 from threading import Event
-from inspect import signature, stack
+from inspect import signature
+import logging
+import sys
 
 import tkinter as tk
 
@@ -75,7 +77,10 @@ class UserInterface:
     SCOPE_NOT_CONNECTED_ERROR = 'The scope is not connected.'
     IMAGE_PLOT_ERROR = 'Cannot plot image. There is no signal displayed.'
 
-    def __init__(self) -> None:
+    def __init__(self, debug=False) -> None:
+        self.debug = debug
+        logging.basicConfig(stream=sys.stdout,level=logging.INFO,format='%(asctime)s - %(levelname)s - %(message)s')
+        
         self._build_tk_root()
 
         self.scale: Scale = Scale()
@@ -130,6 +135,8 @@ class UserInterface:
             else:
                 # The end events must go first otherwise the start events will always have priority.
                 if self._scope_interface.data_available and len(self._end_event_queue) > 0:
+                    if self.debug:
+                        logging.info(f'end event: {self._end_event_queue[0].name}')
                     if self._end_event_queue[0] == Event.CONNECT:
                         self.finish_connect()
                     if self._end_event_queue[0] == Event.AUTO_TRIGGER:
@@ -146,6 +153,8 @@ class UserInterface:
                         self._finish_set_falling_edge_trigger()
                     self._end_event_queue.pop(0)
                 if self._scope_interface.data_available and len(self._start_event_queue) > 0:
+                    if self.debug:
+                        logging.info(f'start event: {self._start_event_queue[0].name}')
                     if self._start_event_queue[0] == Event.STOP:
                         self._stop_trigger()
                     if self._start_event_queue[0] == Event.CONNECT:
