@@ -74,12 +74,13 @@ class CommandInput:
         self.input_text.set('')
 
     def set_command_stack_increment(self) -> None:
-        if self.command_stack_pointer < len(self.command_stack) - 1 and self.input_text.get() != '':
-            self.command_stack_pointer += 1
-        self.input_text.set(self.command_stack[self.command_stack_pointer])
-        self.input.icursor(tk.END)
-        if self.command_stack_pointer < len(self.command_stack) - 1 and self.input_text.get() == '':
-            self.command_stack_pointer += 1
+        if len(self.command_stack) > 0:
+            if self.command_stack_pointer < len(self.command_stack) - 1 and self.input_text.get() != '':
+                self.command_stack_pointer += 1
+            self.input_text.set(self.command_stack[self.command_stack_pointer])
+            self.input.icursor(tk.END)
+            if self.command_stack_pointer < len(self.command_stack) - 1 and self.input_text.get() == '':
+                self.command_stack_pointer += 1
 
     def set_command_stack_decrement(self) -> None:
         if self.command_stack_pointer > 0:
