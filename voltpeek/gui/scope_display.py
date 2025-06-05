@@ -74,11 +74,12 @@ class Scope_Display:
             return centered_vector
 
     def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
-                        triggered: bool) -> None:
-        if len(self.vector) == memory_depth:
+                        triggered: bool, FIR_length: int) -> None:
+        if len(self.vector) == memory_depth-(FIR_length-1):
             # Horizontal resampling must be done before vertical quantization because amplitude information is 
             # needed for trigger point interpolation.
-            self.display_vector = self._resample_horizontal(hor_setting, vert_setting, fs, memory_depth, edge, triggered, self._size)
+            self.display_vector = self._resample_horizontal(hor_setting, vert_setting, fs, 
+                                                            memory_depth-(FIR_length-1), edge, triggered, self._size)
             if len(self.display_vector) > 0:
                 self.display_vector = self._quantize_vertical(self.display_vector, vert_setting, self._size)
                 self._redraw()

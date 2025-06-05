@@ -333,7 +333,8 @@ class UserInterface:
         if self._scope_interface.xx is not None and len(self._scope_interface.xx) > 0:
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
                                                self._scope_interface.scope.SCOPE_SPECS['memory_depth'], 
-                                               self.scope_trigger.trigger_type, self._triggered)
+                                               self.scope_trigger.trigger_type, self._triggered,
+                                               self._scope_interface.scope.FIR_LENGTH)
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
@@ -437,7 +438,8 @@ class UserInterface:
             self.scope_display.set_vector(xx)
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
                                                self._scope_interface.scope.SCOPE_SPECS['memory_depth'], 
-                                               self.scope_trigger.trigger_type, triggered)
+                                               self.scope_trigger.trigger_type, triggered,
+                                               self._scope_interface.scope.FIR_LENGTH)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
 

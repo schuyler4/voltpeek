@@ -88,7 +88,7 @@ class NS1(ScopeBase):
         self.serial_port.flushOutput()
         self._stop.clear()
         codes: list[str] = []
-        while len(codes) < self.SCOPE_SPECS['memory_depth']: 
+        while len(codes) < self.SCOPE_SPECS['memory_depth'] - 1: 
             if self._stop.is_set():
                 self._stop.clear()
                 return None
@@ -109,10 +109,8 @@ class NS1(ScopeBase):
     
     def _FIR_filter(self, xx: list[int]):
         if len(xx) > 0:
-            filtered_signal = np.convolve(xx, np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]))
-            return filtered_signal[self.FIR_LENGTH-1:len(filtered_signal)]
-        else:
-            return []
+            return np.convolve(xx, np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]), mode='valid')
+        return []
 
     def _reconstruct(self, xx: list[float], full_scale: float, offset_null: bool=True, force_low_range=False) -> list[float]:
         if full_scale <= self.LOW_RANGE_THRESHOLD or force_low_range:
