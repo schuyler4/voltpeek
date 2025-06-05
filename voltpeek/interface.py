@@ -376,7 +376,8 @@ class UserInterface:
 
     def _on_auto_trigger_command(self):
         if self._normal_trigger_running:
-            self._start_event_queue += [Event.STOP, Event.AUTO_TRIGGER]
+            self._stop_trigger()
+            self._start_event_queue += [Event.AUTO_TRIGGER]
             self._normal_trigger_running = False
         else:
             self._start_event_queue.append(Event.AUTO_TRIGGER)

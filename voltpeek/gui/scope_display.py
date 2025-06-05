@@ -33,6 +33,7 @@ class Scope_Display:
         self.cursors: Optional[Cursors] = cursors
         self._trigger_level: int = 0
         self._trigger_set: bool = False
+        self.display_vector = None
 
     def __call__(self):
         self.canvas.pack()
