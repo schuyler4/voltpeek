@@ -1,0 +1,24 @@
+<style>
+body {
+font-family: Georgia, "Times New Roman", Times, serif;
+max-width: 800px;
+margin: 0 auto;
+padding: 20px;
+line-height: 1.6;
+}
+code {
+background-color: #f5f5f5;
+padding: 2px 6px;
+border-radius: 3px;
+font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+font-size: 1.1em;
+}
+img {
+max-width: 100%;
+height: auto;
+}
+h2, h3, h4 {
+margin-top: 2em;
+margin-bottom: 1em;
+}
+</style>
