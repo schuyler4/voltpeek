@@ -1,0 +1,180 @@
+<style>
+body {
+font-family: Georgia, "Times New Roman", Times, serif;
+max-width: 800px;
+margin: 0 auto;
+padding: 20px;
+line-height: 1.6;
+}
+code {
+background-color: #f5f5f5;
+padding: 2px 6px;
+border-radius: 3px;
+font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+font-size: 1.1em;
+}
+img {
+max-width: 100%;
+height: auto;
+}
+h2, h3, h4 {
+margin-top: 2em;
+margin-bottom: 1em;
+}
+</style>
+<h2> Getting Started with the NS1 </h2>
+<h3> voltpeek Installation </h3>
+<p> Voltpeek is instrumentation software which is used to control and display data from the NS1. 
+For more info on voltpeek the source is available <a href="https://github.com/schuyler4/voltpeek"> here </a>.
+</p>
+<h4> Requirements </h4>
+<p> 
+A working installation of Python 3.10 or greater is needed. To check your python version, use the following command: <br>
+<code> python3 --version </code>
+</p>
+<p> Additionally, an installation of git is needed to clone the voltpeek repository.</p>
+<h4> To Install Voltpeek from Source: </h4>
+<p> Run the following commands: </p>
+<code>
+git clone https://github.com/schuyler4/voltpeek.git<br>
+python3 -m pip install -e voltpeek
+</code>
+<p> If you are on a unix based system, you should now be able to run voltpeek with the <code> voltpeek </code> command. </p>
+<p> 
+If you are on Windows this will likely not be the case. You will have to add voltpeek to your path 
+environment variable. However, you can run voltpeek directly from the install location with the following commands: 
+</p>
+<code>
+cd voltpeek<br>
+python3 -m voltpeek
+</code>
+<h3> NS1 I/O </h3>
+<img src="./scope_breakout.png" width="500">
+<p> You should also see the USB port on the back of the scope.</p>
+<h4> Notes About The Hardware </h4>
+<p> The NS1 is not isolated. That is, it shares a ground with whatever PC you plug it into. Keep this in mind. </p>
+<p> 
+The voltage limit of the NS1 is +/-10V. That is, the input voltage cannot exceed +10V, and it cannot go lower
+than -10V. This does not mean that you can't measure signals with greater amplitude, but probe division must
+be used.
+</p>
+<p>
+The AC coupling switch will AC couple the scopes input signal. This switch should be left down unless AC coupling 
+is desired.
+</p>
+<h3> Connecting voltpeek to your NS1 </h3>
+<p>
+In voltpeek, enter <code>connect NS1</code> command. The side panel status should change from 
+<code>DISCONNECTED</code> to <code>NEUTRAL</code>.
+Additionally, the sample rate should appear in the side panel. 
+</p>
+<img src="./connect.png"></img>
+<p>
+If the sample rate does not appear then there may
+be a connection issue. Try unplugging and re-plugging on both the scope and computer side. 
+</p>
+<h2> Auto Trigger </h2>
+<p>
+Now that the scope is connected, we can do some triggering. Enter the <code>atrigger</code> 
+command in voltpeek to auto trigger. This will continually retrigger the scope as fast as 
+possible. There is no trigger event, and the trigger will start at a random time. If nothing 
+is plugged into your scope input, you should get a flat line like so:
+</p>
+<img src="./atrigger_flatline.png"></img>
+<p>
+When your scope has no input signal, the line should be aligned in the center of the screen. However,
+if it is not, you can use the <code>cal</code> command to recalibrate your scope offsets (When you do this calibration,
+make sure nothing is connected to the signal input). When you are done
+auto triggering use the <code>stop</code> command to stop the scope.
+</p>
+<h2> Looking at a Signal </h2>
+<p>
+The NS1 has a square wave generator built into its front panel for calibration and test purposes. To look at this
+signal, attach your probe as shown. The ground lead is not necessary as the square wave generator is already referenced
+to the scope ground. To start, make sure your probe is set to 1X mode. This is done with the switch on the side.
+</p>
+<img src="./probe_test_signal.jpg" width="400">
+<p> If you <code>atrigger</code> again, you should see a waveform similar to the following:</p>
+<img src="./atrigger_waveform.png">
+<p> 
+You have probably noticed that the waveform appears to be flying across the graticule.  
+This will be fixed soon enough when we start normal triggering.
+</p>
+<h2> Adjusting the Horizontal and Vertical Scales </h2>
+<p> 
+To zoom in on your waveform either horizontally or vertically, use the <code>scale</code> command.  
+This will put voltpeek into adjust mode. This is indicated in the command input. 
+</p>
+<img src="./adjust_mode.png">
+<p>
+Once in adjust mode you can use various keys to zoom in vertically or horizontally. To zoom in 
+and out horizontally you can use <code>h</code> and <code>l</code>, respectively. To zoom in and 
+out vertically use <code>j</code> and <code>k</code> respectively. You can do this zooming while
+the auto triggering is active for immediate update. Once you are done zooming, you can use either 
+<code>ctrl-c</code> or <code>esc</code>, to exit adjust mode.
+</p>
+<h2> Normal Trigger </h2>
+<p> 
+Now we will set up normal trigger, so we get a stable waveform. First, make sure auto trigger is not running.
+Use <code>stop</code> command if it is. However, it is useful to have a reference waveform showing.
+First, let's set the trigger level. This is done with the <code>triglevel</code> command.
+Using the <code>triglevel</code> command will put voltpeek in adjust mode again. Like with vertical adjustment,
+the trigger level can be adjusted with <code>j</code> and <code>k</code>. Additionally, for courser adjustment, <code>ctrl-u</code> and 
+<code>ctrl-d</code> can be used. You will see a white line appear for your trigger level. This can be adjusted to trigger 
+on a rising edge of your square wave like so:
+</p>
+<img src="./triglevel.png">
+<p>
+Once your trigger level is adjusted where a rising edge can cross it, you can use <code>ctrl-c</code> or <code>esc</code>
+to exit adjust mode and set the trigger level. To run the normal trigger use the <code>ntrigger</code> command. You
+should now get a stable waveform with the rising edge in the center of the graticule like shown. You can zoom in and 
+out on the rising edge if you adjust the scale while normal trigger is running. Like auto trigger, use the <code>stop</code>
+command to stop the normal trigger updates. You can also use the <code>trigfalling</code> command to switch to a falling
+edge trigger, and <code>trigrising</code> to switch back to a rising edge trigger.
+</p>
+<img src="ntrigger.png">
+<h2> 10X Probe </h2>
+<p>
+So far we have been using the scope and probe in 1X mode. Let's try 10X mode. To start, switch your probe to its 10X position. 
+This will form a voltage  divider using the probes impedance, and the input impedance of the scope. At DC, this voltage divider will attenuate
+the measured signal so it is divided by 10 at the input of the scope. For this to hold across the scopes bandwidth, this 
+division ratio must be constant across frequency. This is where probe compensation comes in. After zooming in on your 10X 
+square wave signal, trigger on it and observe the waveform. Below are examples of over compensated and under compensated waveforms.
+</p>
+<h3> Overcompensated </h3>
+<img src="overcompensated.png">
+<h3> Undercompensated </h3>
+<img src="undercompensated.png">
+<p>
+Adjust the small screw on your probe input so that the square wave appears approximately flat:
+</p>
+<img src="compensated.png">
+<p>
+If you would like the readout to reflect the 10X division, you can use the <code>probe10</code> command. And the <code>probe1</code>
+command will switch it back.
+</p>
+<h2> Cursors </h2>
+<p>
+Cursors can be used to analyze time and voltage deltas in your waveform. First, make sure the scope is stopped with a 
+waveform showing. You can then toggle the vertical cursors with <code>togglevcurs</code>, the horizontal cursors with
+<code>togglehcurs</code>, and both with <code>togglecurs</code>. Ones cursors are toggled, you can select specific cursors using the 
+<code>nextcurs</code> command. The selected cursor will appear as a dashed line. To adjust the selected cursor use the <code>adjustcurs</code>
+command. Like with previous adjustments, fine vertical adjustments can be made with <code>j</code> and <code>k</code>, course
+vertical adjustments can be made with <code>ctrl-u</code> and <code>ctril-d</code>, and find horizontal adjustments can
+be made with <code>h</code> and <code>l</code>. Additionally, course horizontal adjustments can be made with <code>&lt;</code>
+and <code>&gt;</code>. Exiting adjustment is the same, <code>ctrl-c</code> or <code>esc</code>.
+</p>
+<img src="cursors.png">
+<h2> Additional Notes </h2>
+<p>
+When using your scope to observe a waveform, make sure you are vertically zoomed in on the waveform for it to fill as much
+of the screen as possible. This way you are utilizing more of the scopes resolution. That being said, make sure you don't
+over range the scope. This is an undefined state as parts of the waveform is missing and the scopes circuitry is out of its
+nominal operating range.
+</p>
+
+<p>
+Also you may observe slow oscillations
+especially when on a low range, or say, holding onto the probe tip. This is likely 60Hz interference, for obvious reasons, 60Hz
+interference is quite prevalent in most environments where an oscilloscope is used.
+</p>
