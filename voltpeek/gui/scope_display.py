@@ -53,7 +53,8 @@ class Scope_Display:
 
     def _resample_horizontal(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
                              triggered: bool, size: int) -> list[int]:
-        f = interp1d(np.arange(len(self.vector))/fs, self.vector, kind='linear', fill_value=0, bounds_error=False)
+        # Fill value is -100 because the signal can never possibly reach this amplitude. This distinguishes real signal vs out of horizontal capture.
+        f = interp1d(np.arange(len(self.vector))/fs, self.vector, kind='linear', fill_value=-100, bounds_error=False)
         new_T: float = (hor_setting)/(size/constants.Display.GRID_LINE_COUNT)
         chop_time: float = (1/fs)*memory_depth - hor_setting*constants.Display.GRID_LINE_COUNT
         hor_pixel_time: float = hor_setting/(size/constants.Display.GRID_LINE_COUNT)
@@ -79,8 +80,7 @@ class Scope_Display:
         if len(self.vector) == memory_depth-(FIR_length-1):
             # Horizontal resampling must be done before vertical quantization because amplitude information is 
             # needed for trigger point interpolation.
-            self.display_vector = self._resample_horizontal(hor_setting, vert_setting, fs, 
-                                                            memory_depth-(FIR_length-1), edge, triggered, self._size)
+            self.display_vector = self._resample_horizontal(hor_setting, vert_setting, fs, memory_depth-(FIR_length-1), edge, triggered, self._size)
             if len(self.display_vector) > 0:
                 self.display_vector = self._quantize_vertical(self.display_vector, vert_setting, self._size)
                 self._redraw()
@@ -150,20 +150,17 @@ class Scope_Display:
             self._draw_trigger_level()
 
     def _draw_vector(self):
-        x = np.arange(len(self.display_vector))
         y = self._size - np.array(self.display_vector)
-        coords = np.column_stack((x[1:], y[:-1], x[1:], y[1:]))
-        coords = coords.reshape(-1).tolist()
+        y_filtered = y[y <= self._size]
+        x = np.arange(len(self.display_vector))[y <= self._size]
+        coords = np.column_stack((x[1:], y_filtered[:-1], x[1:], y_filtered[1:])).reshape(-1).tolist()
         self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-        self.canvas.create_line(*[c + (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], 
-                                fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-        self.canvas.create_line(*[c - (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], 
-                                fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+        self.canvas.create_line(*[c + (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+        self.canvas.create_line(*[c - (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
         if len(x) > 0:
             last_x, last_y = x[-1], y[-1]
             for offset in [-1, 0, 1]:
-                self.canvas.create_line(last_x-1, last_y+offset, last_x+2, last_y+offset, 
-                                        fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                self.canvas.create_line(last_x-1, last_y+offset, last_x+2, last_y+offset, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
 
     def _draw_dashed_horizontal_line(self, position, color):
         self.canvas.create_line(0, position, self._size, position, fill=color, dash=self.DASH_PATTERN)

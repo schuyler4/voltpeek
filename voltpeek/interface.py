@@ -84,6 +84,7 @@ class UserInterface:
         self._build_tk_root()
 
         self.scale: Scale = Scale()
+        self._last_fs = self.scale.fs
         self.scope_trigger: Trigger = Trigger()
         self.cursors: Cursors = Cursors(self._display_size)
 
@@ -312,7 +313,6 @@ class UserInterface:
     def _start_update_scale_hor(self) -> None:
         self._scope_interface.set_value(self.scale.clock_div)
         self._scope_interface.set_scope_action(ScopeAction.SET_CLOCK_DIV)
-        self._change_scale = True
         self._scope_interface.run()
 
     def _update_scale_vert(self, update_fn: Callable[[], None]) -> None:
@@ -340,7 +340,7 @@ class UserInterface:
         self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
         self.readout.set_fs(self.scale.fs)
         if self._scope_interface.xx is not None and len(self._scope_interface.xx) > 0:
-            self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
+            self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self._last_fs, 
                                                self._scope_interface.scope.SCOPE_SPECS['memory_depth'], 
                                                self.scope_trigger.trigger_type, self._triggered,
                                                self._scope_interface.scope.FIR_LENGTH)
@@ -457,6 +457,7 @@ class UserInterface:
         self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
         self._auto_trigger_running = True
         self._scope_interface.fs = self.scale.fs
+        self._last_fs = self.scale.fs
         self._scope_interface.run()
 
     def _finish_auto_trigger_cycle(self) -> None:
@@ -469,6 +470,7 @@ class UserInterface:
         self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
         self._normal_trigger_running = True
         self._scope_interface.fs = self.scale.fs
+        self._last_fs = self.scale.fs
         self._scope_interface.run()
 
     def _finish_normal_trigger_cycle(self) -> None:
