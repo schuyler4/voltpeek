@@ -41,6 +41,7 @@ class NS1(ScopeBase):
     READ_CAL_COMMAND: bytes = b'k'
     RISING_EDGE_TRIGGER_COMMAND: bytes = b'/'
     FALLING_EDGE_TRIGGER_COMMAND: bytes = b'\\'
+    ROLL_SAMPLE_COMMAND: bytes = b'o'
 
     LOW_RANGE_THRESHOLD: float = 4
     CAL_DELAY = 0.1
@@ -98,7 +99,7 @@ class NS1(ScopeBase):
                     return None
                 else:
                     codes += list(new_data)
-                    sleep(0.001)
+                    sleep(0.0001)
             except (OSError, IOError) as _:
                 return None
             except Exception as _:
@@ -276,6 +277,14 @@ class NS1(ScopeBase):
 
     @property
     def stopped(self): return self._stop.is_set()
+
+    def roll_sample(self) -> None:
+        self.serial_port.write(self.ROLL_SAMPLE_COMMAND)
+        data_point = []
+        while len(data_point) == 0:
+            data_point += list(self.serial_port.read(self.serial_port.inWaiting()))
+            sleep(0.001) 
+        return data_point[0]
 
     def disconnect(self) -> None:
         pass
