@@ -34,6 +34,7 @@ class Scope_Display:
         self._trigger_level: int = 0
         self._trigger_set: bool = False
         self.display_vector = None
+        self._record_buffer: list[int] = []
 
     def __call__(self):
         self.canvas.pack()
@@ -162,17 +163,19 @@ class Scope_Display:
             for offset in [-1, 0, 1]:
                 self.canvas.create_line(last_x-1, last_y+offset, last_x+2, last_y+offset, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
 
-    def _draw_dashed_horizontal_line(self, position, color):
+    def _draw_record(self):
+        for i, point in enumerate(self._record_buffer):
+            pass
+
+    def _draw_dashed_horizontal_line(self, position, color): 
         self.canvas.create_line(0, position, self._size, position, fill=color, dash=self.DASH_PATTERN)
     
-    def _draw_horizontal_line(self, position, color): 
-        self.canvas.create_line(0, position, self._size, position, fill=color)
+    def _draw_horizontal_line(self, position, color): self.canvas.create_line(0, position, self._size, position, fill=color)
 
     def _draw_dashed_vertical_line(self, position, color):
         self.canvas.create_line(position, 0, position, self._size, fill=color, dash=self.DASH_PATTERN)
 
-    def _draw_vertical_line(self, position, color): 
-        self.canvas.create_line(position, 0, position, self._size, fill=color)
+    def _draw_vertical_line(self, position, color): self.canvas.create_line(position, 0, position, self._size, fill=color)
 
     def _draw_trigger_level(self): self._draw_horizontal_line(self._trigger_level, self._hex_string_from_rgb(self.TRIGGER_COLOR))
 
@@ -186,9 +189,10 @@ class Scope_Display:
         map[:, grid_lines] = self.GRID_LINE_COLOR
         # Draw the Signal
         if self.display_vector is not None:
-            x = np.arange(len(self.display_vector))
             y = self._size - np.array(self.display_vector)
-            y_indices = y.astype(int)
+            y_filtered = y[y <= self._size]
+            x = np.arange(len(self.display_vector))[y <= self._size]
+            y_indices = y_filtered.astype(int)
             valid_y = (y_indices >= 0) & (y_indices < self._size)
             for dx in [-1, 0, 1]:
                 for dy in [-1, 0, 1]:
@@ -198,7 +202,7 @@ class Scope_Display:
                     map[y_shifted[valid_points], x_shifted[valid_points]] = self.SIGNAL_COLOR
             for i in range(len(x)-1):
                 if 0 <= x[i] < self._size:
-                    y1, y2 = int(y[i]), int(y[i+1])
+                    y1, y2 = int(y_filtered[i]), int(y_filtered[i+1])
                     y_start = max(0, min(y1, y2))
                     y_end = min(self._size, max(y1, y2))
                     if int(x[i]) > 0 and int(x[i]) < self._size:
@@ -220,3 +224,5 @@ class Scope_Display:
         
     @size.setter
     def size(self, value: int) -> None: self._size = value
+
+    def add_roll_point(self, point: int) -> None: self._record_buffer.append(point)

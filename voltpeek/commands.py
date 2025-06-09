@@ -59,5 +59,6 @@ PROBE_1: str = 'probe1'
 PROBE_10: str = 'probe10'
 CAL: str = 'cal'
 PNG: str = 'png'
+ROLL: str = 'roll'
 
 ADJUST_COMMANDS: tuple[str, str, str] = (SCALE_COMMAND, TRIGGER_LEVEL_COMMAND, ADJUST_CURS)

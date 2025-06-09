@@ -18,6 +18,7 @@ class ScopeAction(Enum):
     SET_RISING_EDGE_TRIGGER = 9
     SET_FALLING_EDGE_TRIGGER = 10
     SET_AMPLIFIER_GAIN = 11
+    RECORD_SAMPLE = 12
 
 def scope_action_handler(func):
     @wraps(func)
@@ -42,6 +43,7 @@ class ScopeInterface:
         self._full_scale = 10
         self._fs: Optional[float] = None
         self._disconnected_error: bool = False
+        self._record_point: float = None
 
         # Action handler mapping
         self._action_handlers: Dict[ScopeAction, Callable] = {
@@ -113,6 +115,12 @@ class ScopeInterface:
     @scope_action_handler
     def _set_falling_edge_trigger(self): self._scope.set_falling_edge_trigger()
 
+    @scope_action_handler
+    def _record_sample(self): 
+        self._record_point = self._scope.roll_sample(self._full_scale)
+        if self._record_point is None:
+            self._disconnected_error = True
+
     def run(self):
         if not self._action_complete and self._action in self._action_handlers:
             thread = Thread(target=lambda: self._scope_available(self._action_handlers[self._action]))
@@ -144,6 +152,9 @@ class ScopeInterface:
 
     @property
     def disconnected_error(self) -> bool: return self._disconnected_error
+
+    @property
+    def record_point(self) -> float: return self._record_point 
 
     def set_value(self, new_value: int) -> None:
         if self.data_available:

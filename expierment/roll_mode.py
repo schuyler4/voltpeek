@@ -12,7 +12,7 @@ samples = []
 full_scale = 5
 for i in range(0, 1000):
     start = time.time()
-    sample = ns1.roll_sample()
+    sample = ns1.roll_sample(10)
     samples.append(sample)
     end = time.time()
     print(1/(end - start))

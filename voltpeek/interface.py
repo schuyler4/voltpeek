@@ -55,6 +55,7 @@ class Event(Enum):
     SET_RISING_EDGE_TRIGGER = 12
     SET_FALLING_EDGE_TRIGGER = 13
     SET_AMPLIFIER_GAIN = 14
+    RECORD_SAMPLE = 15
 
 class KeyCodes:
     CTRL_C: int = 54
@@ -109,6 +110,7 @@ class UserInterface:
         self._connect_initiated = False
         self._auto_trigger_running = False
         self._normal_trigger_running = False
+        self._record_running = False
         self._calibration = False
         self._triggered = False
         self._calibration_step = 0
@@ -491,6 +493,10 @@ class UserInterface:
 
     def _start_single_trigger(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
+        self._scope_interface.run()
+
+    def _start_record_sample(self) -> None:
+        self._scope_interface.set_scope_action(ScopeAction.RECORD_SAMPLE)
         self._scope_interface.run()
 
     def _stop_trigger(self) -> None:
