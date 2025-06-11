@@ -33,6 +33,7 @@ class ScopeInterface:
     def __init__(self, scope):
         self._scope_connected: bool = False
         self._xx: Optional[list[float]] = None
+        self._record: list[float] = []
         self._calibration_ints: list[int] = None
         self._scope = scope() 
         self._data_available: Lock = Lock()
@@ -43,7 +44,6 @@ class ScopeInterface:
         self._full_scale = 10
         self._fs: Optional[float] = None
         self._disconnected_error: bool = False
-        self._record_point: float = None
 
         # Action handler mapping
         self._action_handlers: Dict[ScopeAction, Callable] = {
@@ -59,6 +59,7 @@ class ScopeInterface:
             ScopeAction.SET_RISING_EDGE_TRIGGER: self._set_rising_edge_trigger,
             ScopeAction.SET_FALLING_EDGE_TRIGGER: self._set_falling_edge_trigger,
             ScopeAction.SET_AMPLIFIER_GAIN: self._set_amplifier_gain,
+            ScopeAction.RECORD_SAMPLE: self._record_sample
         }
 
     def _scope_available(self, scope_action: Callable):
@@ -117,8 +118,9 @@ class ScopeInterface:
 
     @scope_action_handler
     def _record_sample(self): 
-        self._record_point = self._scope.roll_sample(self._full_scale)
-        if self._record_point is None:
+        record_point: float = self._scope.record_sample(self._full_scale) 
+        self._record.append(record_point)
+        if record_point is None:
             self._disconnected_error = True
 
     def run(self):

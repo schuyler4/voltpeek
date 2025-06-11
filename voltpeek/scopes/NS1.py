@@ -25,7 +25,8 @@ class NS1(ScopeBase):
         'memory_depth': 16384, 
         'trigger_resolution': 256, 
         'bias': 0.8,
-        'ranges': (1, 2, 5, 10)
+        'ranges': (1, 2, 5, 10),
+        'record_sample_rates': (1000, 100, 10, 1)
     }
 
     TRIGGER_LEVEL_COMMAND: bytes = b'l'
@@ -278,7 +279,7 @@ class NS1(ScopeBase):
     @property
     def stopped(self): return self._stop.is_set()
 
-    def roll_sample(self, full_scale) -> None:
+    def record_sample(self, full_scale) -> None:
         self.serial_port.write(self.ROLL_SAMPLE_COMMAND)
         data_point = []
         while len(data_point) == 0:

@@ -154,6 +154,8 @@ class UserInterface:
                         self._finish_set_rising_edge_trigger()
                     if self._end_event_queue[0] == Event.SET_FALLING_EDGE_TRIGGER:
                         self._finish_set_falling_edge_trigger()
+                    if self._end_event_queue[0] == Event.RECORD_SAMPLE:
+                        self._finish_record_sample()
                     self._end_event_queue.pop(0)
                 if self._scope_interface.data_available and len(self._start_event_queue) > 0:
                     if self.debug:
@@ -194,6 +196,9 @@ class UserInterface:
                     if self._start_event_queue[0] == Event.SET_FALLING_EDGE_TRIGGER:
                         self._start_set_falling_edge_trigger()
                         self._end_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER)
+                    if self._start_event_queue[0] == Event.RECORD_SAMPLE:
+                        self._start_record_sample()
+                        self._end_event_queue.append(Event.RECORD_SAMPLE)
                     self._start_event_queue.pop(0)
         self.root.after(1, self.check_state)
 
@@ -421,7 +426,8 @@ class UserInterface:
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
             commands.CAL: lambda: self._start_event_queue.append(Event.SET_CAL_OFFSETS),
-            commands.PNG: lambda filename: self._run_png_export(filename)
+            commands.PNG: lambda filename: self._run_png_export(filename),
+            'record': lambda: self._start_event_queue.append(Event.RECORD_SAMPLE)
         }
 
     def _set_disconnected(self) -> None:
@@ -447,7 +453,7 @@ class UserInterface:
         if xx is not None and len(xx) > 0:
             self.readout.set_average(average(xx))
             self.readout.set_rms(rms(xx))
-            self.scope_display.set_vector(xx)
+            self.scope_display.vector = xx
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
                                                self._scope_interface.scope.SCOPE_SPECS['memory_depth'], 
                                                self.scope_trigger.trigger_type, triggered,
@@ -498,6 +504,11 @@ class UserInterface:
     def _start_record_sample(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.RECORD_SAMPLE)
         self._scope_interface.run()
+        self._record_running = True
+
+    def _finish_record_sample(self) -> None:
+        if self._record_running:
+            self._start_event_queue.append(Event.RECORD_SAMPLE)
 
     def _stop_trigger(self) -> None:
         if self._auto_trigger_running:

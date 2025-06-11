@@ -29,12 +29,13 @@ class Scope_Display:
         self.frame = tk.Frame(self.master)
         self.canvas = tk.Canvas(self.frame, height=self._size, width=self._size, bg=self._hex_string_from_rgb(self.BACKGROUND_COLOR))
         self._draw_grid()
-        self.vector: Optional[list[int]] = None
+        self._vector: Optional[list[int]] = None
         self.cursors: Optional[Cursors] = cursors
         self._trigger_level: int = 0
         self._trigger_set: bool = False
         self.display_vector = None
-        self._record_buffer: list[int] = []
+        self.__display_record_buffer: list[int] = None
+        self._record_buffer: list[float] = None
 
     def __call__(self):
         self.canvas.pack()
@@ -48,49 +49,55 @@ class Scope_Display:
             # Draw Horizontal Grid Lines
             self.canvas.create_line(0, grid_spacing*i,  self._size, grid_spacing*i, fill=self._hex_string_from_rgb(self.GRID_LINE_COLOR))
                         
-    def _quantize_vertical(self, vector: list[float], vertical_setting: float, size) -> list[int]:
-        pixel_resolution: float = vertical_setting/(size/constants.Display.GRID_LINE_COUNT)
-        return np.add(np.multiply(vector, 1/pixel_resolution), int(size/2))
+    def _quantize_vertical(self, vector: list[float], vertical_setting: float) -> list[int]:
+        pixel_resolution: float = vertical_setting/(self._size/constants.Display.GRID_LINE_COUNT)
+        return np.add(np.multiply(vector, 1/pixel_resolution), int(self._size/2))
 
-    def _resample_horizontal(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
-                             triggered: bool, size: int) -> list[int]:
+    def _resample_horizontal_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
+                             triggered: bool) -> list[int]:
         # Fill value is -100 because the signal can never possibly reach this amplitude. This distinguishes real signal vs out of horizontal capture.
         f = interp1d(np.arange(len(self.vector))/fs, self.vector, kind='linear', fill_value=-100, bounds_error=False)
-        new_T: float = (hor_setting)/(size/constants.Display.GRID_LINE_COUNT)
+        new_T: float = (hor_setting)/(self._size/constants.Display.GRID_LINE_COUNT)
         chop_time: float = (1/fs)*memory_depth - hor_setting*constants.Display.GRID_LINE_COUNT
-        hor_pixel_time: float = hor_setting/(size/constants.Display.GRID_LINE_COUNT)
+        hor_pixel_time: float = hor_setting/(self._size/constants.Display.GRID_LINE_COUNT)
         set_trigger_voltage: float = self.get_trigger_voltage(vert_setting)
-        centered_vector: list[float] = f(np.add(np.arange(size)*new_T,(chop_time/2)))
+        centered_vector: list[float] = f(np.add(np.arange(self._size)*new_T,(chop_time/2)))
         if triggered:
             # Trigger Position Correction
             trigger_crossings = np.where(np.diff(np.sign(np.subtract(centered_vector, set_trigger_voltage))))[0]
             if len(trigger_crossings) > 0:
-                error_distance_index = np.abs(trigger_crossings - (size//2)+1).argmin()
-                error_sign = np.sign(trigger_crossings[error_distance_index] - (size//2)+1)
-                error_magnitude_time = np.abs(trigger_crossings[error_distance_index] - (size//2)+1)*hor_pixel_time 
+                error_distance_index = np.abs(trigger_crossings - (self._size//2)+1).argmin()
+                error_sign = np.sign(trigger_crossings[error_distance_index] - (self._size//2)+1)
+                error_magnitude_time = np.abs(trigger_crossings[error_distance_index] - (self._size//2)+1)*hor_pixel_time 
                 if error_sign:
-                    return f((np.arange(size)*new_T) + (chop_time/2) + error_magnitude_time)
+                    return f((np.arange(self._size)*new_T) + (chop_time/2) + error_magnitude_time)
                 else:
-                    return f((np.arange(size)*new_T) + (chop_time/2) - error_magnitude_time)
+                    return f((np.arange(self._size)*new_T) + (chop_time/2) - error_magnitude_time)
             return []
         else:
             return centered_vector
+
+    def _resample_horizontal_record(self, vert_setting: float, hor_setting: float):
+        self._display_record_buffer = self.resample_record(vert_setting)
 
     def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
                         triggered: bool, FIR_length: int) -> None:
         if len(self.vector) == memory_depth-(FIR_length-1):
             # Horizontal resampling must be done before vertical quantization because amplitude information is 
             # needed for trigger point interpolation.
-            self.display_vector = self._resample_horizontal(hor_setting, vert_setting, fs, memory_depth-(FIR_length-1), edge, triggered, self._size)
+            self.display_vector = self._resample_horizontal_vector(hor_setting, vert_setting, fs, memory_depth-(FIR_length-1), edge, triggered)
             if len(self.display_vector) > 0:
-                self.display_vector = self._quantize_vertical(self.display_vector, vert_setting, self._size)
+                self.display_vector = self._quantize_vertical(self.display_vector, vert_setting)
                 self._redraw()
+
+    def resample_record(self, vert_setting: float):
+        if len(self._record_buffer) > 0:
+            self._record_buffer = self._quantize_vertical(self._record_buffer, vert_setting)
+        return None
 
     def set_cursors(self, cursors: Cursors):
         self.cursors = cursors
         self._redraw()
-
-    def set_vector(self, vector: list[int]): self.vector = vector
 
     def set_trigger_level(self, trigger_level) -> None:
         self._trigger_level: int = int(trigger_level)
@@ -225,4 +232,8 @@ class Scope_Display:
     @size.setter
     def size(self, value: int) -> None: self._size = value
 
-    def add_roll_point(self, point: int) -> None: self._record_buffer.append(point)
+    @property
+    def vector(self) -> list[float]: return self._vector
+
+    @vector.setter
+    def vector(self, new_vector) -> None: self._vector = new_vector
