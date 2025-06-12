@@ -34,8 +34,9 @@ class Scope_Display:
         self._trigger_level: int = 0
         self._trigger_set: bool = False
         self.display_vector = None
-        self.__display_record_buffer: list[int] = None
-        self._record_buffer: list[float] = None
+        self._display_record: list[int] = None
+        self._record: list[float] = None
+        self._record_index: int = 0
 
     def __call__(self):
         self.canvas.pack()
@@ -78,7 +79,7 @@ class Scope_Display:
             return centered_vector
 
     def _resample_horizontal_record(self, vert_setting: float, hor_setting: float):
-        self._display_record_buffer = self.resample_record(vert_setting)
+        self._display_record = self.resample_record(vert_setting)
 
     def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
                         triggered: bool, FIR_length: int) -> None:
@@ -91,8 +92,10 @@ class Scope_Display:
                 self._redraw()
 
     def resample_record(self, vert_setting: float):
-        if len(self._record_buffer) > 0:
-            self._record_buffer = self._quantize_vertical(self._record_buffer, vert_setting)
+        print(self._record)
+        if len(self._record) > 0:
+            self._display_record = self._quantize_vertical(self._record, vert_setting)
+        self._draw_record()
         return None
 
     def set_cursors(self, cursors: Cursors):
@@ -171,8 +174,20 @@ class Scope_Display:
                 self.canvas.create_line(last_x-1, last_y+offset, last_x+2, last_y+offset, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
 
     def _draw_record(self):
-        for i, point in enumerate(self._record_buffer):
-            pass
+        '''
+        self._record_index += len(self._display_record)
+        if self._record_index > 1:
+            y = self._size - np.array(self._display_record)
+            x = self._size - np.arange(self._record_index)
+            coords = np.column_stack((x[1:], y[:-1], x[1:], y[1:])).reshape(-1).tolist()
+            self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+            self.canvas.create_line(*[c + (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+            self.canvas.create_line(*[c - (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+        '''
+        self._record_index += len(self._display_record)
+        self.canvas.create_line(self._size - self._record_index, self._display_record[0], self._size - self._record_index+1, self._display_record[0], 
+                                fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+        print(self._display_record)
 
     def _draw_dashed_horizontal_line(self, position, color): 
         self.canvas.create_line(0, position, self._size, position, fill=color, dash=self.DASH_PATTERN)
@@ -237,3 +252,9 @@ class Scope_Display:
 
     @vector.setter
     def vector(self, new_vector) -> None: self._vector = new_vector
+
+    @property
+    def record(self) -> list[float]: return self._record
+
+    @record.setter
+    def record(self, new_record): self._record = new_record

@@ -507,6 +507,8 @@ class UserInterface:
         self._record_running = True
 
     def _finish_record_sample(self) -> None:
+        self.scope_display.record = self._scope_interface._record
+        self.scope_display.resample_record(self.scale.vert)
         if self._record_running:
             self._start_event_queue.append(Event.RECORD_SAMPLE)
 

@@ -86,20 +86,16 @@ class ScopeInterface:
             self._disconnected_error = True
 
     @scope_action_handler
-    def _set_clock_div(self):
-        self._scope.set_clock_div(self._value)
+    def _set_clock_div(self): self._scope.set_clock_div(self._value)
 
     @scope_action_handler
-    def _set_range(self):
-        self._scope.set_range(self._full_scale)
+    def _set_range(self): self._scope.set_range(self._full_scale)
 
     @scope_action_handler
-    def _set_amplifier_gain(self):
-        self._scope.set_amplifier_gain(self._full_scale)
+    def _set_amplifier_gain(self): self._scope.set_amplifier_gain(self._full_scale)
 
     @scope_action_handler
-    def _set_trigger_level(self):
-        self._scope.set_trigger_voltage(self._value, self._full_scale)
+    def _set_trigger_level(self): self._scope.set_trigger_voltage(self._value, self._full_scale)
 
     @scope_action_handler
     def _read_cal_offsets(self):
@@ -118,8 +114,8 @@ class ScopeInterface:
 
     @scope_action_handler
     def _record_sample(self): 
-        record_point: float = self._scope.record_sample(self._full_scale) 
-        self._record.append(record_point)
+        record_point = self._scope.record_sample(self._full_scale)
+        self._record = [record_point]
         if record_point is None:
             self._disconnected_error = True
 
@@ -156,7 +152,7 @@ class ScopeInterface:
     def disconnected_error(self) -> bool: return self._disconnected_error
 
     @property
-    def record_point(self) -> float: return self._record_point 
+    def record(self) -> float: return self._record 
 
     def set_value(self, new_value: int) -> None:
         if self.data_available:
