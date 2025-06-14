@@ -71,6 +71,9 @@ class NS1(ScopeBase):
                 return port.device
         return None
 
+    @classmethod
+    def find_scope_ports(cls) -> list[str]: return [port.device for port in list_ports.comports() if port.vid == cls.PICO_VID]
+
     def connect(self) -> None:
         try:
             if self.port is None:

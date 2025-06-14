@@ -360,6 +360,9 @@ class UserInterface:
     def _connect(self, identifier: str):
         for scope in get_available_scopes():
             if list(scope.keys())[0] == identifier:
+                print(scope[identifier].find_scope_ports())
+                if len(scope[identifier].find_scope_ports()) > 1:
+                    print('multiple scopes detected')
                 self._connect_initiated = True
                 self._scope_interface: ScopeInterface = ScopeInterface(scope[identifier])
                 self._start_event_queue.append(Event.CONNECT)
