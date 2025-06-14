@@ -115,6 +115,8 @@ class UserInterface:
         self._triggered = False
         self._calibration_step = 0
 
+        self._scope_interfaces: list[ScopeInterface] = []
+
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
         self.root.title(__name__.split('.')[0])
@@ -360,15 +362,13 @@ class UserInterface:
     def _connect(self, identifier: str):
         for scope in get_available_scopes():
             if list(scope.keys())[0] == identifier:
-                print(scope[identifier].find_scope_ports())
-                if len(scope[identifier].find_scope_ports()) > 1:
-                    print('multiple scopes detected')
+                for connected_device in scope[identifier].find_scope_ports():
+                    self._scope_interfaces.append(ScopeInterface(scope[identifier], device=connected_device))
                 self._connect_initiated = True
-                self._scope_interface: ScopeInterface = ScopeInterface(scope[identifier])
                 self._start_event_queue.append(Event.CONNECT)
                 self._start_event_queue.append(Event.SET_RANGE)
                 self._start_event_queue.append(Event.SET_AMPLIFIER_GAIN)
-                if isinstance(self._scope_interface.scope, NS1):
+                if isinstance(self._scope_interfaces[0].scope, NS1):
                     self._start_event_queue.append(Event.READ_CAL_OFFSETS)
                 self._set_update_scale(None)
                 return
@@ -445,8 +445,7 @@ class UserInterface:
             
     def finish_connect(self) -> None:
         self.scope_status = Scope_Status.NEUTRAL
-        self.scale.update_sample_rate(self._scope_interface.scope.SCOPE_SPECS['sample_rate'], 
-                                      self._scope_interface.scope.SCOPE_SPECS['memory_depth'])
+        self.scale.update_sample_rate(self._scope_interface.scope.SCOPE_SPECS['sample_rate'], self._scope_interface.scope.SCOPE_SPECS['memory_depth'])
         self._start_event_queue.append(Event.CHANGE_SCALE)
         self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
         self._start_event_queue.append(Event.SET_TRIGGER_LEVEL)

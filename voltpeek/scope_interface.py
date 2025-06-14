@@ -30,12 +30,15 @@ def scope_action_handler(func):
     return wrapper
 
 class ScopeInterface:
-    def __init__(self, scope):
+    def __init__(self, scope, device=None):
         self._scope_connected: bool = False
         self._xx: Optional[list[float]] = None
         self._record: list[float] = []
         self._calibration_ints: list[int] = None
-        self._scope = scope() 
+        if device is None:
+            self._scope = scope() 
+        else:
+            self._scope = scope(port=device)
         self._data_available: Lock = Lock()
         self._action: ScopeAction = None
         self._action_complete: bool = True
