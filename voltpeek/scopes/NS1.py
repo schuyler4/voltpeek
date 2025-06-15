@@ -52,7 +52,7 @@ class NS1(ScopeBase):
 
     def __init__(self, baudrate: int=115200, port: Optional[str]=None):
         self.baudrate: int = baudrate
-        self.port: Optional[str] = None
+        self.port: Optional[str] = port
         self.error: bool = False
         self._stop: Event = Event()
         self._xx: list[float] = []
@@ -105,8 +105,10 @@ class NS1(ScopeBase):
                     codes += list(new_data)
                     sleep(0.0001)
             except (OSError, IOError) as _:
+                print(_)
                 return None
             except Exception as _:
+                print(_)
                 return None
         if self._stop.is_set():
             self._stop.clear()

@@ -2,6 +2,7 @@ from typing import Optional, Callable, Dict, Any
 from enum import Enum
 from threading import Thread, Lock
 from functools import wraps
+import logging
 
 from serial.serialutil import PortNotOpenError
 
@@ -38,6 +39,7 @@ class ScopeInterface:
         if device is None:
             self._scope = scope() 
         else:
+            self._device = device
             self._scope = scope(port=device)
         self._data_available: Lock = Lock()
         self._action: ScopeAction = None
@@ -66,10 +68,13 @@ class ScopeInterface:
         }
 
     def _scope_available(self, scope_action: Callable):
+        scope_action()
+        '''
         try:
             scope_action()
         except (Exception, OSError) as _:
             self._disconnected_error = True
+        '''
 
     @scope_action_handler
     def _connect_scope(self):
@@ -124,6 +129,7 @@ class ScopeInterface:
 
     def run(self):
         if not self._action_complete and self._action in self._action_handlers:
+            logging.info(f'running action: {self._action} on device {self._device}')
             thread = Thread(target=lambda: self._scope_available(self._action_handlers[self._action]))
             thread.start()
 
