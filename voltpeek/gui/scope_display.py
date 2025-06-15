@@ -24,8 +24,8 @@ class Scope_Display:
 
     def _hex_string_from_rgb(self, rgb: tuple[int]): return '#%02x%02x%02x' % rgb
 
-    def __init__(self, master, cursors, size) -> None:
-        self.master:tk.Tk = master        
+    def __init__(self, master: tk.Tk, cursors: Optional[Cursors], size: int) -> None:
+        self.master: tk.Tk = master        
         self._size = size
         self.frame = tk.Frame(self.master)
         self.canvas = tk.Canvas(self.frame, height=self._size, width=self._size, bg=self._hex_string_from_rgb(self.BACKGROUND_COLOR))
@@ -244,7 +244,10 @@ class Scope_Display:
         return [[(int(r), int(g), int(b)) for r, g, b in row] for row in map]
 
     # That's not going to work
-    def add_vector(self, new_vector: NDArray[np.float64], index: int): self._vectors.append(new_vector)
+    def add_vector(self, new_vector: NDArray[np.float64], index: int): 
+        if index+1 > len(self._vectors) or len(self._vectors) == 0:
+            for i in range(index+1):
+                self._vectors.append(new_vector)
 
     @property
     def size(self) -> int: return self._size
