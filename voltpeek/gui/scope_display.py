@@ -3,6 +3,7 @@ from typing import Optional
 import tkinter as tk
 from scipy.interpolate import interp1d
 import numpy as np
+from numpy.typing import NDArray
 
 from voltpeek import constants 
 
@@ -29,11 +30,11 @@ class Scope_Display:
         self.frame = tk.Frame(self.master)
         self.canvas = tk.Canvas(self.frame, height=self._size, width=self._size, bg=self._hex_string_from_rgb(self.BACKGROUND_COLOR))
         self._draw_grid()
-        self._vector: Optional[list[int]] = None
+        self._vectors: list[int] = []
         self.cursors: Optional[Cursors] = cursors
         self._trigger_level: int = 0
         self._trigger_set: bool = False
-        self.display_vector = None
+        self.display_vector = []
         self._display_record: list[int] = None
         self._record: list[float] = None
         self._record_index: int = 0
@@ -54,10 +55,10 @@ class Scope_Display:
         pixel_resolution: float = vertical_setting/(self._size/constants.Display.GRID_LINE_COUNT)
         return np.add(np.multiply(vector, 1/pixel_resolution), int(self._size/2))
 
-    def _resample_horizontal_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
-                             triggered: bool) -> list[int]:
+    def _resample_horizontal_vector(self, vector: NDArray[np.float64], hor_setting: float, vert_setting: float, 
+                                    fs: float, memory_depth: int, edge: TriggerType, triggered: bool) -> list[int]:
         # Fill value is -100 because the signal can never possibly reach this amplitude. This distinguishes real signal vs out of horizontal capture.
-        f = interp1d(np.arange(len(self.vector))/fs, self.vector, kind='linear', fill_value=-100, bounds_error=False)
+        f = interp1d(np.arange(len(vector))/fs, vector, kind='linear', fill_value=-100, bounds_error=False)
         new_T: float = (hor_setting)/(self._size/constants.Display.GRID_LINE_COUNT)
         chop_time: float = (1/fs)*memory_depth - hor_setting*constants.Display.GRID_LINE_COUNT
         hor_pixel_time: float = hor_setting/(self._size/constants.Display.GRID_LINE_COUNT)
@@ -83,13 +84,14 @@ class Scope_Display:
 
     def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
                         triggered: bool, FIR_length: int) -> None:
-        if len(self.vector) == memory_depth-(FIR_length-1):
-            # Horizontal resampling must be done before vertical quantization because amplitude information is 
-            # needed for trigger point interpolation.
-            self.display_vector = self._resample_horizontal_vector(hor_setting, vert_setting, fs, memory_depth-(FIR_length-1), edge, triggered)
-            if len(self.display_vector) > 0:
-                self.display_vector = self._quantize_vertical(self.display_vector, vert_setting)
-                self._redraw()
+        for vector in self._vectors:
+            if len(vector) == memory_depth-(FIR_length-1):
+                # Horizontal resampling must be done before vertical quantization because amplitude information is 
+                # needed for trigger point interpolation.
+                self.display_vector = self._resample_horizontal_vector(hor_setting, vert_setting, fs, memory_depth-(FIR_length-1), edge, triggered)
+                if len(self.display_vector) > 0:
+                    self.display_vector = self._quantize_vertical(self.display_vector, vert_setting)
+                    self._redraw()
 
     def resample_record(self, vert_setting: float):
         print(self._record)
@@ -241,17 +243,14 @@ class Scope_Display:
             map[self._trigger_level] = self.TRIGGER_COLOR
         return [[(int(r), int(g), int(b)) for r, g, b in row] for row in map]
 
+    # That's not going to work
+    def add_vector(self, new_vector: NDArray[np.float64], index: int): self._vectors.append(new_vector)
+
     @property
     def size(self) -> int: return self._size
         
     @size.setter
     def size(self, value: int) -> None: self._size = value
-
-    @property
-    def vector(self) -> list[float]: return self._vector
-
-    @vector.setter
-    def vector(self, new_vector) -> None: self._vector = new_vector
 
     @property
     def record(self) -> list[float]: return self._record

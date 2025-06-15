@@ -162,7 +162,7 @@ class UserInterface:
                         self._end_event_queue[i].pop(0)
                     if scope_interface.data_available and len(self._start_event_queue[i]) > 0:
                         if self.debug:
-                            logging.info(f'start event: {self._start_event_queue[i][0].name}, scope index {i}')
+                            logging.info(f'start event: {self._start_event_queue[i][0].name}, scope index: {i}')
                         if self._start_event_queue[i][0] == Event.STOP:
                             self._stop_trigger()
                         if self._start_event_queue[i][0] == Event.CONNECT:
@@ -408,7 +408,7 @@ class UserInterface:
 
     def _finish_auto_trigger_cycle(self, scope_index: int) -> None:
         self._triggered = False
-        self.display_signal(self._scope_interfaces[0].xx, self._triggered)
+        self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered)
         if self._auto_trigger_running:
             for i, start_event_queue in enumerate(self._start_event_queue):
                 if i == scope_index:
@@ -562,15 +562,13 @@ class UserInterface:
         if xx is not None and len(xx) > 0:
             self.readout.set_average(average(xx))
             self.readout.set_rms(rms(xx))
-            self.scope_display.vector = xx
+            self.scope_display.add_vector(xx)
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
                                                self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'], 
                                                self.scope_trigger.trigger_type, triggered,
                                                self._scope_interfaces[0].scope.FIR_LENGTH)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
-
-    
 
     def _start_normal_trigger_cycle(self) -> None:
         self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
