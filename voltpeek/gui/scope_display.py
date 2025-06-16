@@ -30,7 +30,6 @@ class Scope_Display:
         self.frame = tk.Frame(self.master)
         self.canvas = tk.Canvas(self.frame, height=self._size, width=self._size, bg=self._hex_string_from_rgb(self.BACKGROUND_COLOR))
         self._draw_grid()
-        self._vectors: list[int] = []
         self.cursors: Optional[Cursors] = cursors
         self._trigger_level: int = 0
         self._trigger_set: bool = False
@@ -42,6 +41,10 @@ class Scope_Display:
     def __call__(self):
         self.canvas.pack()
         self.frame.grid(row=0, column=0, pady=constants.Application.PADDING, padx=constants.Application.PADDING)
+
+    def init_vectors(self, scope_count: int): 
+        self._vectors = [None for _ in range(0, scope_count)]
+        self._display_vectors = [None for _ in range(0, scope_count)]
 
     def _draw_grid(self) -> None:
         grid_spacing:int = int(self._size/constants.Display.GRID_LINE_COUNT)
@@ -83,15 +86,15 @@ class Scope_Display:
         self._display_record = self.resample_record(vert_setting)
 
     def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
-                        triggered: bool, FIR_length: int) -> None:
-        for vector in self._vectors:
-            if len(vector) == memory_depth-(FIR_length-1):
-                # Horizontal resampling must be done before vertical quantization because amplitude information is 
-                # needed for trigger point interpolation.
-                self.display_vector = self._resample_horizontal_vector(hor_setting, vert_setting, fs, memory_depth-(FIR_length-1), edge, triggered)
-                if len(self.display_vector) > 0:
-                    self.display_vector = self._quantize_vertical(self.display_vector, vert_setting)
-                    self._redraw()
+                        triggered: bool, FIR_length: int, scope_index: int) -> None:
+        if len(self._vectors[scope_index]) == memory_depth-(FIR_length-1):
+            # Horizontal resampling must be done before vertical quantization because amplitude information is 
+            # needed for trigger point interpolation.
+            self._display_vectors[scope_index] = self._resample_horizontal_vector(self._vectors[scope_index], hor_setting, vert_setting, 
+                                                                    fs, memory_depth-(FIR_length-1), edge, triggered)
+            if len(self._display_vectors[scope_index]) > 0:
+                self._display_vectors[scope_index] = self._quantize_vertical(self._display_vectors[scope_index], vert_setting)
+                self._redraw()
 
     def resample_record(self, vert_setting: float):
         print(self._record)
@@ -153,8 +156,9 @@ class Scope_Display:
     def _redraw(self) -> None:
         self.canvas.delete('all')
         self._draw_grid()
-        if self.display_vector is not None:
-            self._draw_vector()
+        for display_vector in self._display_vectors: 
+            if display_vector is not None:
+                self._draw_vector(display_vector)
         if self.cursors.hor_visible:
             self._draw_horizontal_cursors()
         if self.cursors.vert_visible:
@@ -162,10 +166,10 @@ class Scope_Display:
         if self._trigger_set:
             self._draw_trigger_level()
 
-    def _draw_vector(self):
-        y = self._size - np.array(self.display_vector)
+    def _draw_vector(self, display_vector):
+        y = self._size - np.array(display_vector)
         y_filtered = y[y <= self._size]
-        x = np.arange(len(self.display_vector))[y <= self._size]
+        x = np.arange(len(display_vector))[y <= self._size]
         coords = np.column_stack((x[1:], y_filtered[:-1], x[1:], y_filtered[1:])).reshape(-1).tolist()
         self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
         self.canvas.create_line(*[c + (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
@@ -243,11 +247,7 @@ class Scope_Display:
             map[self._trigger_level] = self.TRIGGER_COLOR
         return [[(int(r), int(g), int(b)) for r, g, b in row] for row in map]
 
-    # That's not going to work
-    def add_vector(self, new_vector: NDArray[np.float64], index: int): 
-        if index+1 > len(self._vectors) or len(self._vectors) == 0:
-            for i in range(index+1):
-                self._vectors.append(new_vector)
+    def add_vector(self, new_vector: NDArray[np.float64], index: int): self._vectors[index] = new_vector  
 
     @property
     def size(self) -> int: return self._size

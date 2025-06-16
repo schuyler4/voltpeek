@@ -287,20 +287,16 @@ class UserInterface:
     def _start_connect(self, scope_index: int) -> None:
         self.scope_status = Scope_Status.CONNECTING
         self._update_scope_status()
-        for i, scope_interface in enumerate(self._scope_interfaces):
-            if i == scope_index:
-                scope_interface.set_scope_action(ScopeAction.CONNECT)
-                scope_interface.run()
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.CONNECT)
+        self._scope_interfaces[scope_index].run()
 
     def _finish_connect(self, scope_index: int) -> None:
         self.scope_status = Scope_Status.NEUTRAL
         self.scale.update_sample_rate(self._scope_interfaces[0].scope.SCOPE_SPECS['sample_rate'], 
                                       self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'])
-        for i, start_event_queue in enumerate(self._start_event_queue):
-            if i == scope_index:
-                start_event_queue.append(Event.CHANGE_SCALE)
-                #start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
-                #start_event_queue.append(Event.SET_TRIGGER_LEVEL)
+        self._start_event_queue[scope_index].append(Event.CHANGE_SCALE)
+        #start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
+        #start_event_queue.append(Event.SET_TRIGGER_LEVEL)
         self._update_scope_status()
     
     '''
@@ -308,22 +304,20 @@ class UserInterface:
     '''
 
     def _start_set_range(self, scope_index: int) -> None:
-        for i, scope_interface in enumerate(self._scope_interfaces):
-            if i == scope_index:
-                scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
-                scope_interface.set_scope_action(ScopeAction.SET_RANGE)
-                scope_interface.run()
+        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
+        self._scope_interfaces[scope_index].set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_RANGE)
+        self._scope_interfaces[scope_index].run()
 
     '''
     EVENT: SET AMPLIFIER GAIN
     '''
 
     def _start_set_amplifier_gain(self, scope_index: int) -> None:
-        for i, scope_interface in enumerate(self._scope_interfaces):
-            if i == scope_index:
-                scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
-                scope_interface.set_scope_action(ScopeAction.SET_AMPLIFIER_GAIN)
-                scope_interface.run()
+        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
+        self._scope_interfaces[scope_index].set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_AMPLIFIER_GAIN)
+        self._scope_interfaces[scope_index].run()
 
     '''
     EVENT: CHANGE SCALE
@@ -343,17 +337,15 @@ class UserInterface:
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self._last_fs, 
                                                self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'], 
                                                self.scope_trigger.trigger_type, self._triggered,
-                                               self._scope_interfaces[0].scope.FIR_LENGTH)
+                                               self._scope_interfaces[0].scope.FIR_LENGTH, scope_index)
 
     '''
     EVENT: READ CAL OFFSET
     '''
 
     def _start_read_cal_offsets(self, scope_index: int) -> None:
-        for i, scope_interface in enumerate(self._scope_interfaces):
-            if i == scope_index:
-                scope_interface.set_scope_action(ScopeAction.READ_CAL_OFFSETS)
-                scope_interface.run()
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.READ_CAL_OFFSETS)
+        self._scope_interfaces[scope_index].run()
 
     '''
     EVENT: SET TRIGGER LEVEL
@@ -408,7 +400,7 @@ class UserInterface:
 
     def _finish_auto_trigger_cycle(self, scope_index: int) -> None:
         self._triggered = False
-        self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered)
+        self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered, scope_index)
         if self._auto_trigger_running:
             for i, start_event_queue in enumerate(self._start_event_queue):
                 if i == scope_index:
@@ -461,7 +453,6 @@ class UserInterface:
         for start_event_queue in self._start_event_queue:
             start_event_queue.append(Event.SET_RANGE)
             start_event_queue.append(Event.SET_AMPLIFIER_GAIN)
-            self._render_update_scale()
 
     def _start_set_calibration(self) -> None:
         for scope_interface in self._scope_interfaces:
@@ -481,6 +472,7 @@ class UserInterface:
                     self._scope_interfaces.append(ScopeInterface(scope[identifier], device=connected_device))
                     self._start_event_queue.append([])
                     self._end_event_queue.append([])
+                self.scope_display.init_vectors(len(self._scope_interfaces))
                 self._connect_initiated = True
                 for scope_event_queue in self._start_event_queue:
                     scope_event_queue.append(Event.CONNECT)
@@ -558,15 +550,15 @@ class UserInterface:
         self.scope_status = Scope_Status.DISCONNECTED
         self._update_scope_status()
 
-    def display_signal(self, xx: list[float], triggered: bool) -> None:
+    def display_signal(self, xx: list[float], triggered: bool, scope_index: int) -> None:
         if xx is not None and len(xx) > 0:
             self.readout.set_average(average(xx))
             self.readout.set_rms(rms(xx))
-            self.scope_display.add_vector(xx)
+            self.scope_display.add_vector(xx, scope_index)
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
                                                self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'], 
                                                self.scope_trigger.trigger_type, triggered,
-                                               self._scope_interfaces[0].scope.FIR_LENGTH)
+                                               self._scope_interfaces[0].scope.FIR_LENGTH, scope_index)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
 

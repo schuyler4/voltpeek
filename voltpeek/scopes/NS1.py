@@ -18,7 +18,6 @@ class NS1(ScopeBase):
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
         'attenuation': {'range_high':0.0578, 'range_low':0.3327},
-        'offset': {'range_high':0, 'range_high_gain':0, 'range_low':0, 'range_low_gain':0},
         'resolution': 256,    
         'voltage_ref': 1.6,
         'sample_rate': 62.5e6, 
@@ -56,6 +55,7 @@ class NS1(ScopeBase):
         self.error: bool = False
         self._stop: Event = Event()
         self._xx: list[float] = []
+        self._cal_offsets = {'range_high':0, 'range_high_gain':0, 'range_low':0, 'range_low_gain':0}
 
     def pico_connected(self) -> bool:
         ports = list_ports.comports()
@@ -123,15 +123,15 @@ class NS1(ScopeBase):
         if full_scale <= self.LOW_RANGE_THRESHOLD or force_low_range:
             attenuation = self.SCOPE_SPECS['attenuation']['range_low']
             if full_scale == 1:
-                offset = self.SCOPE_SPECS['offset']['range_low_gain']
+                offset = self._cal_offsets['range_low_gain']
             else:
-                offset = self.SCOPE_SPECS['offset']['range_low']
+                offset = self._cal_offsets['range_low']
         else: 
             attenuation = self.SCOPE_SPECS['attenuation']['range_high']
             if full_scale == 5:
-                offset = self.SCOPE_SPECS['offset']['range_high_gain']
+                offset = self._cal_offsets['range_high_gain']
             else:
-                offset = self.SCOPE_SPECS['offset']['range_high']
+                offset = self._cal_offsets['range_high']
         # Adjust for amplification 
         if full_scale == 5 or full_scale == 1:
             attenuation *= 2
@@ -181,15 +181,15 @@ class NS1(ScopeBase):
         if full_scale <= self.LOW_RANGE_THRESHOLD:
             attenuation = self.SCOPE_SPECS['attenuation']['range_low']
             if full_scale == 1:
-                offset = self.SCOPE_SPECS['offset']['range_low_gain']
+                offset = self._cal_offsets['range_low_gain']
             else:
-                offset = self.SCOPE_SPECS['offset']['range_low']
+                offset = self._cal_offsets['range_low']
         else: 
             attenuation = self.SCOPE_SPECS['attenuation']['range_high']
             if full_scale == 5:
-                offset = self.SCOPE_SPECS['offset']['range_high_gain']
+                offset = self._cal_offsets['range_high_gain']
             else:
-                offset = self.SCOPE_SPECS['offset']['range_high']
+                offset = self._cal_offsets['range_high']
         # Adjust for amplification 
         if full_scale == 5 or full_scale == 1:
             attenuation *= 2
@@ -207,10 +207,10 @@ class NS1(ScopeBase):
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
 
     def _encode_calibration_offsets(self) -> str:
-        range_high_int = int(self.SCOPE_SPECS['offset']['range_high']*self.CAL_INT_MULTIPLIER)
-        range_high_gain_int = int(self.SCOPE_SPECS['offset']['range_high_gain']*self.CAL_INT_MULTIPLIER)
-        range_low_int = int(self.SCOPE_SPECS['offset']['range_low']*self.CAL_INT_MULTIPLIER)
-        range_low_gain_int = int(self.SCOPE_SPECS['offset']['range_low_gain']*self.CAL_INT_MULTIPLIER)
+        range_high_int = int(self._cal_offsets['range_high']*self.CAL_INT_MULTIPLIER)
+        range_high_gain_int = int(self._cal_offsets['range_high_gain']*self.CAL_INT_MULTIPLIER)
+        range_low_int = int(self._cal_offsets['range_low']*self.CAL_INT_MULTIPLIER)
+        range_low_gain_int = int(self._cal_offsets['range_low_gain']*self.CAL_INT_MULTIPLIER)
         range_high: int = twos_complement_base10_encode(range_high_int, self.CAL_BITS)
         range_high_gain: int = twos_complement_base10_encode(range_high_gain_int, self.CAL_BITS)
         range_low: int = twos_complement_base10_encode(range_low_int, self.CAL_BITS)
@@ -225,17 +225,17 @@ class NS1(ScopeBase):
         self._set_amplifier_gain_off()
         self._set_high_range()
         sleep(self.CAL_DELAY)
-        self.SCOPE_SPECS['offset']['range_high'] = -1*average(self.get_scope_force_trigger_data(10, offset_null=False))
+        self._cal_offsets['range_high'] = -1*average(self.get_scope_force_trigger_data(10, offset_null=False))
         self._set_amplifier_gain_on()
         sleep(self.CAL_DELAY)
-        self.SCOPE_SPECS['offset']['range_high_gain'] = -1*average(self.get_scope_force_trigger_data(5, offset_null=False))
+        self._cal_offsets['range_high_gain'] = -1*average(self.get_scope_force_trigger_data(5, offset_null=False))
         self._set_amplifier_gain_off()
         self._set_low_range()
         sleep(self.CAL_DELAY)
-        self.SCOPE_SPECS['offset']['range_low'] = -1*average(self.get_scope_force_trigger_data(2, offset_null=False))
+        self._cal_offsets['range_low'] = -1*average(self.get_scope_force_trigger_data(2, offset_null=False))
         self._set_amplifier_gain_on()
         sleep(self.CAL_DELAY)
-        self.SCOPE_SPECS['offset']['range_low_gain'] = -1*average(self.get_scope_force_trigger_data(1, offset_null=False))
+        self._cal_offsets['range_low_gain'] = -1*average(self.get_scope_force_trigger_data(1, offset_null=False))
         self._set_amplifier_gain_off()
         self._set_high_range()
         self.serial_port.write(self.SET_CAL_COMMAND)
@@ -271,10 +271,10 @@ class NS1(ScopeBase):
         high_range_gain_offset = twos_complement_base10_decode(offset_bytes[3] << 8 | offset_bytes[2], self.CAL_BITS)
         low_range_offset = twos_complement_base10_decode(offset_bytes[5] << 8 | offset_bytes[4], self.CAL_BITS)
         low_range_gain_offset = twos_complement_base10_decode(offset_bytes[7] << 8 | offset_bytes[6], self.CAL_BITS)
-        self.SCOPE_SPECS['offset']['range_high'] = high_range_offset/self.CAL_INT_MULTIPLIER
-        self.SCOPE_SPECS['offset']['range_high_gain'] = high_range_gain_offset/self.CAL_INT_MULTIPLIER
-        self.SCOPE_SPECS['offset']['range_low'] = low_range_offset/self.CAL_INT_MULTIPLIER
-        self.SCOPE_SPECS['offset']['range_low_gain'] = low_range_gain_offset/self.CAL_INT_MULTIPLIER
+        self._cal_offsets['range_high'] = high_range_offset/self.CAL_INT_MULTIPLIER
+        self._cal_offsets['range_high_gain'] = high_range_gain_offset/self.CAL_INT_MULTIPLIER
+        self._cal_offsets['range_low'] = low_range_offset/self.CAL_INT_MULTIPLIER
+        self._cal_offsets['range_low_gain'] = low_range_gain_offset/self.CAL_INT_MULTIPLIER
         return True
 
     def stop_trigger(self) -> None: 
