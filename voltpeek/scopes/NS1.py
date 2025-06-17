@@ -90,13 +90,12 @@ class NS1(ScopeBase):
             self.error = True
 
     def read_glob_data(self):
-        print('starting glob data read')
         self.serial_port.flushInput()
         self.serial_port.flushOutput()
         self._stop.clear()
         codes: list[str] = []
         data_hangs = 0
-        while len(codes) < self.SCOPE_SPECS['memory_depth'] - 1: 
+        while len(codes) < self.SCOPE_SPECS['memory_depth']: 
             if self._stop.is_set():
                 self._stop.clear()
                 return None
@@ -106,6 +105,7 @@ class NS1(ScopeBase):
                     # This is probably dead code
                     return None
                 else:
+                    # May cause a problem with normal trigger
                     if len(new_data) == 0:
                         data_hangs += 1
                         if data_hangs > self.DATA_HANG_THRESHOLD:
