@@ -106,12 +106,14 @@ class NS1(ScopeBase):
                     return None
                 else:
                     # May cause a problem with normal trigger
+                    '''
                     if len(new_data) == 0:
                         data_hangs += 1
                         if data_hangs > self.DATA_HANG_THRESHOLD:
                             return None
                     elif data_hangs > 0:
                         data_hangs = 0
+                    '''
                     codes += list(new_data)
                     sleep(0.0001)
             except (OSError, IOError) as _:

@@ -148,9 +148,9 @@ class UserInterface:
                         if self._end_event_queue[i][0] == Event.AUTO_TRIGGER:
                             self._finish_auto_trigger_cycle(i)
                         if self._end_event_queue[i][0] == Event.NORMAL_TRIGGER:
-                            self._finish_normal_trigger_cycle()
+                            self._finish_normal_trigger_cycle(i)
                         if self._end_event_queue[i][0] == Event.SINGLE_TRIGGER:
-                            self._finish_single_trigger()
+                            self._finish_single_trigger(i)
                         if self._end_event_queue[i][0] == Event.CHANGE_SCALE:
                             self._finish_change_scale(i)
                         if self._end_event_queue[i][0] == Event.SET_RISING_EDGE_TRIGGER:
@@ -158,7 +158,7 @@ class UserInterface:
                         if self._end_event_queue[i][0] == Event.SET_FALLING_EDGE_TRIGGER:
                             self._finish_set_falling_edge_trigger()
                         if self._end_event_queue[i][0] == Event.RECORD_SAMPLE:
-                            self._finish_record_sample()
+                            self._finish_record_sample(i)
                         self._end_event_queue[i].pop(0)
                     if scope_interface.data_available and len(self._start_event_queue[i]) > 0:
                         if self.debug:
@@ -169,13 +169,13 @@ class UserInterface:
                             self._start_connect(i)
                             self._end_event_queue[i].append(Event.CONNECT)
                         if self._start_event_queue[i][0] == Event.SINGLE_TRIGGER:
-                            self._start_single_trigger()
+                            self._start_single_trigger(i)
                             self._end_event_queue[i].append(Event.SINGLE_TRIGGER)
                         if self._start_event_queue[i][0] == Event.AUTO_TRIGGER:
                             self._start_auto_trigger_cycle(i)
                             self._end_event_queue[i].append(Event.AUTO_TRIGGER)
                         if self._start_event_queue[i][0] == Event.NORMAL_TRIGGER:
-                            self._start_normal_trigger_cycle()
+                            self._start_normal_trigger_cycle(i)
                             self._end_event_queue[i].append(Event.NORMAL_TRIGGER)
                         if self._start_event_queue[i][0] == Event.CHANGE_SCALE:
                             self._start_change_scale(i)
@@ -191,13 +191,13 @@ class UserInterface:
                         if self._start_event_queue[i][0] == Event.SET_AMPLIFIER_GAIN:
                             self._start_set_amplifier_gain(i)
                         if self._start_event_queue[i][0] == Event.SET_RISING_EDGE_TRIGGER:
-                            self._start_set_rising_edge_trigger()
+                            self._start_set_rising_edge_trigger(i)
                             self._end_event_queue[i].append(Event.SET_RISING_EDGE_TRIGGER)
                         if self._start_event_queue[i][0] == Event.SET_FALLING_EDGE_TRIGGER:
-                            self._start_set_falling_edge_trigger()
+                            self._start_set_falling_edge_trigger(i)
                             self._end_event_queue[i].append(Event.SET_FALLING_EDGE_TRIGGER)
                         if self._start_event_queue[i][0] == Event.RECORD_SAMPLE:
-                            self._start_record_sample()
+                            self._start_record_sample(i)
                             self._end_event_queue[i].append(Event.RECORD_SAMPLE)
                         self._start_event_queue[i].pop(0)
         self.root.after(1, self.check_state)
@@ -207,7 +207,8 @@ class UserInterface:
         if self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS:
             if (event.keysym == 'Escape') or (event.state & 0x4 and event.keysym == 'c'): 
                 if self.mode == Mode.ADJUST_TRIGGER_LEVEL: 
-                    self._start_event_queue.append(Event.SET_TRIGGER_LEVEL)
+                    for start_event_queue in self._start_event_queue:
+                        start_event_queue.append(Event.SET_TRIGGER_LEVEL)
                 self._set_command_mode()
         if self.mode == Mode.ADJUST_SCALE:
             if event.char == Keys.VERTICAL_UP:
@@ -279,6 +280,7 @@ class UserInterface:
     
     ##### START EVENTS #####
 
+
     '''
     EVENT: CONNECT
     '''
@@ -294,8 +296,8 @@ class UserInterface:
         self.scale.update_sample_rate(self._scope_interfaces[0].scope.SCOPE_SPECS['sample_rate'], 
                                       self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'])
         self._start_event_queue[scope_index].append(Event.CHANGE_SCALE)
-        #start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
-        #start_event_queue.append(Event.SET_TRIGGER_LEVEL)
+        self._start_event_queue[scope_index].append(Event.SET_RISING_EDGE_TRIGGER)
+        self._start_event_queue[scope_index].append(Event.SET_TRIGGER_LEVEL)
         self._update_scope_status()
     
     '''
@@ -404,7 +406,6 @@ class UserInterface:
 
     def _start_normal_trigger_cycle(self, scope_index: int) -> None:
         self._scope_interfaces[scope_index].set_scope_action(ScopeAction.TRIGGER)
-        self._normal_trigger_running = True
         self._scope_interfaces[scope_index].fs = self.scale.fs
         self._last_fs = self.scale.fs
         self._scope_interfaces[scope_index].run()
@@ -412,9 +413,12 @@ class UserInterface:
     def _finish_normal_trigger_cycle(self, scope_index: int) -> None:
         if len(self._scope_interfaces[scope_index].xx) > 0: 
             self._triggered = True
-            self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered)
+            self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered, scope_index)
         if self._normal_trigger_running:
-            self._start_event_queue.append(Event.NORMAL_TRIGGER)
+            for start_event_queue in self._start_event_queue:
+                # We don't want to over schedule
+                if len(start_event_queue) == 0 or start_event_queue[len(start_event_queue) - 1] != Event.NORMAL_TRIGGER:
+                    start_event_queue.append(Event.NORMAL_TRIGGER)
 
     '''
     EVENT: SINGLE TRIGGER
@@ -428,6 +432,22 @@ class UserInterface:
         if len(self._scope_interfaces[scope_index].xx) > 0:
             self._triggered = True
             self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered)
+
+    '''
+    EVENT: RECORD SAMPLE
+    '''
+
+    def _start_record_sample(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.RECORD_SAMPLE)
+        self._scope_interfaces[scope_index].run()
+        self._record_running = True
+
+    def _finish_record_sample(self, scope_index: int) -> None:
+        self.scope_display.record = self._scope_interfaces[scope_index]._record
+        self.scope_display.resample_record(self.scale.vert)
+        if self._record_running:
+            self._start_event_queue[scope_index].append(Event.RECORD_SAMPLE)
+
 
     ##### END EVENTS #####
 
@@ -521,6 +541,7 @@ class UserInterface:
         export_png(settings, filename, self.scope_display.size)
 
     def _on_auto_trigger_command(self):
+        self._auto_trigger_running = True
         if self._normal_trigger_running:
             self._stop_trigger()
             for start_event_queue in self._start_event_queue:
@@ -531,21 +552,35 @@ class UserInterface:
                 start_event_queue.append(Event.AUTO_TRIGGER)
 
     def _on_normal_trigger_command(self):
+        self._normal_trigger_running = True
         if self._auto_trigger_running:
-            self._start_event_queue += [Event.STOP, Event.NORMAL_TRIGGER]
+            for start_event_queue in self._start_event_queue:
+                start_event_queue += [Event.STOP, Event.NORMAL_TRIGGER]
             self._auto_trigger_running = False
         else:
-            self._start_event_queue.append(Event.NORMAL_TRIGGER) 
+            for start_event_queue in self._start_event_queue:
+                start_event_queue.append(Event.NORMAL_TRIGGER) 
 
     def _on_single_trigger_command(self):
         if self._auto_trigger_running:
-            self._start_event_queue += [Event.STOP, Event.SINGLE_TRIGGER]
+            for start_event_queue in self._start_event_queue:
+                start_event_queue += [Event.STOP, Event.SINGLE_TRIGGER]
             self._auto_trigger_running = False
         elif self._normal_trigger_running:
-            self._start_event_queue += [Event.STOP, Event.SINGLE_TRIGGER]
+            for start_event_queue in self._start_event_queue:
+                start_event_queue += [Event.STOP, Event.SINGLE_TRIGGER]
             self._normal_trigger_running = False
         else:
-            self._start_event_queue.append(Event.SINGLE_TRIGGER)
+            for start_event_queue in self._start_event_queue:
+                start_event_queue.append(Event.SINGLE_TRIGGER)
+
+    def _on_trigger_rising_edge_command(self):
+        for start_event_queue in self._start_event_queue:
+            start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
+
+    def _on_trigger_falling_edge_command(self):
+        for start_event_queue in self._start_event_queue:
+            start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER)
 
     def get_commands(self): 
         return {
@@ -562,8 +597,8 @@ class UserInterface:
             commands.NORMAL_TRIGGER_COMMAND: self._on_normal_trigger_command,
             commands.SINGLE_TRIGGER_COMMAND: self._on_single_trigger_command,
             commands.STOP: self._stop_trigger,
-            commands.TRIGGER_RISING_EDGE_COMMAND: lambda: self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER),
-            commands.TRIGGER_FALLING_EDGE_COMMAND: lambda: self._start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER),
+            commands.TRIGGER_RISING_EDGE_COMMAND: self._on_trigger_rising_edge_command,
+            commands.TRIGGER_FALLING_EDGE_COMMAND: self._on_trigger_falling_edge_command,
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
             commands.CAL: lambda: self._start_event_queue.append(Event.SET_CAL_OFFSETS),
@@ -586,18 +621,7 @@ class UserInterface:
                                                self._scope_interfaces[0].scope.FIR_LENGTH, scope_index)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
-
-    def _start_record_sample(self) -> None:
-        self._scope_interface.set_scope_action(ScopeAction.RECORD_SAMPLE)
-        self._scope_interface.run()
-        self._record_running = True
-
-    def _finish_record_sample(self) -> None:
-        self.scope_display.record = self._scope_interface._record
-        self.scope_display.resample_record(self.scale.vert)
-        if self._record_running:
-            self._start_event_queue.append(Event.RECORD_SAMPLE)
-
+    
     def _stop_trigger(self) -> None:
         if self._auto_trigger_running:
             self._auto_trigger_running = False
