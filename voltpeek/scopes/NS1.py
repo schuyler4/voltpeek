@@ -48,6 +48,7 @@ class NS1(ScopeBase):
     CAL_BITS = 13
     CAL_MEMORY_DIGITS = 4
     CAL_INT_MULTIPLIER = 1000
+    DATA_HANG_THRESHOLD = 100
 
     def __init__(self, baudrate: int=115200, port: Optional[str]=None):
         self.baudrate: int = baudrate
@@ -79,7 +80,7 @@ class NS1(ScopeBase):
             if self.port is None:
                 self.port = self.find_pico_serial_port() 
             # TODO: raise an error if the port stays none
-            self.serial_port: Serial = Serial()
+            self.serial_port: Serial = Serial(timeout=1)
             self.serial_port.baudrate = self.baudrate
             self.serial_port.port = self.port
             self.serial_port.timeout = 100 #ms
@@ -89,19 +90,28 @@ class NS1(ScopeBase):
             self.error = True
 
     def read_glob_data(self):
+        print('starting glob data read')
         self.serial_port.flushInput()
         self.serial_port.flushOutput()
         self._stop.clear()
         codes: list[str] = []
+        data_hangs = 0
         while len(codes) < self.SCOPE_SPECS['memory_depth'] - 1: 
             if self._stop.is_set():
                 self._stop.clear()
                 return None
             try:
                 new_data = self.serial_port.read(self.serial_port.inWaiting())
-                if new_data is None: # timeout
+                if new_data is None:
+                    # This is probably dead code
                     return None
                 else:
+                    if len(new_data) == 0:
+                        data_hangs += 1
+                        if data_hangs > self.DATA_HANG_THRESHOLD:
+                            return None
+                    elif data_hangs > 0:
+                        data_hangs = 0
                     codes += list(new_data)
                     sleep(0.0001)
             except (OSError, IOError) as _:
@@ -153,7 +163,7 @@ class NS1(ScopeBase):
     def get_scope_force_trigger_data(self, full_scale: float, offset_null=True) -> list[float]:
         self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
         new_codes = self.read_glob_data()
-        if len(new_codes) > 0:
+        if new_codes is not None and len(new_codes) == self.SCOPE_SPECS['memory_depth']:
             self._xx = self._reconstruct(self._FIR_filter(new_codes), full_scale, offset_null=offset_null)
         return self._xx 
 

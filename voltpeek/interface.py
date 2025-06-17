@@ -141,11 +141,15 @@ class UserInterface:
                 else:
                     # The end events must go first otherwise the start events will always have priority.
                     if scope_interface.data_available and len(self._end_event_queue[i]) > 0:
+                        if i == 0:
+                            print('end event', self._end_event_queue[0])
                         if self.debug:
                             logging.info(f'end event: {self._end_event_queue[i][0].name}, scope index: {i}')
                         if self._end_event_queue[i][0] == Event.CONNECT:
                             self._finish_connect(i)
                         if self._end_event_queue[i][0] == Event.AUTO_TRIGGER:
+                            if i == 0:
+                                print('finish auto trigger cycle')
                             self._finish_auto_trigger_cycle(i)
                         if self._end_event_queue[i][0] == Event.NORMAL_TRIGGER:
                             self._finish_normal_trigger_cycle()
@@ -161,6 +165,7 @@ class UserInterface:
                             self._finish_record_sample()
                         self._end_event_queue[i].pop(0)
                     if scope_interface.data_available and len(self._start_event_queue[i]) > 0:
+                        print('start event', self._start_event_queue)
                         if self.debug:
                             logging.info(f'start event: {self._start_event_queue[i][0].name}, scope index: {i}')
                         if self._start_event_queue[i][0] == Event.STOP:
@@ -324,12 +329,10 @@ class UserInterface:
     '''
 
     def _start_change_scale(self, scope_index: int) -> None:
-        for i, scope_interface in enumerate(self._scope_interfaces):
-            if i == scope_index:
-                scope_interface.set_value(self.scale.clock_div)
-                scope_interface.set_scope_action(ScopeAction.SET_CLOCK_DIV)
-                scope_interface.run()
-
+        self._scope_interfaces[scope_index].set_value(self.scale.clock_div)
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_CLOCK_DIV)
+        self._scope_interfaces[scope_index].run()
+        
     def _finish_change_scale(self, scope_index: int) -> None:
         self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
         self.readout.set_fs(self.scale.fs)
@@ -390,21 +393,23 @@ class UserInterface:
     '''
 
     def _start_auto_trigger_cycle(self, scope_index: int) -> None:
-        for i, scope_interface in enumerate(self._scope_interfaces):
-            if i == scope_index:
-                scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
-                self._auto_trigger_running = True
-                scope_interface.fs = self.scale.fs
-                self._last_fs = self.scale.fs
-                scope_interface.run()
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.FORCE_TRIGGER)
+        self._scope_interfaces[scope_index].fs = self.scale.fs
+        self._last_fs = self.scale.fs
+        self._auto_trigger_running = True
+        self._scope_interfaces[scope_index].run()
 
     def _finish_auto_trigger_cycle(self, scope_index: int) -> None:
         self._triggered = False
         self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered, scope_index)
         if self._auto_trigger_running:
-            for i, start_event_queue in enumerate(self._start_event_queue):
-                if i == scope_index:
-                    start_event_queue.append(Event.AUTO_TRIGGER)
+            if scope_index == 0:
+                print('resetting auto trigger')
+            self._start_event_queue[scope_index].append(Event.AUTO_TRIGGER)
+
+    '''
+    EVENT:
+    '''
 
     def _set_adjust_scale_mode(self) -> None:
         self.mode = Mode.ADJUST_SCALE

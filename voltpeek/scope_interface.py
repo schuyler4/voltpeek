@@ -129,7 +129,6 @@ class ScopeInterface:
 
     def run(self):
         if not self._action_complete and self._action in self._action_handlers:
-            logging.info(f'running action: {self._action} on device {self._device}')
             thread = Thread(target=lambda: self._scope_available(self._action_handlers[self._action]))
             thread.start()
 

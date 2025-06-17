@@ -13,7 +13,7 @@ from voltpeek.trigger import TriggerType
 class Scope_Display:
     BACKGROUND_COLOR = (0, 0, 0)
     GRID_LINE_COLOR = (128, 128, 128)
-    SIGNAL_COLOR = (17, 176, 249)
+    SIGNAL_COLORS = ((17, 176, 249), (28, 143, 24))
     CURSOR_COLOR = (255, 0, 0)  # Added red cursor color
     TRIGGER_COLOR = (255, 255, 255)
     MAX_TRIGGER_CORRECTION_PIXELS: int = 6
@@ -156,9 +156,9 @@ class Scope_Display:
     def _redraw(self) -> None:
         self.canvas.delete('all')
         self._draw_grid()
-        for display_vector in self._display_vectors: 
+        for i, display_vector in enumerate(self._display_vectors): 
             if display_vector is not None:
-                self._draw_vector(display_vector)
+                self._draw_vector(display_vector, self.SIGNAL_COLORS[i])
         if self.cursors.hor_visible:
             self._draw_horizontal_cursors()
         if self.cursors.vert_visible:
@@ -166,18 +166,18 @@ class Scope_Display:
         if self._trigger_set:
             self._draw_trigger_level()
 
-    def _draw_vector(self, display_vector):
+    def _draw_vector(self, display_vector, color: tuple[int, int, int]):
         y = self._size - np.array(display_vector)
         y_filtered = y[y <= self._size]
         x = np.arange(len(display_vector))[y <= self._size]
         coords = np.column_stack((x[1:], y_filtered[:-1], x[1:], y_filtered[1:])).reshape(-1).tolist()
-        self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-        self.canvas.create_line(*[c + (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-        self.canvas.create_line(*[c - (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+        self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(color))
+        self.canvas.create_line(*[c + (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(color))
+        self.canvas.create_line(*[c - (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(color))
         if len(x) > 0:
             last_x, last_y = x[-1], y[-1]
             for offset in [-1, 0, 1]:
-                self.canvas.create_line(last_x-1, last_y+offset, last_x+2, last_y+offset, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                self.canvas.create_line(last_x-1, last_y+offset, last_x+2, last_y+offset, fill=self._hex_string_from_rgb(color))
 
     def _draw_record(self):
         '''
