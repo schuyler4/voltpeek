@@ -185,7 +185,7 @@ class UserInterface:
                         if self._start_event_queue[i][0] == Event.READ_CAL_OFFSETS:
                             self._start_read_cal_offsets(i)
                         if self._start_event_queue[i][0] == Event.SET_CAL_OFFSETS:
-                            self._start_set_calibration()
+                            self._start_set_calibration(i)
                         if self._start_event_queue[i][0] == Event.SET_RANGE:
                             self._start_set_range(i)  
                         if self._start_event_queue[i][0] == Event.SET_AMPLIFIER_GAIN:
@@ -448,6 +448,15 @@ class UserInterface:
         if self._record_running:
             self._start_event_queue[scope_index].append(Event.RECORD_SAMPLE)
 
+    '''
+    EVENT: READ CAL OFFSETS
+    '''
+
+    def _start_set_calibration(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_value(self.scale.vert)
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_CAL_OFFSETS)
+        self._scope_interfaces[scope_index].run()
+
 
     ##### END EVENTS #####
 
@@ -499,11 +508,7 @@ class UserInterface:
             start_event_queue.append(Event.SET_RANGE)
             start_event_queue.append(Event.SET_AMPLIFIER_GAIN)
 
-    def _start_set_calibration(self) -> None:
-        for scope_interface in self._scope_interfaces:
-            scope_interface.set_value(self.scale.vert)
-            scope_interface.set_scope_action(ScopeAction.SET_CAL_OFFSETS)
-            scope_interface.run()
+    
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
