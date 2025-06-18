@@ -3,6 +3,7 @@ from typing import Optional
 import tkinter as tk
 from scipy.interpolate import interp1d
 import numpy as np
+from numpy.typing import NDArray
 
 from voltpeek import constants 
 
@@ -12,7 +13,7 @@ from voltpeek.trigger import TriggerType
 class Scope_Display:
     BACKGROUND_COLOR = (0, 0, 0)
     GRID_LINE_COLOR = (128, 128, 128)
-    SIGNAL_COLOR = (17, 176, 249)
+    SIGNAL_COLORS = ((17, 176, 249), (28, 143, 24))
     CURSOR_COLOR = (255, 0, 0)  # Added red cursor color
     TRIGGER_COLOR = (255, 255, 255)
     MAX_TRIGGER_CORRECTION_PIXELS: int = 6
@@ -23,17 +24,16 @@ class Scope_Display:
 
     def _hex_string_from_rgb(self, rgb: tuple[int]): return '#%02x%02x%02x' % rgb
 
-    def __init__(self, master, cursors, size) -> None:
-        self.master:tk.Tk = master        
+    def __init__(self, master: tk.Tk, cursors: Optional[Cursors], size: int) -> None:
+        self.master: tk.Tk = master        
         self._size = size
         self.frame = tk.Frame(self.master)
         self.canvas = tk.Canvas(self.frame, height=self._size, width=self._size, bg=self._hex_string_from_rgb(self.BACKGROUND_COLOR))
         self._draw_grid()
-        self._vector: Optional[list[int]] = None
         self.cursors: Optional[Cursors] = cursors
         self._trigger_level: int = 0
         self._trigger_set: bool = False
-        self.display_vector = None
+        self.display_vector = []
         self._display_record: list[int] = None
         self._record: list[float] = None
         self._record_index: int = 0
@@ -41,6 +41,10 @@ class Scope_Display:
     def __call__(self):
         self.canvas.pack()
         self.frame.grid(row=0, column=0, pady=constants.Application.PADDING, padx=constants.Application.PADDING)
+
+    def init_vectors(self, scope_count: int): 
+        self._vectors = [None for _ in range(0, scope_count)]
+        self._display_vectors = [None for _ in range(0, scope_count)]
 
     def _draw_grid(self) -> None:
         grid_spacing:int = int(self._size/constants.Display.GRID_LINE_COUNT)
@@ -54,10 +58,10 @@ class Scope_Display:
         pixel_resolution: float = vertical_setting/(self._size/constants.Display.GRID_LINE_COUNT)
         return np.add(np.multiply(vector, 1/pixel_resolution), int(self._size/2))
 
-    def _resample_horizontal_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
-                             triggered: bool) -> list[int]:
+    def _resample_horizontal_vector(self, vector: NDArray[np.float64], hor_setting: float, vert_setting: float, 
+                                    fs: float, memory_depth: int, edge: TriggerType, triggered: bool) -> list[int]:
         # Fill value is -100 because the signal can never possibly reach this amplitude. This distinguishes real signal vs out of horizontal capture.
-        f = interp1d(np.arange(len(self.vector))/fs, self.vector, kind='linear', fill_value=-100, bounds_error=False)
+        f = interp1d(np.arange(len(vector))/fs, vector, kind='linear', fill_value=-100, bounds_error=False)
         new_T: float = (hor_setting)/(self._size/constants.Display.GRID_LINE_COUNT)
         chop_time: float = (1/fs)*memory_depth - hor_setting*constants.Display.GRID_LINE_COUNT
         hor_pixel_time: float = hor_setting/(self._size/constants.Display.GRID_LINE_COUNT)
@@ -82,13 +86,14 @@ class Scope_Display:
         self._display_record = self.resample_record(vert_setting)
 
     def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
-                        triggered: bool, FIR_length: int) -> None:
-        if len(self.vector) == memory_depth-(FIR_length-1):
+                        triggered: bool, FIR_length: int, scope_index: int) -> None:
+        if len(self._vectors[scope_index]) == memory_depth-(FIR_length-1):
             # Horizontal resampling must be done before vertical quantization because amplitude information is 
             # needed for trigger point interpolation.
-            self.display_vector = self._resample_horizontal_vector(hor_setting, vert_setting, fs, memory_depth-(FIR_length-1), edge, triggered)
-            if len(self.display_vector) > 0:
-                self.display_vector = self._quantize_vertical(self.display_vector, vert_setting)
+            self._display_vectors[scope_index] = self._resample_horizontal_vector(self._vectors[scope_index], hor_setting, vert_setting, 
+                                                                    fs, memory_depth-(FIR_length-1), edge, triggered)
+            if len(self._display_vectors[scope_index]) > 0:
+                self._display_vectors[scope_index] = self._quantize_vertical(self._display_vectors[scope_index], vert_setting)
                 self._redraw()
 
     def resample_record(self, vert_setting: float):
@@ -151,8 +156,9 @@ class Scope_Display:
     def _redraw(self) -> None:
         self.canvas.delete('all')
         self._draw_grid()
-        if self.display_vector is not None:
-            self._draw_vector()
+        for i, display_vector in enumerate(self._display_vectors): 
+            if display_vector is not None:
+                self._draw_vector(display_vector, self.SIGNAL_COLORS[i])
         if self.cursors.hor_visible:
             self._draw_horizontal_cursors()
         if self.cursors.vert_visible:
@@ -160,18 +166,18 @@ class Scope_Display:
         if self._trigger_set:
             self._draw_trigger_level()
 
-    def _draw_vector(self):
-        y = self._size - np.array(self.display_vector)
+    def _draw_vector(self, display_vector, color: tuple[int, int, int]):
+        y = self._size - np.array(display_vector)
         y_filtered = y[y <= self._size]
-        x = np.arange(len(self.display_vector))[y <= self._size]
+        x = np.arange(len(display_vector))[y <= self._size]
         coords = np.column_stack((x[1:], y_filtered[:-1], x[1:], y_filtered[1:])).reshape(-1).tolist()
-        self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-        self.canvas.create_line(*[c + (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-        self.canvas.create_line(*[c - (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+        self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(color))
+        self.canvas.create_line(*[c + (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(color))
+        self.canvas.create_line(*[c - (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(color))
         if len(x) > 0:
             last_x, last_y = x[-1], y[-1]
             for offset in [-1, 0, 1]:
-                self.canvas.create_line(last_x-1, last_y+offset, last_x+2, last_y+offset, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                self.canvas.create_line(last_x-1, last_y+offset, last_x+2, last_y+offset, fill=self._hex_string_from_rgb(color))
 
     def _draw_record(self):
         '''
@@ -186,7 +192,7 @@ class Scope_Display:
         '''
         self._record_index += len(self._display_record)
         self.canvas.create_line(self._size - self._record_index, self._display_record[0], self._size - self._record_index+1, self._display_record[0], 
-                                fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                                fill=self._hex_string_from_rgb(self.SIGNAL_COLORS[0]))
         print(self._display_record)
 
     def _draw_dashed_horizontal_line(self, position, color): 
@@ -241,17 +247,13 @@ class Scope_Display:
             map[self._trigger_level] = self.TRIGGER_COLOR
         return [[(int(r), int(g), int(b)) for r, g, b in row] for row in map]
 
+    def add_vector(self, new_vector: NDArray[np.float64], index: int): self._vectors[index] = new_vector  
+
     @property
     def size(self) -> int: return self._size
         
     @size.setter
     def size(self, value: int) -> None: self._size = value
-
-    @property
-    def vector(self) -> list[float]: return self._vector
-
-    @vector.setter
-    def vector(self, new_vector) -> None: self._vector = new_vector
 
     @property
     def record(self) -> list[float]: return self._record

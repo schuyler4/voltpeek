@@ -104,8 +104,8 @@ class UserInterface:
         self._update_scope_status()
         self._update_scope_probe()
 
-        self._start_event_queue: list[Event] = []
-        self._end_event_queue: list[Event] = []
+        self._start_event_queue: list[list[Event]] = []
+        self._end_event_queue: list[list[Event]] = []
 
         self._connect_initiated = False
         self._auto_trigger_running = False
@@ -114,6 +114,8 @@ class UserInterface:
         self._calibration = False
         self._triggered = False
         self._calibration_step = 0
+
+        self._scope_interfaces: list[ScopeInterface] = []
 
     def _build_tk_root(self) -> None:
         self.root:tk.Tk = tk.Tk()
@@ -127,79 +129,77 @@ class UserInterface:
 
     def check_state(self):
         if self._connect_initiated:
-            if self._scope_interface.disconnected_error:
-                self.command_input.set_error(self.SCOPE_NOT_CONNECTED_ERROR)
-                self.command_input.display_error()
-                self._scope_interface.clear_disconnected_error()
-                self._connect_initiated = False
-                self._set_disconnected()
-                self._start_event_queue = []
-                self._end_event_queue = []
-            else:
-                # The end events must go first otherwise the start events will always have priority.
-                if self._scope_interface.data_available and len(self._end_event_queue) > 0:
-                    if self.debug:
-                        logging.info(f'end event: {self._end_event_queue[0].name}')
-                    if self._end_event_queue[0] == Event.CONNECT:
-                        self.finish_connect()
-                    if self._end_event_queue[0] == Event.AUTO_TRIGGER:
-                        self._finish_auto_trigger_cycle()
-                    if self._end_event_queue[0] == Event.NORMAL_TRIGGER:
-                        self._finish_normal_trigger_cycle()
-                    if self._end_event_queue[0] == Event.SINGLE_TRIGGER:
-                        self._finish_single_trigger()
-                    if self._end_event_queue[0] == Event.CHANGE_SCALE:
-                        self._render_update_scale()
-                    if self._end_event_queue[0] == Event.SET_RISING_EDGE_TRIGGER:
-                        self._finish_set_rising_edge_trigger()
-                    if self._end_event_queue[0] == Event.SET_FALLING_EDGE_TRIGGER:
-                        self._finish_set_falling_edge_trigger()
-                    if self._end_event_queue[0] == Event.RECORD_SAMPLE:
-                        self._finish_record_sample()
-                    self._end_event_queue.pop(0)
-                if self._scope_interface.data_available and len(self._start_event_queue) > 0:
-                    if self.debug:
-                        logging.info(f'start event: {self._start_event_queue[0].name}')
-                    if self._start_event_queue[0] == Event.STOP:
-                        self._stop_trigger()
-                    if self._start_event_queue[0] == Event.CONNECT:
-                        self.start_connect()
-                        self._end_event_queue.append(Event.CONNECT)
-                    if self._start_event_queue[0] == Event.SINGLE_TRIGGER:
-                        self._start_single_trigger()
-                        self._end_event_queue.append(Event.SINGLE_TRIGGER)
-                    if self._start_event_queue[0] == Event.AUTO_TRIGGER:
-                        self._start_auto_trigger_cycle()
-                        self._end_event_queue.append(Event.AUTO_TRIGGER)
-                    if self._start_event_queue[0] == Event.NORMAL_TRIGGER:
-                        self._start_normal_trigger_cycle()
-                        self._end_event_queue.append(Event.NORMAL_TRIGGER)
-                    if self._start_event_queue[0] == Event.FORCE_TRIGGER:
-                        self._start_force_trigger()
-                        self._end_event_queue.append(Event.FORCE_TRIGGER)
-                    if self._start_event_queue[0] == Event.CHANGE_SCALE:
-                        self._start_update_scale_hor()
-                        self._end_event_queue.append(Event.CHANGE_SCALE)
-                    if self._start_event_queue[0] == Event.SET_TRIGGER_LEVEL:
-                        self._start_set_trigger_level()
-                    if self._start_event_queue[0] == Event.READ_CAL_OFFSETS:
-                        self._start_read_cal_offsets()
-                    if self._start_event_queue[0] == Event.SET_CAL_OFFSETS:
-                        self._start_set_calibration()
-                    if self._start_event_queue[0] == Event.SET_RANGE:
-                        self._start_set_range()  
-                    if self._start_event_queue[0] == Event.SET_AMPLIFIER_GAIN:
-                        self._start_set_amplifier_gain()
-                    if self._start_event_queue[0] == Event.SET_RISING_EDGE_TRIGGER:
-                        self._start_set_rising_edge_trigger()
-                        self._end_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
-                    if self._start_event_queue[0] == Event.SET_FALLING_EDGE_TRIGGER:
-                        self._start_set_falling_edge_trigger()
-                        self._end_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER)
-                    if self._start_event_queue[0] == Event.RECORD_SAMPLE:
-                        self._start_record_sample()
-                        self._end_event_queue.append(Event.RECORD_SAMPLE)
-                    self._start_event_queue.pop(0)
+            for i, scope_interface in enumerate(self._scope_interfaces):
+                if scope_interface.disconnected_error:
+                    self.command_input.set_error(self.SCOPE_NOT_CONNECTED_ERROR)
+                    self.command_input.display_error()
+                    scope_interface.clear_disconnected_error()
+                    self._connect_initiated = False
+                    self._set_disconnected()
+                    self._start_event_queue[i] = []
+                    self._end_event_queue[i] = []
+                else:
+                    # The end events must go first otherwise the start events will always have priority.
+                    if scope_interface.data_available and len(self._end_event_queue[i]) > 0:
+                        if self.debug:
+                            logging.info(f'end event: {self._end_event_queue[i][0].name}, scope index: {i}')
+                        if self._end_event_queue[i][0] == Event.CONNECT:
+                            self._finish_connect(i)
+                        if self._end_event_queue[i][0] == Event.AUTO_TRIGGER:
+                            self._finish_auto_trigger_cycle(i)
+                        if self._end_event_queue[i][0] == Event.NORMAL_TRIGGER:
+                            self._finish_normal_trigger_cycle(i)
+                        if self._end_event_queue[i][0] == Event.SINGLE_TRIGGER:
+                            self._finish_single_trigger(i)
+                        if self._end_event_queue[i][0] == Event.CHANGE_SCALE:
+                            self._finish_change_scale(i)
+                        if self._end_event_queue[i][0] == Event.SET_RISING_EDGE_TRIGGER:
+                            self._finish_set_rising_edge_trigger()
+                        if self._end_event_queue[i][0] == Event.SET_FALLING_EDGE_TRIGGER:
+                            self._finish_set_falling_edge_trigger()
+                        if self._end_event_queue[i][0] == Event.RECORD_SAMPLE:
+                            self._finish_record_sample(i)
+                        self._end_event_queue[i].pop(0)
+                    if scope_interface.data_available and len(self._start_event_queue[i]) > 0:
+                        if self.debug:
+                            logging.info(f'start event: {self._start_event_queue[i][0].name}, scope index: {i}')
+                        if self._start_event_queue[i][0] == Event.STOP:
+                            self._stop_trigger()
+                        if self._start_event_queue[i][0] == Event.CONNECT:
+                            self._start_connect(i)
+                            self._end_event_queue[i].append(Event.CONNECT)
+                        if self._start_event_queue[i][0] == Event.SINGLE_TRIGGER:
+                            self._start_single_trigger(i)
+                            self._end_event_queue[i].append(Event.SINGLE_TRIGGER)
+                        if self._start_event_queue[i][0] == Event.AUTO_TRIGGER:
+                            self._start_auto_trigger_cycle(i)
+                            self._end_event_queue[i].append(Event.AUTO_TRIGGER)
+                        if self._start_event_queue[i][0] == Event.NORMAL_TRIGGER:
+                            self._start_normal_trigger_cycle(i)
+                            self._end_event_queue[i].append(Event.NORMAL_TRIGGER)
+                        if self._start_event_queue[i][0] == Event.CHANGE_SCALE:
+                            self._start_change_scale(i)
+                            self._end_event_queue[i].append(Event.CHANGE_SCALE)
+                        if self._start_event_queue[i][0] == Event.SET_TRIGGER_LEVEL:
+                            self._start_set_trigger_level(i)
+                        if self._start_event_queue[i][0] == Event.READ_CAL_OFFSETS:
+                            self._start_read_cal_offsets(i)
+                        if self._start_event_queue[i][0] == Event.SET_CAL_OFFSETS:
+                            self._start_set_calibration(i)
+                        if self._start_event_queue[i][0] == Event.SET_RANGE:
+                            self._start_set_range(i)  
+                        if self._start_event_queue[i][0] == Event.SET_AMPLIFIER_GAIN:
+                            self._start_set_amplifier_gain(i)
+                        if self._start_event_queue[i][0] == Event.SET_RISING_EDGE_TRIGGER:
+                            self._start_set_rising_edge_trigger(i)
+                            self._end_event_queue[i].append(Event.SET_RISING_EDGE_TRIGGER)
+                        if self._start_event_queue[i][0] == Event.SET_FALLING_EDGE_TRIGGER:
+                            self._start_set_falling_edge_trigger(i)
+                            self._end_event_queue[i].append(Event.SET_FALLING_EDGE_TRIGGER)
+                        if self._start_event_queue[i][0] == Event.RECORD_SAMPLE:
+                            self._start_record_sample(i)
+                            self._end_event_queue[i].append(Event.RECORD_SAMPLE)
+                        self._start_event_queue[i].pop(0)
         self.root.after(1, self.check_state)
 
     # TODO: This all needs to be refactored
@@ -207,7 +207,8 @@ class UserInterface:
         if self.mode == Mode.ADJUST_SCALE or self.mode == Mode.ADJUST_TRIGGER_LEVEL or self.mode == Mode.ADJUST_CURSORS:
             if (event.keysym == 'Escape') or (event.state & 0x4 and event.keysym == 'c'): 
                 if self.mode == Mode.ADJUST_TRIGGER_LEVEL: 
-                    self._start_event_queue.append(Event.SET_TRIGGER_LEVEL)
+                    for start_event_queue in self._start_event_queue:
+                        start_event_queue.append(Event.SET_TRIGGER_LEVEL)
                 self._set_command_mode()
         if self.mode == Mode.ADJUST_SCALE:
             if event.char == Keys.VERTICAL_UP:
@@ -266,13 +267,199 @@ class UserInterface:
                     self.get_commands()[key](argument)
                     return
                 elif argument is None:
+                    self.get_commands()[key]()
+                    return
+                    '''
                     try:
                         self.get_commands()[key]()
                         return
                     except Exception as _:
                         break
+                    '''
         self.command_input.set_error(messages.Errors.INVALID_COMMAND_ERROR)
     
+    ##### START EVENTS #####
+
+
+    '''
+    EVENT: CONNECT
+    '''
+
+    def _start_connect(self, scope_index: int) -> None:
+        self.scope_status = Scope_Status.CONNECTING
+        self._update_scope_status()
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.CONNECT)
+        self._scope_interfaces[scope_index].run()
+
+    def _finish_connect(self, scope_index: int) -> None:
+        self.scope_status = Scope_Status.NEUTRAL
+        self.scale.update_sample_rate(self._scope_interfaces[0].scope.SCOPE_SPECS['sample_rate'], 
+                                      self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'])
+        self._start_event_queue[scope_index].append(Event.CHANGE_SCALE)
+        self._start_event_queue[scope_index].append(Event.SET_RISING_EDGE_TRIGGER)
+        self._start_event_queue[scope_index].append(Event.SET_TRIGGER_LEVEL)
+        self._update_scope_status()
+    
+    '''
+    EVENT: SET RANGE
+    '''
+
+    def _start_set_range(self, scope_index: int) -> None:
+        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
+        self._scope_interfaces[scope_index].set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_RANGE)
+        self._scope_interfaces[scope_index].run()
+
+    '''
+    EVENT: SET AMPLIFIER GAIN
+    '''
+
+    def _start_set_amplifier_gain(self, scope_index: int) -> None:
+        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
+        self._scope_interfaces[scope_index].set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_AMPLIFIER_GAIN)
+        self._scope_interfaces[scope_index].run()
+
+    '''
+    EVENT: CHANGE SCALE
+    '''
+
+    def _start_change_scale(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_value(self.scale.clock_div)
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_CLOCK_DIV)
+        self._scope_interfaces[scope_index].run()
+        
+    def _finish_change_scale(self, scope_index: int) -> None:
+        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
+        self.readout.set_fs(self.scale.fs)
+        if self._scope_interfaces[0].xx is not None and len(self._scope_interfaces[0].xx) > 0:
+            self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self._last_fs, 
+                                               self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'], 
+                                               self.scope_trigger.trigger_type, self._triggered,
+                                               self._scope_interfaces[0].scope.FIR_LENGTH, scope_index)
+
+    '''
+    EVENT: READ CAL OFFSET
+    '''
+
+    def _start_read_cal_offsets(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.READ_CAL_OFFSETS)
+        self._scope_interfaces[scope_index].run()
+
+    '''
+    EVENT: SET TRIGGER LEVEL
+    '''
+
+    def _start_set_trigger_level(self, scope_index: int) -> None:
+        self._set_trigger_level = True
+        for i, scope_interface in enumerate(self._scope_interfaces):
+            if i == scope_index:
+                scope_interface.set_value(self.scope_display.get_trigger_voltage(self.scale.vert))
+                scope_interface.set_scope_action(ScopeAction.SET_TRIGGER_LEVEL)
+                scope_interface.run()
+
+    '''
+    EVENT: SET RISING EDGE TRIGGER
+    '''
+
+    def _start_set_rising_edge_trigger(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_RISING_EDGE_TRIGGER)
+        self._scope_interfaces[scope_index].run()
+        
+
+    def _finish_set_rising_edge_trigger(self) -> None:
+        self.scope_trigger.trigger_type = TriggerType.RISING_EDGE
+        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
+
+    '''
+    EVENT: SET FALLING EDGE TRIGGER
+    '''
+
+    def _start_set_falling_edge_trigger(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_FALLING_EDGE_TRIGGER)
+        self._scope_interfaces[scope_index].run()
+
+    def _finish_set_falling_edge_trigger(self) -> None:
+        self.scope_trigger.trigger_type = TriggerType.FALLING_EDGE
+        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
+
+    '''
+    EVENT: AUTO TRIGGER
+    '''
+
+    def _start_auto_trigger_cycle(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.FORCE_TRIGGER)
+        self._scope_interfaces[scope_index].fs = self.scale.fs
+        self._last_fs = self.scale.fs
+        self._auto_trigger_running = True
+        self._scope_interfaces[scope_index].run()
+
+    def _finish_auto_trigger_cycle(self, scope_index: int) -> None:
+        self._triggered = False
+        self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered, scope_index)
+        if self._auto_trigger_running:
+            self._start_event_queue[scope_index].append(Event.AUTO_TRIGGER)
+
+    '''
+    EVENT: NORMAL TRIGGER
+    '''
+
+    def _start_normal_trigger_cycle(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.TRIGGER)
+        self._scope_interfaces[scope_index].fs = self.scale.fs
+        self._last_fs = self.scale.fs
+        self._scope_interfaces[scope_index].run()
+
+    def _finish_normal_trigger_cycle(self, scope_index: int) -> None:
+        if len(self._scope_interfaces[scope_index].xx) > 0: 
+            self._triggered = True
+            self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered, scope_index)
+        if self._normal_trigger_running:
+            for start_event_queue in self._start_event_queue:
+                # We don't want to over schedule
+                if len(start_event_queue) == 0 or start_event_queue[len(start_event_queue) - 1] != Event.NORMAL_TRIGGER:
+                    start_event_queue.append(Event.NORMAL_TRIGGER)
+
+    '''
+    EVENT: SINGLE TRIGGER
+    '''
+
+    def _start_single_trigger(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.TRIGGER)
+        self._scope_interfaces[scope_index].run()
+
+    def _finish_single_trigger(self, scope_index: int) -> None:
+        if len(self._scope_interfaces[scope_index].xx) > 0:
+            self._triggered = True
+            self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered)
+
+    '''
+    EVENT: RECORD SAMPLE
+    '''
+
+    def _start_record_sample(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.RECORD_SAMPLE)
+        self._scope_interfaces[scope_index].run()
+        self._record_running = True
+
+    def _finish_record_sample(self, scope_index: int) -> None:
+        self.scope_display.record = self._scope_interfaces[scope_index]._record
+        self.scope_display.resample_record(self.scale.vert)
+        if self._record_running:
+            self._start_event_queue[scope_index].append(Event.RECORD_SAMPLE)
+
+    '''
+    EVENT: READ CAL OFFSETS
+    '''
+
+    def _start_set_calibration(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_value(self.scale.vert)
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_CAL_OFFSETS)
+        self._scope_interfaces[scope_index].run()
+
+
+    ##### END EVENTS #####
+
     def _set_adjust_scale_mode(self) -> None:
         self.mode = Mode.ADJUST_SCALE
         self.command_input.set_adjust_mode()
@@ -307,50 +494,21 @@ class UserInterface:
     def _set_update_scale(self, update_fn: Callable[[], None]) -> None:
         if update_fn is not None:
             update_fn()
-        self.scale.update_sample_rate(self._scope_interface.scope.SCOPE_SPECS['sample_rate'], 
-                                      self._scope_interface.scope.SCOPE_SPECS['memory_depth'])
+        self.scale.update_sample_rate(self._scope_interfaces[0].scope.SCOPE_SPECS['sample_rate'], 
+                                      self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'])
         if self._auto_trigger_running or self._normal_trigger_running:
-            self._scope_interface.fs = self.scale.fs
-        self._start_event_queue.append(Event.CHANGE_SCALE)
-
-    def _start_read_cal_offsets(self) -> None:
-        self._scope_interface.set_scope_action(ScopeAction.READ_CAL_OFFSETS)
-        self._scope_interface.run()
-
-    def _start_update_scale_hor(self) -> None:
-        self._scope_interface.set_value(self.scale.clock_div)
-        self._scope_interface.set_scope_action(ScopeAction.SET_CLOCK_DIV)
-        self._scope_interface.run()
+            for scope_interface in self._scope_interfaces:
+                scope_interface.fs = self.scale.fs
+        for start_event_queue in self._start_event_queue:
+            start_event_queue.append(Event.CHANGE_SCALE)
 
     def _update_scale_vert(self, update_fn: Callable[[], None]) -> None:
         update_fn()
-        self._start_event_queue.append(Event.SET_RANGE)
-        self._start_event_queue.append(Event.SET_AMPLIFIER_GAIN)
-        self._render_update_scale()
+        for start_event_queue in self._start_event_queue:
+            start_event_queue.append(Event.SET_RANGE)
+            start_event_queue.append(Event.SET_AMPLIFIER_GAIN)
 
-    def _start_set_calibration(self) -> None:
-        self._scope_interface.set_value(self.scale.vert)
-        self._scope_interface.set_scope_action(ScopeAction.SET_CAL_OFFSETS)
-        self._scope_interface.run()
-
-    def _start_set_range(self) -> None:
-        self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
-        self._scope_interface.set_scope_action(ScopeAction.SET_RANGE)
-        self._scope_interface.run()
     
-    def _start_set_amplifier_gain(self) -> None:
-        self._scope_interface.set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
-        self._scope_interface.set_scope_action(ScopeAction.SET_AMPLIFIER_GAIN)
-        self._scope_interface.run()
-
-    def _render_update_scale(self) -> None:
-        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
-        self.readout.set_fs(self.scale.fs)
-        if self._scope_interface.xx is not None and len(self._scope_interface.xx) > 0:
-            self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self._last_fs, 
-                                               self._scope_interface.scope.SCOPE_SPECS['memory_depth'], 
-                                               self.scope_trigger.trigger_type, self._triggered,
-                                               self._scope_interface.scope.FIR_LENGTH)
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
@@ -360,13 +518,19 @@ class UserInterface:
     def _connect(self, identifier: str):
         for scope in get_available_scopes():
             if list(scope.keys())[0] == identifier:
+                for connected_device in scope[identifier].find_scope_ports():
+                    self._scope_interfaces.append(ScopeInterface(scope[identifier], device=connected_device))
+                    self._start_event_queue.append([])
+                    self._end_event_queue.append([])
+                self.scope_display.init_vectors(len(self._scope_interfaces))
                 self._connect_initiated = True
-                self._scope_interface: ScopeInterface = ScopeInterface(scope[identifier])
-                self._start_event_queue.append(Event.CONNECT)
-                self._start_event_queue.append(Event.SET_RANGE)
-                self._start_event_queue.append(Event.SET_AMPLIFIER_GAIN)
-                if isinstance(self._scope_interface.scope, NS1):
-                    self._start_event_queue.append(Event.READ_CAL_OFFSETS)
+                for scope_event_queue in self._start_event_queue:
+                    scope_event_queue.append(Event.CONNECT)
+                    scope_event_queue.append(Event.SET_RANGE)
+                    scope_event_queue.append(Event.SET_AMPLIFIER_GAIN)
+                for i, scope_interface in enumerate(self._scope_interfaces):
+                    if isinstance(scope_interface.scope, NS1):
+                        self._start_event_queue[i].append(Event.READ_CAL_OFFSETS)
                 self._set_update_scale(None)
                 return
         self.command_input.set_error(self.INVALID_SCOPE_ERROR)
@@ -382,29 +546,54 @@ class UserInterface:
         export_png(settings, filename, self.scope_display.size)
 
     def _on_auto_trigger_command(self):
+        self._auto_trigger_running = True
         if self._normal_trigger_running:
             self._stop_trigger()
-            self._start_event_queue += [Event.AUTO_TRIGGER]
+            for start_event_queue in self._start_event_queue:
+                start_event_queue.append(Event.AUTO_TRIGGER)
             self._normal_trigger_running = False
         else:
-            self._start_event_queue.append(Event.AUTO_TRIGGER)
+            for start_event_queue in self._start_event_queue:
+                start_event_queue.append(Event.AUTO_TRIGGER)
 
     def _on_normal_trigger_command(self):
+        self._normal_trigger_running = True
         if self._auto_trigger_running:
-            self._start_event_queue += [Event.STOP, Event.NORMAL_TRIGGER]
+            for start_event_queue in self._start_event_queue:
+                start_event_queue += [Event.STOP, Event.NORMAL_TRIGGER]
             self._auto_trigger_running = False
         else:
-            self._start_event_queue.append(Event.NORMAL_TRIGGER) 
+            for start_event_queue in self._start_event_queue:
+                start_event_queue.append(Event.NORMAL_TRIGGER) 
 
     def _on_single_trigger_command(self):
         if self._auto_trigger_running:
-            self._start_event_queue += [Event.STOP, Event.SINGLE_TRIGGER]
+            for start_event_queue in self._start_event_queue:
+                start_event_queue += [Event.STOP, Event.SINGLE_TRIGGER]
             self._auto_trigger_running = False
         elif self._normal_trigger_running:
-            self._start_event_queue += [Event.STOP, Event.SINGLE_TRIGGER]
+            for start_event_queue in self._start_event_queue:
+                start_event_queue += [Event.STOP, Event.SINGLE_TRIGGER]
             self._normal_trigger_running = False
         else:
-            self._start_event_queue.append(Event.SINGLE_TRIGGER)
+            for start_event_queue in self._start_event_queue:
+                start_event_queue.append(Event.SINGLE_TRIGGER)
+
+    def _on_trigger_rising_edge_command(self):
+        for start_event_queue in self._start_event_queue:
+            start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
+
+    def _on_trigger_falling_edge_command(self):
+        for start_event_queue in self._start_event_queue:
+            start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER)
+
+    def _on_set_cal_offsets_command(self):
+        for start_event_queue in self._start_event_queue:
+            start_event_queue.append(Event.SET_CAL_OFFSETS)
+
+    def _on_record_command(self):
+        for start_event_queue in self._start_event_queue:
+            start_event_queue.append(Event.RECORD_SAMPLE)
 
     def get_commands(self): 
         return {
@@ -421,125 +610,38 @@ class UserInterface:
             commands.NORMAL_TRIGGER_COMMAND: self._on_normal_trigger_command,
             commands.SINGLE_TRIGGER_COMMAND: self._on_single_trigger_command,
             commands.STOP: self._stop_trigger,
-            commands.TRIGGER_RISING_EDGE_COMMAND: lambda: self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER),
-            commands.TRIGGER_FALLING_EDGE_COMMAND: lambda: self._start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER),
+            commands.TRIGGER_RISING_EDGE_COMMAND: self._on_trigger_rising_edge_command,
+            commands.TRIGGER_FALLING_EDGE_COMMAND: self._on_trigger_falling_edge_command,
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
-            commands.CAL: lambda: self._start_event_queue.append(Event.SET_CAL_OFFSETS),
+            commands.CAL: self._on_set_cal_offsets_command,
             commands.PNG: lambda filename: self._run_png_export(filename),
-            'record': lambda: self._start_event_queue.append(Event.RECORD_SAMPLE)
+            'record': self._on_record_command
         }
 
     def _set_disconnected(self) -> None:
         self.scope_status = Scope_Status.DISCONNECTED
         self._update_scope_status()
 
-    def start_connect(self) -> None:
-        self.scope_status = Scope_Status.CONNECTING
-        self._update_scope_status()
-        self._scope_interface.set_scope_action(ScopeAction.CONNECT)
-        self._scope_interface.run()
-            
-    def finish_connect(self) -> None:
-        self.scope_status = Scope_Status.NEUTRAL
-        self.scale.update_sample_rate(self._scope_interface.scope.SCOPE_SPECS['sample_rate'], 
-                                      self._scope_interface.scope.SCOPE_SPECS['memory_depth'])
-        self._start_event_queue.append(Event.CHANGE_SCALE)
-        self._start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
-        self._start_event_queue.append(Event.SET_TRIGGER_LEVEL)
-        self._update_scope_status()
-
-    def display_signal(self, xx: list[float], triggered: bool) -> None:
+    def display_signal(self, xx: list[float], triggered: bool, scope_index: int) -> None:
         if xx is not None and len(xx) > 0:
             self.readout.set_average(average(xx))
             self.readout.set_rms(rms(xx))
-            self.scope_display.vector = xx
+            self.scope_display.add_vector(xx, scope_index)
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
-                                               self._scope_interface.scope.SCOPE_SPECS['memory_depth'], 
+                                               self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'], 
                                                self.scope_trigger.trigger_type, triggered,
-                                               self._scope_interface.scope.FIR_LENGTH)
+                                               self._scope_interfaces[0].scope.FIR_LENGTH, scope_index)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
-
-    def _start_auto_trigger_cycle(self) -> None:
-        self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
-        self._auto_trigger_running = True
-        self._scope_interface.fs = self.scale.fs
-        self._last_fs = self.scale.fs
-        self._scope_interface.run()
-
-    def _finish_auto_trigger_cycle(self) -> None:
-        self._triggered = False
-        self.display_signal(self._scope_interface.xx, self._triggered)
-        if self._auto_trigger_running:
-            self._start_event_queue.append(Event.AUTO_TRIGGER)
-
-    def _start_normal_trigger_cycle(self) -> None:
-        self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
-        self._normal_trigger_running = True
-        self._scope_interface.fs = self.scale.fs
-        self._last_fs = self.scale.fs
-        self._scope_interface.run()
-
-    def _finish_normal_trigger_cycle(self) -> None:
-        if len(self._scope_interface.xx) > 0: 
-            self._triggered = True
-            self.display_signal(self._scope_interface.xx, self._triggered)
-        if self._normal_trigger_running:
-            self._start_event_queue.append(Event.NORMAL_TRIGGER)
-
-    def _finish_single_trigger(self) -> None:
-        if len(self._scope_interface.xx) > 0:
-            self._triggered = True
-            self.display_signal(self._scope_interface.xx, self._triggered)
-
-    def _start_force_trigger(self) -> None:
-        self._scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
-        self._scope_interface.run()
-
-    def _start_single_trigger(self) -> None:
-        self._scope_interface.set_scope_action(ScopeAction.TRIGGER)
-        self._scope_interface.run()
-
-    def _start_record_sample(self) -> None:
-        self._scope_interface.set_scope_action(ScopeAction.RECORD_SAMPLE)
-        self._scope_interface.run()
-        self._record_running = True
-
-    def _finish_record_sample(self) -> None:
-        self.scope_display.record = self._scope_interface._record
-        self.scope_display.resample_record(self.scale.vert)
-        if self._record_running:
-            self._start_event_queue.append(Event.RECORD_SAMPLE)
-
+    
     def _stop_trigger(self) -> None:
         if self._auto_trigger_running:
             self._auto_trigger_running = False
         elif self._normal_trigger_running:
             self._normal_trigger_running = False  
-            self._scope_interface.stop_trigger()
-
-    def _start_set_trigger_level(self) -> None:
-        self._set_trigger_level = True
-        self._scope_interface.set_value(self.scope_display.get_trigger_voltage(self.scale.vert))
-        self._scope_interface.set_scope_action(ScopeAction.SET_TRIGGER_LEVEL)
-        self._scope_interface.run()
-
-    def _start_set_rising_edge_trigger(self) -> None:
-        self._scope_interface.set_scope_action(ScopeAction.SET_RISING_EDGE_TRIGGER)
-        self._scope_interface.run()
-
-    def _finish_set_rising_edge_trigger(self) -> None:
-        self.scope_trigger.trigger_type = TriggerType.RISING_EDGE
-        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
-
-    def _start_set_falling_edge_trigger(self) -> None:
-        self._scope_interface.set_scope_action(ScopeAction.SET_FALLING_EDGE_TRIGGER)
-        self._scope_interface.run()
-
-    def _finish_set_falling_edge_trigger(self) -> None:
-        self.scope_trigger.trigger_type = TriggerType.FALLING_EDGE
-        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
+            for scope_interface in self._scope_interfaces:
+                scope_interface.stop_trigger()
 
     # TODO: Refactor the three methods below that are very similar.
     def toggle_cursors(self) -> None:

@@ -18,7 +18,6 @@ class NS1(ScopeBase):
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
         'attenuation': {'range_high':0.0578, 'range_low':0.3327},
-        'offset': {'range_high':0, 'range_high_gain':0, 'range_low':0, 'range_low_gain':0},
         'resolution': 256,    
         'voltage_ref': 1.6,
         'sample_rate': 62.5e6, 
@@ -49,13 +48,15 @@ class NS1(ScopeBase):
     CAL_BITS = 13
     CAL_MEMORY_DIGITS = 4
     CAL_INT_MULTIPLIER = 1000
+    DATA_HANG_THRESHOLD = 100
 
     def __init__(self, baudrate: int=115200, port: Optional[str]=None):
         self.baudrate: int = baudrate
-        self.port: Optional[str] = None
+        self.port: Optional[str] = port
         self.error: bool = False
         self._stop: Event = Event()
         self._xx: list[float] = []
+        self._cal_offsets = {'range_high':0, 'range_high_gain':0, 'range_low':0, 'range_low_gain':0}
 
     def pico_connected(self) -> bool:
         ports = list_ports.comports()
@@ -71,12 +72,15 @@ class NS1(ScopeBase):
                 return port.device
         return None
 
+    @classmethod
+    def find_scope_ports(cls) -> list[str]: return [port.device for port in list_ports.comports() if port.vid == cls.PICO_VID]
+
     def connect(self) -> None:
         try:
             if self.port is None:
                 self.port = self.find_pico_serial_port() 
             # TODO: raise an error if the port stays none
-            self.serial_port: Serial = Serial()
+            self.serial_port: Serial = Serial(timeout=1)
             self.serial_port.baudrate = self.baudrate
             self.serial_port.port = self.port
             self.serial_port.timeout = 100 #ms
@@ -90,20 +94,33 @@ class NS1(ScopeBase):
         self.serial_port.flushOutput()
         self._stop.clear()
         codes: list[str] = []
-        while len(codes) < self.SCOPE_SPECS['memory_depth'] - 1: 
+        data_hangs = 0
+        while len(codes) < self.SCOPE_SPECS['memory_depth']: 
             if self._stop.is_set():
                 self._stop.clear()
                 return None
             try:
                 new_data = self.serial_port.read(self.serial_port.inWaiting())
-                if new_data is None: # timeout
+                if new_data is None:
+                    # This is probably dead code
                     return None
                 else:
+                    # This fixes data freeze with auto trigger, but won't work with normal trigger
+                    '''
+                    if len(new_data) == 0:
+                        data_hangs += 1
+                        if data_hangs > self.DATA_HANG_THRESHOLD:
+                            return None
+                    elif data_hangs > 0:
+                        data_hangs = 0
+                    '''
                     codes += list(new_data)
                     sleep(0.0001)
             except (OSError, IOError) as _:
+                print(_)
                 return None
             except Exception as _:
+                print(_)
                 return None
         if self._stop.is_set():
             self._stop.clear()
@@ -118,15 +135,15 @@ class NS1(ScopeBase):
         if full_scale <= self.LOW_RANGE_THRESHOLD or force_low_range:
             attenuation = self.SCOPE_SPECS['attenuation']['range_low']
             if full_scale == 1:
-                offset = self.SCOPE_SPECS['offset']['range_low_gain']
+                offset = self._cal_offsets['range_low_gain']
             else:
-                offset = self.SCOPE_SPECS['offset']['range_low']
+                offset = self._cal_offsets['range_low']
         else: 
             attenuation = self.SCOPE_SPECS['attenuation']['range_high']
             if full_scale == 5:
-                offset = self.SCOPE_SPECS['offset']['range_high_gain']
+                offset = self._cal_offsets['range_high_gain']
             else:
-                offset = self.SCOPE_SPECS['offset']['range_high']
+                offset = self._cal_offsets['range_high']
         # Adjust for amplification 
         if full_scale == 5 or full_scale == 1:
             attenuation *= 2
@@ -148,7 +165,7 @@ class NS1(ScopeBase):
     def get_scope_force_trigger_data(self, full_scale: float, offset_null=True) -> list[float]:
         self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
         new_codes = self.read_glob_data()
-        if len(new_codes) > 0:
+        if new_codes is not None and len(new_codes) == self.SCOPE_SPECS['memory_depth']:
             self._xx = self._reconstruct(self._FIR_filter(new_codes), full_scale, offset_null=offset_null)
         return self._xx 
 
@@ -176,15 +193,15 @@ class NS1(ScopeBase):
         if full_scale <= self.LOW_RANGE_THRESHOLD:
             attenuation = self.SCOPE_SPECS['attenuation']['range_low']
             if full_scale == 1:
-                offset = self.SCOPE_SPECS['offset']['range_low_gain']
+                offset = self._cal_offsets['range_low_gain']
             else:
-                offset = self.SCOPE_SPECS['offset']['range_low']
+                offset = self._cal_offsets['range_low']
         else: 
             attenuation = self.SCOPE_SPECS['attenuation']['range_high']
             if full_scale == 5:
-                offset = self.SCOPE_SPECS['offset']['range_high_gain']
+                offset = self._cal_offsets['range_high_gain']
             else:
-                offset = self.SCOPE_SPECS['offset']['range_high']
+                offset = self._cal_offsets['range_high']
         # Adjust for amplification 
         if full_scale == 5 or full_scale == 1:
             attenuation *= 2
@@ -202,10 +219,10 @@ class NS1(ScopeBase):
         self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
 
     def _encode_calibration_offsets(self) -> str:
-        range_high_int = int(self.SCOPE_SPECS['offset']['range_high']*self.CAL_INT_MULTIPLIER)
-        range_high_gain_int = int(self.SCOPE_SPECS['offset']['range_high_gain']*self.CAL_INT_MULTIPLIER)
-        range_low_int = int(self.SCOPE_SPECS['offset']['range_low']*self.CAL_INT_MULTIPLIER)
-        range_low_gain_int = int(self.SCOPE_SPECS['offset']['range_low_gain']*self.CAL_INT_MULTIPLIER)
+        range_high_int = int(self._cal_offsets['range_high']*self.CAL_INT_MULTIPLIER)
+        range_high_gain_int = int(self._cal_offsets['range_high_gain']*self.CAL_INT_MULTIPLIER)
+        range_low_int = int(self._cal_offsets['range_low']*self.CAL_INT_MULTIPLIER)
+        range_low_gain_int = int(self._cal_offsets['range_low_gain']*self.CAL_INT_MULTIPLIER)
         range_high: int = twos_complement_base10_encode(range_high_int, self.CAL_BITS)
         range_high_gain: int = twos_complement_base10_encode(range_high_gain_int, self.CAL_BITS)
         range_low: int = twos_complement_base10_encode(range_low_int, self.CAL_BITS)
@@ -220,17 +237,17 @@ class NS1(ScopeBase):
         self._set_amplifier_gain_off()
         self._set_high_range()
         sleep(self.CAL_DELAY)
-        self.SCOPE_SPECS['offset']['range_high'] = -1*average(self.get_scope_force_trigger_data(10, offset_null=False))
+        self._cal_offsets['range_high'] = -1*average(self.get_scope_force_trigger_data(10, offset_null=False))
         self._set_amplifier_gain_on()
         sleep(self.CAL_DELAY)
-        self.SCOPE_SPECS['offset']['range_high_gain'] = -1*average(self.get_scope_force_trigger_data(5, offset_null=False))
+        self._cal_offsets['range_high_gain'] = -1*average(self.get_scope_force_trigger_data(5, offset_null=False))
         self._set_amplifier_gain_off()
         self._set_low_range()
         sleep(self.CAL_DELAY)
-        self.SCOPE_SPECS['offset']['range_low'] = -1*average(self.get_scope_force_trigger_data(2, offset_null=False))
+        self._cal_offsets['range_low'] = -1*average(self.get_scope_force_trigger_data(2, offset_null=False))
         self._set_amplifier_gain_on()
         sleep(self.CAL_DELAY)
-        self.SCOPE_SPECS['offset']['range_low_gain'] = -1*average(self.get_scope_force_trigger_data(1, offset_null=False))
+        self._cal_offsets['range_low_gain'] = -1*average(self.get_scope_force_trigger_data(1, offset_null=False))
         self._set_amplifier_gain_off()
         self._set_high_range()
         self.serial_port.write(self.SET_CAL_COMMAND)
@@ -266,10 +283,10 @@ class NS1(ScopeBase):
         high_range_gain_offset = twos_complement_base10_decode(offset_bytes[3] << 8 | offset_bytes[2], self.CAL_BITS)
         low_range_offset = twos_complement_base10_decode(offset_bytes[5] << 8 | offset_bytes[4], self.CAL_BITS)
         low_range_gain_offset = twos_complement_base10_decode(offset_bytes[7] << 8 | offset_bytes[6], self.CAL_BITS)
-        self.SCOPE_SPECS['offset']['range_high'] = high_range_offset/self.CAL_INT_MULTIPLIER
-        self.SCOPE_SPECS['offset']['range_high_gain'] = high_range_gain_offset/self.CAL_INT_MULTIPLIER
-        self.SCOPE_SPECS['offset']['range_low'] = low_range_offset/self.CAL_INT_MULTIPLIER
-        self.SCOPE_SPECS['offset']['range_low_gain'] = low_range_gain_offset/self.CAL_INT_MULTIPLIER
+        self._cal_offsets['range_high'] = high_range_offset/self.CAL_INT_MULTIPLIER
+        self._cal_offsets['range_high_gain'] = high_range_gain_offset/self.CAL_INT_MULTIPLIER
+        self._cal_offsets['range_low'] = low_range_offset/self.CAL_INT_MULTIPLIER
+        self._cal_offsets['range_low_gain'] = low_range_gain_offset/self.CAL_INT_MULTIPLIER
         return True
 
     def stop_trigger(self) -> None: 

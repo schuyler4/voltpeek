@@ -2,6 +2,7 @@ from typing import Optional, Callable, Dict, Any
 from enum import Enum
 from threading import Thread, Lock
 from functools import wraps
+import logging
 
 from serial.serialutil import PortNotOpenError
 
@@ -30,12 +31,16 @@ def scope_action_handler(func):
     return wrapper
 
 class ScopeInterface:
-    def __init__(self, scope):
+    def __init__(self, scope, device=None):
         self._scope_connected: bool = False
         self._xx: Optional[list[float]] = None
         self._record: list[float] = []
         self._calibration_ints: list[int] = None
-        self._scope = scope() 
+        if device is None:
+            self._scope = scope() 
+        else:
+            self._device = device
+            self._scope = scope(port=device)
         self._data_available: Lock = Lock()
         self._action: ScopeAction = None
         self._action_complete: bool = True
@@ -63,10 +68,13 @@ class ScopeInterface:
         }
 
     def _scope_available(self, scope_action: Callable):
+        scope_action()
+        '''
         try:
             scope_action()
         except (Exception, OSError) as _:
             self._disconnected_error = True
+        '''
 
     @scope_action_handler
     def _connect_scope(self):
