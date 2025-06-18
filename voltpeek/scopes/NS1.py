@@ -105,7 +105,7 @@ class NS1(ScopeBase):
                     # This is probably dead code
                     return None
                 else:
-                    # May cause a problem with normal trigger
+                    # This fixes data freeze with auto trigger, but won't work with normal trigger
                     '''
                     if len(new_data) == 0:
                         data_hangs += 1

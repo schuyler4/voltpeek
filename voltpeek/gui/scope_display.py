@@ -192,7 +192,7 @@ class Scope_Display:
         '''
         self._record_index += len(self._display_record)
         self.canvas.create_line(self._size - self._record_index, self._display_record[0], self._size - self._record_index+1, self._display_record[0], 
-                                fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
+                                fill=self._hex_string_from_rgb(self.SIGNAL_COLORS[0]))
         print(self._display_record)
 
     def _draw_dashed_horizontal_line(self, position, color): 

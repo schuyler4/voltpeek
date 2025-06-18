@@ -582,6 +582,14 @@ class UserInterface:
         for start_event_queue in self._start_event_queue:
             start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER)
 
+    def _on_set_cal_offsets_command(self):
+        for start_event_queue in self._start_event_queue:
+            start_event_queue.append(Event.SET_CAL_OFFSETS)
+
+    def _on_record_command(self):
+        for start_event_queue in self._start_event_queue:
+            start_event_queue.append(Event.RECORD_SAMPLE)
+
     def get_commands(self): 
         return {
             commands.EXIT_COMMAND: lambda: exit(),
@@ -601,9 +609,9 @@ class UserInterface:
             commands.TRIGGER_FALLING_EDGE_COMMAND: self._on_trigger_falling_edge_command,
             commands.PROBE_1: lambda: self._set_probe(1),
             commands.PROBE_10: lambda: self._set_probe(10),
-            commands.CAL: lambda: self._start_event_queue.append(Event.SET_CAL_OFFSETS),
+            commands.CAL: self._on_set_cal_offsets_command,
             commands.PNG: lambda filename: self._run_png_export(filename),
-            'record': lambda: self._start_event_queue.append(Event.RECORD_SAMPLE)
+            'record': self._on_record_command
         }
 
     def _set_disconnected(self) -> None:
