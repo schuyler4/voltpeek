@@ -42,6 +42,8 @@ class NS1(ScopeBase):
     RISING_EDGE_TRIGGER_COMMAND: bytes = b'/'
     FALLING_EDGE_TRIGGER_COMMAND: bytes = b'\\'
     ROLL_SAMPLE_COMMAND: bytes = b'o'
+    ENABLE_SIGNAL_TRIGGER_COMMAND: bytes = b'I'
+    DISABLE_SIGNAL_TRIGGER_COMMAND: bytes = b'i'
 
     LOW_RANGE_THRESHOLD: float = 4
     CAL_DELAY = 0.1
@@ -90,8 +92,6 @@ class NS1(ScopeBase):
             self.error = True
 
     def read_glob_data(self):
-        self.serial_port.flushInput()
-        self.serial_port.flushOutput()
         self._stop.clear()
         codes: list[str] = []
         data_hangs = 0
@@ -156,6 +156,7 @@ class NS1(ScopeBase):
         return reconstructed_signal
 
     def get_scope_trigger_data(self, full_scale: float) -> list[float]:
+        self.serial_port.flush()
         self.serial_port.write(self.TRIGGER_COMMAND) 
         new_codes = self.read_glob_data()
         if new_codes is not None and len(new_codes) == self.SCOPE_SPECS['memory_depth']:
@@ -163,6 +164,7 @@ class NS1(ScopeBase):
         return self._xx
 
     def get_scope_force_trigger_data(self, full_scale: float, offset_null=True) -> list[float]:
+        self.serial_port.flush()
         self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
         new_codes = self.read_glob_data()
         if new_codes is not None and len(new_codes) == self.SCOPE_SPECS['memory_depth']:
@@ -188,6 +190,9 @@ class NS1(ScopeBase):
 
     def _set_amplifier_gain_on(self) -> None: self.serial_port.write(self.AMPLIFIER_GAIN_COMMAND)
     def _set_amplifier_gain_off(self) -> None: self.serial_port.write(self.AMPLIFIER_UNITY_COMMAND)
+
+    def enable_signal_trigger(self) -> None: self.serial_port.write(self.ENABLE_SIGNAL_TRIGGER_COMMAND)
+    def disable_signal_trigger(self) -> None: self.serial_port.write(self.DISABLE_SIGNAL_TRIGGER_COMMAND)
 
     def set_trigger_voltage(self, trigger_voltage: float, full_scale: float) -> None:
         if full_scale <= self.LOW_RANGE_THRESHOLD:

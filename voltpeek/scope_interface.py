@@ -6,6 +6,7 @@ import logging
 
 from serial.serialutil import PortNotOpenError
 
+# Probably can just use the method names directly instead of this
 class ScopeAction(Enum):
     CONNECT = 0
     TRIGGER = 1
@@ -20,6 +21,8 @@ class ScopeAction(Enum):
     SET_FALLING_EDGE_TRIGGER = 10
     SET_AMPLIFIER_GAIN = 11
     RECORD_SAMPLE = 12
+    ENABLE_SIGNAL_TRIGGER = 13
+    DISABLE_SIGNAL_TRIGGER = 14
 
 def scope_action_handler(func):
     @wraps(func)
@@ -64,7 +67,9 @@ class ScopeInterface:
             ScopeAction.SET_RISING_EDGE_TRIGGER: self._set_rising_edge_trigger,
             ScopeAction.SET_FALLING_EDGE_TRIGGER: self._set_falling_edge_trigger,
             ScopeAction.SET_AMPLIFIER_GAIN: self._set_amplifier_gain,
-            ScopeAction.RECORD_SAMPLE: self._record_sample
+            ScopeAction.RECORD_SAMPLE: self._record_sample,
+            ScopeAction.ENABLE_SIGNAL_TRIGGER: self._enable_signal_trigger,
+            ScopeAction.DISABLE_SIGNAL_TRIGGER: self._disable_signal_trigger
         }
 
     def _scope_available(self, scope_action: Callable):
@@ -119,6 +124,12 @@ class ScopeInterface:
 
     @scope_action_handler
     def _set_falling_edge_trigger(self): self._scope.set_falling_edge_trigger()
+
+    @scope_action_handler
+    def _enable_signal_trigger(self): self._scope.enable_signal_trigger()
+
+    @scope_action_handler
+    def _disable_signal_trigger(self): self._scope.disable_signal_trigger()
 
     @scope_action_handler
     def _record_sample(self): 

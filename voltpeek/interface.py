@@ -56,6 +56,8 @@ class Event(Enum):
     SET_FALLING_EDGE_TRIGGER = 13
     SET_AMPLIFIER_GAIN = 14
     RECORD_SAMPLE = 15
+    ENABLE_SIGNAL_TRIGGER = 16
+    DISABLE_SIGNAL_TRIGGER = 17
 
 class KeyCodes:
     CTRL_C: int = 54
@@ -199,6 +201,10 @@ class UserInterface:
                         if self._start_event_queue[i][0] == Event.RECORD_SAMPLE:
                             self._start_record_sample(i)
                             self._end_event_queue[i].append(Event.RECORD_SAMPLE)
+                        if self._start_event_queue[i][0] == Event.ENABLE_SIGNAL_TRIGGER:
+                            self._start_enable_signal_trigger(i)
+                        if self._start_event_queue[i][0] == Event.DISABLE_SIGNAL_TRIGGER:
+                            self._start_disable_signal_trigger(i)
                         self._start_event_queue[i].pop(0)
         self.root.after(1, self.check_state)
 
@@ -413,7 +419,10 @@ class UserInterface:
     def _finish_normal_trigger_cycle(self, scope_index: int) -> None:
         if len(self._scope_interfaces[scope_index].xx) > 0: 
             self._triggered = True
-            self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered, scope_index)
+            if scope_index == 0:
+                self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered, scope_index)
+            else:
+                self.display_signal(self._scope_interfaces[scope_index].xx, False, scope_index)
         if self._normal_trigger_running:
             for start_event_queue in self._start_event_queue:
                 # We don't want to over schedule
@@ -457,6 +466,21 @@ class UserInterface:
         self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_CAL_OFFSETS)
         self._scope_interfaces[scope_index].run()
 
+    '''
+    EVENT: ENABLE SIGNAL TRIGGER
+    '''
+
+    def _start_enable_signal_trigger(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.ENABLE_SIGNAL_TRIGGER)
+        self._scope_interfaces[scope_index].run()
+
+    '''
+    EVENT: DISABLE SIGNAL TRIGGER   
+    '''
+
+    def _start_disable_signal_trigger(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.DISABLE_SIGNAL_TRIGGER)
+        self._scope_interfaces[scope_index].run()
 
     ##### END EVENTS #####
 
@@ -508,8 +532,6 @@ class UserInterface:
             start_event_queue.append(Event.SET_RANGE)
             start_event_queue.append(Event.SET_AMPLIFIER_GAIN)
 
-    
-
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
         self.readout.update_cursors(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))
@@ -559,12 +581,17 @@ class UserInterface:
     def _on_normal_trigger_command(self):
         self._normal_trigger_running = True
         if self._auto_trigger_running:
-            for start_event_queue in self._start_event_queue:
-                start_event_queue += [Event.STOP, Event.NORMAL_TRIGGER]
+            for i, start_event_queue in enumerate(self._start_event_queue):
+                self._start_event_queue.append(Event.STOP)
+                if i == 0:
+                    self._start_event_queue.append(Event.ENABLE_SIGNAL_TRIGGER)
+                else:
+                    self._start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
+                self._start_event_queue.append(Event.NORMAL_TRIGGER)
             self._auto_trigger_running = False
         else:
             for start_event_queue in self._start_event_queue:
-                start_event_queue.append(Event.NORMAL_TRIGGER) 
+                start_event_queue += [Event.ENABLE_SIGNAL_TRIGGER, Event.NORMAL_TRIGGER]
 
     def _on_single_trigger_command(self):
         if self._auto_trigger_running:
@@ -587,13 +614,9 @@ class UserInterface:
         for start_event_queue in self._start_event_queue:
             start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER)
 
-    def _on_set_cal_offsets_command(self):
-        for start_event_queue in self._start_event_queue:
-            start_event_queue.append(Event.SET_CAL_OFFSETS)
+    def _on_set_cal_offsets_command(self) -> None: [start_event_queue.append(Event.SET_CAL_OFFSETS) for start_event_queue in self._start_event_queue]
 
-    def _on_record_command(self):
-        for start_event_queue in self._start_event_queue:
-            start_event_queue.append(Event.RECORD_SAMPLE)
+    def _on_record_command(self) -> None: [start_event_queue.append(Event.RECORD_SAMPLE) for start_event_queue in self._start_event_queue]
 
     def get_commands(self): 
         return {

@@ -82,7 +82,7 @@ class Scope_Display:
         else:
             return centered_vector
 
-    def _resample_horizontal_record(self, vert_setting: float, hor_setting: float):
+    def _resample_horizontal_record(self, vert_setting: float, hor_setting: float): 
         self._display_record = self.resample_record(vert_setting)
 
     def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
@@ -90,6 +90,7 @@ class Scope_Display:
         if len(self._vectors[scope_index]) == memory_depth-(FIR_length-1):
             # Horizontal resampling must be done before vertical quantization because amplitude information is 
             # needed for trigger point interpolation.
+            print(self._vectors[scope_index])
             self._display_vectors[scope_index] = self._resample_horizontal_vector(self._vectors[scope_index], hor_setting, vert_setting, 
                                                                     fs, memory_depth-(FIR_length-1), edge, triggered)
             if len(self._display_vectors[scope_index]) > 0:
@@ -157,7 +158,7 @@ class Scope_Display:
         self.canvas.delete('all')
         self._draw_grid()
         for i, display_vector in enumerate(self._display_vectors): 
-            if display_vector is not None:
+            if display_vector is not None and len(display_vector) > 0:
                 self._draw_vector(display_vector, self.SIGNAL_COLORS[i])
         if self.cursors.hor_visible:
             self._draw_horizontal_cursors()
