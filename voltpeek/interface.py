@@ -93,9 +93,11 @@ class UserInterface:
 
         self.scope_display: Scope_Display = Scope_Display(self.root, self.cursors, self._display_size)
         self.command_input: CommandInput = CommandInput(self.root, self.process_command, self._display_size)
-        self.readout: Readout = Readout(self.root, self.scale.vert, self.scale.hor)
+        # Readouts are not created until the scopes are connected
+        self._readout_frame: tk.Frame = tk.Frame(self.root, bg=constants.Window.BACKGROUND_COLOR)
+        self._readout_frame.grid(sticky=tk.N, row=0, column=1, padx=constants.Application.PADDING, pady=constants.Application.PADDING)
+        self._readouts: list[Readout] = []
 
-        self.readout()
         self.scope_display()
         self.command_input()
 
@@ -103,8 +105,6 @@ class UserInterface:
         self.command_input.set_focus()
         self.serial_scope_connected: bool = False
         self.scope_status = Scope_Status.DISCONNECTED
-        self._update_scope_status()
-        self._update_scope_probe()
 
         self._start_event_queue: list[list[Event]] = []
         self._end_event_queue: list[list[Event]] = []
@@ -311,7 +311,8 @@ class UserInterface:
     '''
 
     def _start_set_range(self, scope_index: int) -> None:
-        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
+        for readout in self._readouts:
+            readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
         self._scope_interfaces[scope_index].set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
         self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_RANGE)
         self._scope_interfaces[scope_index].run()
@@ -321,7 +322,8 @@ class UserInterface:
     '''
 
     def _start_set_amplifier_gain(self, scope_index: int) -> None:
-        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
+        for readout in self._readouts:
+            readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
         self._scope_interfaces[scope_index].set_full_scale(self.scale.vert*(self.scale.GRID_COUNT/2))
         self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_AMPLIFIER_GAIN)
         self._scope_interfaces[scope_index].run()
@@ -336,8 +338,9 @@ class UserInterface:
         self._scope_interfaces[scope_index].run()
         
     def _finish_change_scale(self, scope_index: int) -> None:
-        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
-        self.readout.set_fs(self.scale.fs)
+        for readout in self._readouts:
+            readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
+            readout.set_fs(self.scale.fs)
         if self._scope_interfaces[0].xx is not None and len(self._scope_interfaces[0].xx) > 0:
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self._last_fs, 
                                                self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'], 
@@ -375,7 +378,8 @@ class UserInterface:
 
     def _finish_set_rising_edge_trigger(self) -> None:
         self.scope_trigger.trigger_type = TriggerType.RISING_EDGE
-        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
+        for readout in self._readouts:
+            readout.set_trigger_type(self.scope_trigger.trigger_type)
 
     '''
     EVENT: SET FALLING EDGE TRIGGER
@@ -387,7 +391,8 @@ class UserInterface:
 
     def _finish_set_falling_edge_trigger(self) -> None:
         self.scope_trigger.trigger_type = TriggerType.FALLING_EDGE
-        self.readout.set_trigger_type(self.scope_trigger.trigger_type)
+        for readout in self._readouts:
+            readout.set_trigger_type(self.scope_trigger.trigger_type)
 
     '''
     EVENT: AUTO TRIGGER
@@ -505,12 +510,13 @@ class UserInterface:
 
     def _set_probe(self, probe_div):
         self.scale.probe_div = probe_div
-        self.readout.set_probe(self.scale.probe_div)
-        self.readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
+        for readout in self._readouts:
+            readout.set_probe(self.scale.probe_div)
+            readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
     
-    def _update_scope_status(self) -> None: self.readout.set_status(self.scope_status.name)
+    def _update_scope_status(self) -> None: [readout.set_status(self.scope_status.name) for readout in self._readouts] 
 
-    def _update_scope_probe(self) -> None: self.readout.set_probe(self.scale.probe_div)
+    def _update_scope_probe(self) -> None: [readout.set_probe(self.scale.probe_div) for readout in self._readouts]
 
     def _set_update_scale(self, update_fn: Callable[[], None]) -> None:
         if update_fn is not None:
@@ -531,16 +537,18 @@ class UserInterface:
 
     def _update_cursor(self, arithmatic_fn: Callable[[], None]) -> None:
         arithmatic_fn()
-        self.readout.update_cursors(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))
+        self._readouts[0].update_cursors(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))
         self.scope_display.set_cursors(self.cursors)
     
     def _connect(self, identifier: str):
         for scope in get_available_scopes():
             if list(scope.keys())[0] == identifier:
-                for connected_device in scope[identifier].find_scope_ports():
+                for i, connected_device in enumerate(scope[identifier].find_scope_ports()):
                     self._scope_interfaces.append(ScopeInterface(scope[identifier], device=connected_device))
                     self._start_event_queue.append([])
                     self._end_event_queue.append([])
+                    self._readouts.append(Readout(self._readout_frame, self.scale.vert, self.scale.hor))
+                    self._readouts[len(self._readouts)-1](i)
                 self.scope_display.init_vectors(len(self._scope_interfaces))
                 self._connect_initiated = True
                 for scope_event_queue in self._start_event_queue:
@@ -551,6 +559,8 @@ class UserInterface:
                     if isinstance(scope_interface.scope, NS1):
                         self._start_event_queue[i].append(Event.READ_CAL_OFFSETS)
                 self._set_update_scale(None)
+                self._update_scope_status()
+                self._update_scope_probe()
                 return
         self.command_input.set_error(self.INVALID_SCOPE_ERROR)
 
@@ -581,7 +591,7 @@ class UserInterface:
             for i, start_event_queue in enumerate(self._start_event_queue):
                 start_event_queue.append(Event.STOP)
                 if i == 0:
-                    start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
+                    start_event_queue.append(Event.ENABLE_SIGNAL_TRIGGER)
                 else:
                     start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
                 self._start_event_queue.append(Event.NORMAL_TRIGGER)
@@ -589,7 +599,7 @@ class UserInterface:
         else:
             for i, start_event_queue in enumerate(self._start_event_queue):
                 if i == 0:
-                    start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
+                    start_event_queue.append(Event.ENABLE_SIGNAL_TRIGGER)
                 else:
                     start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
                 start_event_queue.append(Event.NORMAL_TRIGGER)
@@ -649,8 +659,8 @@ class UserInterface:
 
     def display_signal(self, xx: list[float], triggered: bool, scope_index: int) -> None:
         if xx is not None and len(xx) > 0:
-            self.readout.set_average(average(xx))
-            self.readout.set_rms(rms(xx))
+            self._readouts[scope_index].set_average(average(xx))
+            self._readouts[scope_index].set_rms(rms(xx))
             self.scope_display.add_vector(xx, scope_index)
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
                                                self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'], 
@@ -672,29 +682,29 @@ class UserInterface:
         self.cursors.toggle() 
         self.scope_display.set_cursors(self.cursors)
         if self.cursors.hor_visible or self.cursors.vert_visible: 
-            self.readout.enable_cursor_readout(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))   
+            self._readouts[0].enable_cursor_readout(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))   
         else: 
-            self.readout.disable_cursor_readout()
+            self._readouts[0].disable_cursor_readout()
 
     def toggle_horizontal_cursors(self) -> None:
         self.cursors.toggle_hor()
         if self.cursors.hor_visible:
-            self.readout.enable_cursor_readout(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))  
+            self._readouts[0].enable_cursor_readout(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))  
         elif not self.cursors.vert_visible: 
-            self.readout.disable_cursor_readout()
+            self._readouts[0].disable_cursor_readout()
         else:
-            self.readout.disable_horizontal_cursor_readout()
+            self._readouts[0].disable_horizontal_cursor_readout()
             self.cursors.next_cursor()
         self.scope_display.set_cursors(self.cursors)
 
     def toggle_vertical_cursors(self) -> None:
         self.cursors.toggle_vert()
         if self.cursors.vert_visible:
-            self.readout.enable_cursor_readout(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))   
+            self._readouts[0].enable_cursor_readout(self.cursors.get_cursor_dict(self.scale.hor, self.scale.vert))   
         elif not self.cursors.hor_visible: 
-            self.readout.disable_cursor_readout()
+            self._readouts[0].disable_cursor_readout()
         else:
-            self.readout.disable_vertical_cursor_readout()
+            self._readouts[0].disable_vertical_cursor_readout()
             self.cursors.next_cursor()
         self.scope_display.set_cursors(self.cursors)
 

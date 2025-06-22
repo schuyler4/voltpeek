@@ -122,7 +122,7 @@ class Readout:
             else:
                 self.cursor_labels[i].grid_remove()
 
-    def __call__(self) -> None:
+    def __call__(self, scope_index: int) -> None:
         self.status_label.grid(row=0, column=0, sticky='ew')
         self.status_separator.grid(row=1, column=0, sticky='ew', pady=2)
         for i, label in enumerate(self.main_labels):
@@ -132,16 +132,9 @@ class Readout:
         self._average_text.set(f"{self.AVERAGE_STRING}----")
         self._rms_text.set(f"{self.RMS_STRING}----")
         self.frame.grid_columnconfigure(0, weight=1)
-        self.frame.grid(
-            sticky=tk.N,
-            row=0,
-            column=1,
-            padx=constants.Application.PADDING,
-            pady=constants.Application.PADDING
-        )
+        self.frame.grid(sticky=tk.N, row=scope_index, column=1, padx=constants.Application.PADDING, pady=constants.Application.PADDING)
 
-    def update_settings(self, new_vertical_setting: float, 
-                        new_horizontal_setting: float) -> None:
+    def update_settings(self, new_vertical_setting: float, new_horizontal_setting: float) -> None:
         self._vertical_setting = new_vertical_setting
         self._horizontal_setting = new_horizontal_setting
         self._vertical_text.set(self.get_vertical_str())
