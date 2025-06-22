@@ -37,6 +37,7 @@ class Scope_Display:
         self._display_record: list[int] = None
         self._record: list[float] = None
         self._record_index: int = 0
+        self._time_shift: float = 0
 
     def __call__(self):
         self.canvas.pack()
@@ -59,7 +60,7 @@ class Scope_Display:
         return np.add(np.multiply(vector, 1/pixel_resolution), int(self._size/2))
 
     def _resample_horizontal_vector(self, vector: NDArray[np.float64], hor_setting: float, vert_setting: float, 
-                                    fs: float, memory_depth: int, edge: TriggerType, triggered: bool) -> list[int]:
+                                    fs: float, memory_depth: int, edge: TriggerType, triggered: bool, time_shift: bool) -> list[int]:
         # Fill value is -100 because the signal can never possibly reach this amplitude. This distinguishes real signal vs out of horizontal capture.
         f = interp1d(np.arange(len(vector))/fs, vector, kind='linear', fill_value=-100, bounds_error=False)
         new_T: float = (hor_setting)/(self._size/constants.Display.GRID_LINE_COUNT)
@@ -71,14 +72,18 @@ class Scope_Display:
             # Trigger Position Correction
             trigger_crossings = np.where(np.diff(np.sign(np.subtract(centered_vector, set_trigger_voltage))))[0]
             if len(trigger_crossings) > 0:
-                error_distance_index = np.abs(trigger_crossings - (self._size//2)+1).argmin()
-                error_sign = np.sign(trigger_crossings[error_distance_index] - (self._size//2)+1)
+                error_distance_index = np.abs(trigger_crossings - (self._size//2)).argmin()
+                error_sign = np.sign(trigger_crossings[error_distance_index] - (self._size//2))
                 error_magnitude_time = np.abs(trigger_crossings[error_distance_index] - (self._size//2)+1)*hor_pixel_time 
                 if error_sign:
-                    return f((np.arange(self._size)*new_T) + (chop_time/2) + error_magnitude_time)
+                    self._time_shift = error_magnitude_time
+                    return f((np.arange(self._size)*new_T) + error_magnitude_time) 
                 else:
-                    return f((np.arange(self._size)*new_T) + (chop_time/2) - error_magnitude_time)
+                    self._time_shift = -1*error_magnitude_time
+                    return f((np.arange(self._size)*new_T) - error_magnitude_time) 
             return []
+        elif time_shift:
+            return f((np.arange(self._size)*new_T) + self._time_shift)
         else:
             return centered_vector
 
@@ -90,9 +95,12 @@ class Scope_Display:
         if len(self._vectors[scope_index]) == memory_depth-(FIR_length-1):
             # Horizontal resampling must be done before vertical quantization because amplitude information is 
             # needed for trigger point interpolation.
-            print(self._vectors[scope_index])
-            self._display_vectors[scope_index] = self._resample_horizontal_vector(self._vectors[scope_index], hor_setting, vert_setting, 
-                                                                    fs, memory_depth-(FIR_length-1), edge, triggered)
+            if scope_index == 0:
+                self._display_vectors[scope_index] = self._resample_horizontal_vector(self._vectors[scope_index], hor_setting, vert_setting, 
+                                                                        fs, memory_depth-(FIR_length-1), edge, triggered, False)
+            else:
+                self._display_vectors[scope_index] = self._resample_horizontal_vector(self._vectors[scope_index], hor_setting, vert_setting, 
+                                                                        fs, memory_depth-(FIR_length-1), edge, False, True)
             if len(self._display_vectors[scope_index]) > 0:
                 self._display_vectors[scope_index] = self._quantize_vertical(self._display_vectors[scope_index], vert_setting)
                 self._redraw()

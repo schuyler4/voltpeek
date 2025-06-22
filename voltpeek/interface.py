@@ -419,10 +419,7 @@ class UserInterface:
     def _finish_normal_trigger_cycle(self, scope_index: int) -> None:
         if len(self._scope_interfaces[scope_index].xx) > 0: 
             self._triggered = True
-            if scope_index == 0:
-                self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered, scope_index)
-            else:
-                self.display_signal(self._scope_interfaces[scope_index].xx, False, scope_index)
+            self.display_signal(self._scope_interfaces[scope_index].xx, self._triggered, scope_index)
         if self._normal_trigger_running:
             for start_event_queue in self._start_event_queue:
                 # We don't want to over schedule
@@ -582,16 +579,20 @@ class UserInterface:
         self._normal_trigger_running = True
         if self._auto_trigger_running:
             for i, start_event_queue in enumerate(self._start_event_queue):
-                self._start_event_queue.append(Event.STOP)
+                start_event_queue.append(Event.STOP)
                 if i == 0:
-                    self._start_event_queue.append(Event.ENABLE_SIGNAL_TRIGGER)
+                    start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
                 else:
-                    self._start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
+                    start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
                 self._start_event_queue.append(Event.NORMAL_TRIGGER)
             self._auto_trigger_running = False
         else:
-            for start_event_queue in self._start_event_queue:
-                start_event_queue += [Event.ENABLE_SIGNAL_TRIGGER, Event.NORMAL_TRIGGER]
+            for i, start_event_queue in enumerate(self._start_event_queue):
+                if i == 0:
+                    start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
+                else:
+                    start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
+                start_event_queue.append(Event.NORMAL_TRIGGER)
 
     def _on_single_trigger_command(self):
         if self._auto_trigger_running:
