@@ -77,13 +77,13 @@ class Scope_Display:
                 error_magnitude_time = np.abs(trigger_crossings[error_distance_index] - (self._size//2)+1)*hor_pixel_time 
                 if error_sign:
                     self._time_shift = error_magnitude_time
-                    return f((np.arange(self._size)*new_T) + error_magnitude_time) 
+                    return f((np.arange(self._size)*new_T) + (chop_time/2) + error_magnitude_time) 
                 else:
                     self._time_shift = -1*error_magnitude_time
-                    return f((np.arange(self._size)*new_T) - error_magnitude_time) 
+                    return f((np.arange(self._size)*new_T) + (chop_time/2) - error_magnitude_time) 
             return []
         elif time_shift:
-            return f((np.arange(self._size)*new_T) + self._time_shift)
+            return f((np.arange(self._size)*new_T) + (chop_time/2) + self._time_shift)
         else:
             return centered_vector
 
