@@ -58,6 +58,7 @@ class Event(Enum):
     RECORD_SAMPLE = 15
     ENABLE_SIGNAL_TRIGGER = 16
     DISABLE_SIGNAL_TRIGGER = 17
+    START_RECORD = 18
 
 class KeyCodes:
     CTRL_C: int = 54
@@ -109,9 +110,11 @@ class UserInterface:
         self._start_event_queue: list[list[Event]] = []
         self._end_event_queue: list[list[Event]] = []
 
-        self._connect_initiated = False
         self._auto_trigger_running = False
         self._normal_trigger_running = False
+        self._single_trigger_running = False
+
+        self._connect_initiated = False
         self._record_running = False
         self._calibration = False
         self._triggered = False
@@ -205,6 +208,8 @@ class UserInterface:
                             self._start_enable_signal_trigger(i)
                         if self._start_event_queue[i][0] == Event.DISABLE_SIGNAL_TRIGGER:
                             self._start_disable_signal_trigger(i)
+                        if self._start_event_queue[i][0] == Event.START_RECORD:
+                            pass
                         self._start_event_queue[i].pop(0)
         self.root.after(1, self.check_state)
 
@@ -273,15 +278,11 @@ class UserInterface:
                     self.get_commands()[key](argument)
                     return
                 elif argument is None:
-                    self.get_commands()[key]()
-                    return
-                    '''
                     try:
                         self.get_commands()[key]()
                         return
                     except Exception as _:
                         break
-                    '''
         self.command_input.set_error(messages.Errors.INVALID_COMMAND_ERROR)
     
     ##### START EVENTS #####
@@ -484,6 +485,14 @@ class UserInterface:
         self._scope_interfaces[scope_index].set_scope_action(ScopeAction.DISABLE_SIGNAL_TRIGGER)
         self._scope_interfaces[scope_index].run()
 
+    '''
+    EVENT: START RECORD
+    '''
+
+    def _start_record(self, scope_index: int) -> None:
+        self._scope_interfaces[scope_index].set_scope_action(ScopeAction.START_RECORD)
+        self._scope_interfaces[scope_index].run()
+
     ##### END EVENTS #####
 
     def _set_adjust_scale_mode(self) -> None:
@@ -543,24 +552,27 @@ class UserInterface:
     def _connect(self, identifier: str):
         for scope in get_available_scopes():
             if list(scope.keys())[0] == identifier:
-                for i, connected_device in enumerate(scope[identifier].find_scope_ports()):
-                    self._scope_interfaces.append(ScopeInterface(scope[identifier], device=connected_device))
-                    self._start_event_queue.append([])
-                    self._end_event_queue.append([])
-                    self._readouts.append(Readout(self._readout_frame, self.scale.vert, self.scale.hor))
-                    self._readouts[len(self._readouts)-1](i)
-                self.scope_display.init_vectors(len(self._scope_interfaces))
-                self._connect_initiated = True
-                for scope_event_queue in self._start_event_queue:
-                    scope_event_queue.append(Event.CONNECT)
-                    scope_event_queue.append(Event.SET_RANGE)
-                    scope_event_queue.append(Event.SET_AMPLIFIER_GAIN)
-                for i, scope_interface in enumerate(self._scope_interfaces):
-                    if isinstance(scope_interface.scope, NS1):
-                        self._start_event_queue[i].append(Event.READ_CAL_OFFSETS)
-                self._set_update_scale(None)
-                self._update_scope_status()
-                self._update_scope_probe()
+                if len(scope[identifier].find_scope_ports()) > 0:
+                    for i, connected_device in enumerate(scope[identifier].find_scope_ports()):
+                        self._scope_interfaces.append(ScopeInterface(scope[identifier], device=connected_device))
+                        self._start_event_queue.append([])
+                        self._end_event_queue.append([])
+                        self._readouts.append(Readout(self._readout_frame, self.scale.vert, self.scale.hor))
+                        self._readouts[len(self._readouts)-1](i)
+                    self.scope_display.init_vectors(len(self._scope_interfaces))
+                    self._connect_initiated = True
+                    for scope_event_queue in self._start_event_queue:
+                        scope_event_queue.append(Event.CONNECT)
+                        scope_event_queue.append(Event.SET_RANGE)
+                        scope_event_queue.append(Event.SET_AMPLIFIER_GAIN)
+                    for i, scope_interface in enumerate(self._scope_interfaces):
+                        if isinstance(scope_interface.scope, NS1):
+                            self._start_event_queue[i].append(Event.READ_CAL_OFFSETS)
+                    self._set_update_scale(None)
+                    self._update_scope_status()
+                    self._update_scope_probe()
+                else:
+                    self.command_input.set_error(self.SCOPE_NOT_CONNECTED_ERROR)
                 return
         self.command_input.set_error(self.INVALID_SCOPE_ERROR)
 
@@ -575,18 +587,16 @@ class UserInterface:
         export_png(settings, filename, self.scope_display.size)
 
     def _on_auto_trigger_command(self):
-        self._auto_trigger_running = True
         if self._normal_trigger_running:
             self._stop_trigger()
             for start_event_queue in self._start_event_queue:
                 start_event_queue.append(Event.AUTO_TRIGGER)
-            self._normal_trigger_running = False
         else:
             for start_event_queue in self._start_event_queue:
                 start_event_queue.append(Event.AUTO_TRIGGER)
+        self._auto_trigger_running = True
 
     def _on_normal_trigger_command(self):
-        self._normal_trigger_running = True
         if self._auto_trigger_running:
             for i, start_event_queue in enumerate(self._start_event_queue):
                 start_event_queue.append(Event.STOP)
@@ -603,6 +613,9 @@ class UserInterface:
                 else:
                     start_event_queue.append(Event.DISABLE_SIGNAL_TRIGGER)
                 start_event_queue.append(Event.NORMAL_TRIGGER)
+        self._normal_trigger_running = True
+        self.scope_status = Scope_Status.ARMED
+        self._update_scope_status()
 
     def _on_single_trigger_command(self):
         if self._auto_trigger_running:
@@ -616,6 +629,9 @@ class UserInterface:
         else:
             for start_event_queue in self._start_event_queue:
                 start_event_queue.append(Event.SINGLE_TRIGGER)
+        self._single_trigger_running = True
+        self.scope_status = Scope_Status.ARMED
+        self._update_scope_status()
 
     def _on_trigger_rising_edge_command(self):
         for start_event_queue in self._start_event_queue:
@@ -627,7 +643,8 @@ class UserInterface:
 
     def _on_set_cal_offsets_command(self) -> None: [start_event_queue.append(Event.SET_CAL_OFFSETS) for start_event_queue in self._start_event_queue]
 
-    def _on_record_command(self) -> None: [start_event_queue.append(Event.RECORD_SAMPLE) for start_event_queue in self._start_event_queue]
+    def _on_record_command(self) -> None: 
+        [start_event_queue.append(Event.RECORD_SAMPLE) for start_event_queue in self._start_event_queue]
 
     def get_commands(self): 
         return {
@@ -653,10 +670,6 @@ class UserInterface:
             'record': self._on_record_command
         }
 
-    def _set_disconnected(self) -> None:
-        self.scope_status = Scope_Status.DISCONNECTED
-        self._update_scope_status()
-
     def display_signal(self, xx: list[float], triggered: bool, scope_index: int) -> None:
         if xx is not None and len(xx) > 0:
             self._readouts[scope_index].set_average(average(xx))
@@ -674,6 +687,7 @@ class UserInterface:
             self._auto_trigger_running = False
         elif self._normal_trigger_running:
             self._normal_trigger_running = False  
+            print(self._scope_interfaces)
             for scope_interface in self._scope_interfaces:
                 scope_interface.stop_trigger()
 

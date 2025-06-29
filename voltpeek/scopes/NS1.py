@@ -13,7 +13,7 @@ from voltpeek.helpers import pad_zero, twos_complement_base10_encode, twos_compl
 
 class NS1(ScopeBase):
     PICO_VID: int = 0x2E8A
-    FIR_LENGTH = 3
+    FIR_LENGTH = 1
 
     ID = 'NS1'
     SCOPE_SPECS: SoftwareScopeSpecs = {
@@ -41,7 +41,8 @@ class NS1(ScopeBase):
     READ_CAL_COMMAND: bytes = b'k'
     RISING_EDGE_TRIGGER_COMMAND: bytes = b'/'
     FALLING_EDGE_TRIGGER_COMMAND: bytes = b'\\'
-    ROLL_SAMPLE_COMMAND: bytes = b'o'
+    RECORD_SAMPLE: bytes = b'o'
+    START_RECORD: bytes = b'O'
     ENABLE_SIGNAL_TRIGGER_COMMAND: bytes = b'I'
     DISABLE_SIGNAL_TRIGGER_COMMAND: bytes = b'i'
 
@@ -301,12 +302,16 @@ class NS1(ScopeBase):
     @property
     def stopped(self): return self._stop.is_set()
 
+    def start_record(self) -> None: self.serial_port.write(self.START_RECORD)
+
     def record_sample(self, full_scale) -> None:
-        self.serial_port.write(self.ROLL_SAMPLE_COMMAND)
+        self.serial_port.write(self.RECORD_SAMPLE)
         data_point = []
-        while len(data_point) == 0:
-            data_point += list(self.serial_port.read(self.serial_port.inWaiting()))
-            sleep(0.001) 
+        data_point += list(self.serial_port.read(self.serial_port.inWaiting()))
+        print(data_point)
+        sleep(0.001) 
+        return None
+        return []
         return self._reconstruct(data_point, full_scale)[0]
 
     def disconnect(self) -> None:

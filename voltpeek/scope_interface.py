@@ -4,8 +4,6 @@ from threading import Thread, Lock
 from functools import wraps
 import logging
 
-from serial.serialutil import PortNotOpenError
-
 # Probably can just use the method names directly instead of this
 class ScopeAction(Enum):
     CONNECT = 0
@@ -23,6 +21,7 @@ class ScopeAction(Enum):
     RECORD_SAMPLE = 12
     ENABLE_SIGNAL_TRIGGER = 13
     DISABLE_SIGNAL_TRIGGER = 14
+    START_RECORD = 15
 
 def scope_action_handler(func):
     @wraps(func)
@@ -54,6 +53,7 @@ class ScopeInterface:
         self._disconnected_error: bool = False
 
         # Action handler mapping
+        # Should probably remove this
         self._action_handlers: Dict[ScopeAction, Callable] = {
             ScopeAction.CONNECT: self._connect_scope,
             ScopeAction.FORCE_TRIGGER: self._force_trigger,
@@ -69,17 +69,15 @@ class ScopeInterface:
             ScopeAction.SET_AMPLIFIER_GAIN: self._set_amplifier_gain,
             ScopeAction.RECORD_SAMPLE: self._record_sample,
             ScopeAction.ENABLE_SIGNAL_TRIGGER: self._enable_signal_trigger,
-            ScopeAction.DISABLE_SIGNAL_TRIGGER: self._disable_signal_trigger
+            ScopeAction.DISABLE_SIGNAL_TRIGGER: self._disable_signal_trigger,
+            ScopeAction.START_RECORD: self._start_record
         }
 
     def _scope_available(self, scope_action: Callable):
-        scope_action()
-        '''
         try:
             scope_action()
         except (Exception, OSError) as _:
             self._disconnected_error = True
-        '''
 
     @scope_action_handler
     def _connect_scope(self):
@@ -138,6 +136,9 @@ class ScopeInterface:
         if record_point is None:
             self._disconnected_error = True
 
+    @scope_action_handler
+    def _start_record(self) -> float: return self._scope.start_record() 
+
     def run(self):
         if not self._action_complete and self._action in self._action_handlers:
             thread = Thread(target=lambda: self._scope_available(self._action_handlers[self._action]))
@@ -169,9 +170,6 @@ class ScopeInterface:
 
     @property
     def disconnected_error(self) -> bool: return self._disconnected_error
-
-    @property
-    def record(self) -> float: return self._record 
 
     def set_value(self, new_value: int) -> None:
         if self.data_available:

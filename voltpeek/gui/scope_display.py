@@ -189,18 +189,12 @@ class Scope_Display:
                 self.canvas.create_line(last_x-1, last_y+offset, last_x+2, last_y+offset, fill=self._hex_string_from_rgb(color))
 
     def _draw_record(self):
-        '''
-        self._record_index += len(self._display_record)
-        if self._record_index > 1:
-            y = self._size - np.array(self._display_record)
-            x = self._size - np.arange(self._record_index)
-            coords = np.column_stack((x[1:], y[:-1], x[1:], y[1:])).reshape(-1).tolist()
-            self.canvas.create_line(*coords, fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-            self.canvas.create_line(*[c + (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-            self.canvas.create_line(*[c - (0 if i % 2 == 0 else 1) for i, c in enumerate(coords)], fill=self._hex_string_from_rgb(self.SIGNAL_COLOR))
-        '''
         self._record_index += len(self._display_record)
         self.canvas.create_line(self._size - self._record_index, self._display_record[0], self._size - self._record_index+1, self._display_record[0], 
+                                fill=self._hex_string_from_rgb(self.SIGNAL_COLORS[0]))
+        self.canvas.create_line(self._size - self._record_index, self._display_record[0]+1, self._size - self._record_index+1, self._display_record[0]+1, 
+                                fill=self._hex_string_from_rgb(self.SIGNAL_COLORS[0]))
+        self.canvas.create_line(self._size - self._record_index, self._display_record[0]-1, self._size - self._record_index+1, self._display_record[0]-1, 
                                 fill=self._hex_string_from_rgb(self.SIGNAL_COLORS[0]))
         print(self._display_record)
 
