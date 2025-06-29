@@ -1,4 +1,4 @@
-## voltpeek
+## Voltpeek
 voltpeek is a command based PC oscilloscope software. voltpeek works
 with the NS1 headless oscilloscope [hardware](https://hackaday.io/project/197104-ns1-oscilloscope) and [firmware](https://github.com/schuyler4/NS1-Firmware).
 
