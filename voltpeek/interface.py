@@ -140,7 +140,6 @@ class UserInterface:
                     self.command_input.display_error()
                     scope_interface.clear_disconnected_error()
                     self._connect_initiated = False
-                    self._set_disconnected()
                     self._start_event_queue[i] = []
                     self._end_event_queue[i] = []
                 else:
