@@ -4,7 +4,7 @@ from tkinter import ttk
 from voltpeek import constants
 
 from voltpeek.cursors import Cursor_Data
-from voltpeek.trigger import TriggerType
+from voltpeek.trigger import EdgeType
 
 from voltpeek.helpers import engineering_units
 
@@ -78,27 +78,21 @@ class Readout:
             )
             self.cursor_labels.append(label)
 
-    def get_vertical_str(self) -> str: 
-        return f'{self._vertical_setting} V/div'
+    def get_vertical_str(self) -> str: return f'{self._vertical_setting} V/div'
 
-    def get_horizontal_str(self) -> str: 
-        return f'{engineering_units(self._horizontal_setting)} s/div'
+    def get_horizontal_str(self) -> str: return f'{engineering_units(self._horizontal_setting)} s/div'
 
-    def set_average(self, average: float) -> None: 
-        self._average_text.set(f"{self.AVERAGE_STRING}{average:.3f} V")
+    def set_average(self, average: float) -> None: self._average_text.set(f"{self.AVERAGE_STRING}{average:.3f} V")
 
-    def set_rms(self, rms: float) -> None: 
-        self._rms_text.set(f"{self.RMS_STRING}{rms:.3f} Vrms")
+    def set_rms(self, rms: float) -> None: self._rms_text.set(f"{self.RMS_STRING}{rms:.3f} Vrms")
 
-    def set_fs(self, fs: float) -> None: 
-        self._fs_text.set(f"{engineering_units(fs)}S/s")
+    def set_fs(self, fs: float) -> None: self._fs_text.set(f"{engineering_units(fs)}S/s")
 
-    def set_probe(self, probe_div: int) -> None: 
-        self._probe_text.set(f"{self.PROBE_STRING}{probe_div}X")
+    def set_probe(self, probe_div: int) -> None: self._probe_text.set(f"{self.PROBE_STRING}{probe_div}X")
 
-    def set_trigger_type(self, trigger_type: TriggerType):
-        trigger_symbol = '/' if trigger_type == TriggerType.RISING_EDGE else '\\'
-        self._trigger_text.set(f"{self.TRIGGER_STRING}{trigger_symbol}")
+    def set_trigger_type(self, trigger_type: EdgeType):
+        trigger_character = '/' if trigger_type == EdgeType.RISING_EDGE else '\\'
+        self._trigger_text.set(f"{self.TRIGGER_STRING}{trigger_character}")
 
     def update_cursors(self, cursor_data: Cursor_Data) -> None:
         cursor_visible = False
@@ -142,8 +136,7 @@ class Readout:
 
     def set_status(self, status_str: str) -> None: self._status_text.set(status_str)
 
-    def enable_cursor_readout(self, cursor_data: Cursor_Data) -> None: 
-        self.update_cursors(cursor_data)
+    def enable_cursor_readout(self, cursor_data: Cursor_Data) -> None: self.update_cursors(cursor_data)
 
     def disable_cursor_readout(self) -> None:
         self.cursor_separator.grid_remove()

@@ -40,16 +40,16 @@
 <b>png</b> - Export a png of the current graticule display. <br><br>
 '''
 
-EXIT_COMMAND: str = 'exit'
-CONNECT_COMMAND: str = 'connect'
-AUTO_TRIGGER_COMMAND: str = 'auto'
-NORMAL_TRIGGER_COMMAND: str = 'normal'
-SINGLE_TRIGGER_COMMAND: str = 'single'
+EXIT: str = 'exit'
+CONNECT: str = 'connect'
+AUTO_TRIGGER: str = 'auto'
+NORMAL_TRIGGER: str = 'normal'
+SINGLE_TRIGGER: str = 'single'
 STOP: str = 'stop'
-SCALE_COMMAND: str = 'scale'
-TRIGGER_LEVEL_COMMAND: str = 'triglevel'
-TRIGGER_RISING_EDGE_COMMAND: str = 'trigrising'
-TRIGGER_FALLING_EDGE_COMMAND: str = 'trigfalling'
+SCALE: str = 'scale'
+TRIGGER_LEVEL: str = 'triglevel'
+TRIGGER_RISING_EDGE: str = 'trigrising'
+TRIGGER_FALLING_EDGE: str = 'trigfalling'
 TOGGLE_CURS: str = 'togglecurs'
 TOGGLE_HCURS: str = 'togglehcurs'
 TOGGLE_VCURS: str = 'togglevcurs'
@@ -61,4 +61,4 @@ CAL: str = 'cal'
 PNG: str = 'png'
 ROLL: str = 'roll'
 
-ADJUST_COMMANDS: tuple[str, str, str] = (SCALE_COMMAND, TRIGGER_LEVEL_COMMAND, ADJUST_CURS)
+ADJUST_COMMANDS: tuple[str, str, str] = (SCALE, TRIGGER_LEVEL, ADJUST_CURS)

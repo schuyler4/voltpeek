@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from voltpeek import constants 
 
 from voltpeek.cursors import Cursors, Selected_Cursor
-from voltpeek.trigger import TriggerType
+from voltpeek.trigger import EdgeType
 
 class Scope_Display:
     BACKGROUND_COLOR = (0, 0, 0)
@@ -60,7 +60,7 @@ class Scope_Display:
         return np.add(np.multiply(vector, 1/pixel_resolution), int(self._size/2))
 
     def _resample_horizontal_vector(self, vector: NDArray[np.float64], hor_setting: float, vert_setting: float, 
-                                    fs: float, memory_depth: int, edge: TriggerType, triggered: bool, time_shift: bool) -> list[int]:
+                                    fs: float, memory_depth: int, edge: EdgeType, triggered: bool, time_shift: bool) -> list[int]:
         # Fill value is -100 because the signal can never possibly reach this amplitude. This distinguishes real signal vs out of horizontal capture.
         f = interp1d(np.arange(len(vector))/fs, vector, kind='linear', fill_value=-100, bounds_error=False)
         new_T: float = (hor_setting)/(self._size/constants.Display.GRID_LINE_COUNT)
@@ -90,7 +90,7 @@ class Scope_Display:
     def _resample_horizontal_record(self, vert_setting: float, hor_setting: float): 
         self._display_record = self.resample_record(vert_setting)
 
-    def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: TriggerType, 
+    def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: EdgeType, 
                         triggered: bool, FIR_length: int, scope_index: int) -> None:
         if len(self._vectors[scope_index]) == memory_depth-(FIR_length-1):
             # Horizontal resampling must be done before vertical quantization because amplitude information is 
