@@ -395,9 +395,9 @@ class UserInterface:
         
 
     def _finish_set_rising_edge_trigger(self) -> None:
-        self.scope_trigger.trigger_type = EdgeType.RISING_EDGE
+        self.scope_trigger.edge_type = EdgeType.RISING_EDGE
         for readout in self._readouts:
-            readout.set_trigger_type(self.scope_trigger.trigger_type)
+            readout.set_trigger_type(self.scope_trigger.edge_type)
 
     '''
     EVENT: SET FALLING EDGE TRIGGER
@@ -408,9 +408,9 @@ class UserInterface:
         self._scope_interfaces[scope_index].run()
 
     def _finish_set_falling_edge_trigger(self) -> None:
-        self.scope_trigger.trigger_type = EdgeType.FALLING_EDGE
+        self.scope_trigger.edge_type = EdgeType.FALLING_EDGE
         for readout in self._readouts:
-            readout.set_trigger_type(self.scope_trigger.trigger_type)
+            readout.set_trigger_type(self.scope_trigger.edge_type)
 
     '''
     EVENT: AUTO TRIGGER
@@ -665,12 +665,16 @@ class UserInterface:
         self._update_scope_status()
 
     def _on_trigger_rising_edge_command(self):
+        self._pause_trigger()
         for start_event_queue in self._start_event_queue:
             start_event_queue.append(Event.SET_RISING_EDGE_TRIGGER)
+            self._resume_trigger(start_event_queue)
 
     def _on_trigger_falling_edge_command(self):
+        self._pause_trigger()
         for start_event_queue in self._start_event_queue:
             start_event_queue.append(Event.SET_FALLING_EDGE_TRIGGER)
+            self._resume_trigger(start_event_queue)
 
     def _on_set_cal_offsets_command(self) -> None: [start_event_queue.append(Event.SET_CAL_OFFSETS) for start_event_queue in self._start_event_queue]
 

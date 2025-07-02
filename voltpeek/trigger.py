@@ -26,7 +26,7 @@ class Trigger:
     def trigger_type(self) -> TriggerType: return self._trigger_type
 
     @edge_type.setter
-    def edge_type(self, edge_type: EdgeType): self._trigger_type = edge_type
+    def edge_type(self, edge_type: EdgeType): self._edge_type = edge_type
 
     @trigger_type.setter
     def trigger_type(self, trigger_type: TriggerType): self._trigger_type = trigger_type
