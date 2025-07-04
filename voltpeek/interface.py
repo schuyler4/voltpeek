@@ -696,6 +696,8 @@ class UserInterface:
         if self.scope_trigger.trigger_type == TriggerType.NORMAL or self.scope_trigger.trigger_type == TriggerType.SINGLE:
             for scope_interface in self._scope_interfaces:
                 scope_interface.stop_trigger()
+        if self.debug:
+            logging.info(f'STOP')
         self.scope_trigger.trigger_type = TriggerType.NONE
 
     # TODO: Refactor the three methods below that are very similar.
