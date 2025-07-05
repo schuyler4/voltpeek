@@ -163,8 +163,6 @@ class UserInterface:
                     if scope_interface.data_available and len(self._start_event_queue[i]) > 0:
                         if self.debug:
                             logging.info(f'start event: {self._start_event_queue[i][0].name}, scope index: {i}')
-                        if self._start_event_queue[i][0] == Event.STOP:
-                            self._stop_trigger()
                         if self._start_event_queue[i][0] == Event.CONNECT:
                             self._start_connect(i)
                             self._end_event_queue[i].append(Event.CONNECT)
@@ -696,8 +694,12 @@ class UserInterface:
         if self.scope_trigger.trigger_type == TriggerType.NORMAL or self.scope_trigger.trigger_type == TriggerType.SINGLE:
             for scope_interface in self._scope_interfaces:
                 scope_interface.stop_trigger()
+            for end_event_queue in self._end_event_queue:
+                if len(end_event_queue) > 0:
+                    if end_event_queue[0] == Event.NORMAL_TRIGGER or end_event_queue[0] == Event.SINGLE_TRIGGER:
+                        end_event_queue.pop(0)
         if self.debug:
-            logging.info(f'STOP')
+            logging.info('STOP')
         self.scope_trigger.trigger_type = TriggerType.NONE
 
     # TODO: Refactor the three methods below that are very similar.

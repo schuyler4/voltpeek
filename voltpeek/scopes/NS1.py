@@ -88,33 +88,21 @@ class NS1(ScopeBase):
             self.serial_port.port = self.port
             self.serial_port.timeout = 100 #ms
             self.serial_port.open()
-            self.serial_port.flush()
+            self.serial_port.reset_input_buffer()
+            self.serial_port.reset_output_buffer()
         except Exception as _:
             self.error = True
 
     def read_glob_data(self):
         self._stop.clear()
         codes: list[str] = []
-        data_hangs = 0
         while len(codes) < self.SCOPE_SPECS['memory_depth']: 
-            if self._stop.is_set():
-                self._stop.clear()
-                return None
             try:
                 new_data = self.serial_port.read(self.serial_port.inWaiting())
                 if new_data is None:
                     # This is probably dead code
                     return None
                 else:
-                    # This fixes data freeze with auto trigger, but won't work with normal trigger
-                    '''
-                    if len(new_data) == 0:
-                        data_hangs += 1
-                        if data_hangs > self.DATA_HANG_THRESHOLD:
-                            return None
-                    elif data_hangs > 0:
-                        data_hangs = 0
-                    '''
                     codes += list(new_data)
                     sleep(0.0001)
             except (OSError, IOError) as _:
@@ -125,6 +113,7 @@ class NS1(ScopeBase):
                 return None
         if self._stop.is_set():
             self._stop.clear()
+            return None
         return codes
     
     def _FIR_filter(self, xx: list[int]):
@@ -157,7 +146,6 @@ class NS1(ScopeBase):
         return reconstructed_signal
 
     def get_scope_trigger_data(self, full_scale: float) -> list[float]:
-        self.serial_port.flush()
         self.serial_port.write(self.TRIGGER_COMMAND) 
         new_codes = self.read_glob_data()
         if new_codes is not None and len(new_codes) == self.SCOPE_SPECS['memory_depth']:
@@ -165,7 +153,6 @@ class NS1(ScopeBase):
         return self._xx
 
     def get_scope_force_trigger_data(self, full_scale: float, offset_null=True) -> list[float]:
-        self.serial_port.flush()
         self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
         new_codes = self.read_glob_data()
         if new_codes is not None and len(new_codes) == self.SCOPE_SPECS['memory_depth']:
@@ -266,10 +253,6 @@ class NS1(ScopeBase):
 
     def set_falling_edge_trigger(self) -> None: self.serial_port.write(self.FALLING_EDGE_TRIGGER_COMMAND)
 
-    def stop(self): 
-        self.serial_port.write(self.STOP_COMMAND)
-        self.serial_port.flush()
-
     def read_calibration_offsets(self) -> Optional[bool]:
         self.serial_port.reset_input_buffer()
         self.serial_port.reset_output_buffer()
@@ -296,7 +279,6 @@ class NS1(ScopeBase):
         return True
 
     def stop_trigger(self) -> None: 
-        self.stop()
         self._stop.set()
 
     @property
