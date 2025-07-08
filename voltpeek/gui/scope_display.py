@@ -196,7 +196,6 @@ class Scope_Display:
                                 fill=self._hex_string_from_rgb(self.SIGNAL_COLORS[0]))
         self.canvas.create_line(self._size - self._record_index, self._display_record[0]-1, self._size - self._record_index+1, self._display_record[0]-1, 
                                 fill=self._hex_string_from_rgb(self.SIGNAL_COLORS[0]))
-        print(self._display_record)
 
     def _draw_dashed_horizontal_line(self, position, color): 
         self.canvas.create_line(0, position, self._size, position, fill=color, dash=self.DASH_PATTERN)
