@@ -558,6 +558,8 @@ class UserInterface:
         for start_event_queue in self._start_event_queue:
             start_event_queue.append(Event.SET_TRIGGER_LEVEL)
             self._resume_trigger(start_event_queue)
+            if self.debug:
+                logging.info('RESUMING NORMAL from set trigger level')
 
     def _set_adjust_scale_mode(self) -> None:
         self.mode = Mode.ADJUST_SCALE
@@ -603,6 +605,8 @@ class UserInterface:
         for start_event_queue in self._start_event_queue:
             start_event_queue.append(Event.CHANGE_SCALE)
             self._resume_trigger(start_event_queue)
+            if self.debug:
+                logging.info('RESUMING NORMAL from horizontal scale')
 
     def _update_scale_vert(self, update_fn: Callable[[], None]) -> None:
         if update_fn is not None:

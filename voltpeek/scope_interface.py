@@ -28,7 +28,8 @@ def scope_action_handler(func):
     def wrapper(self, *args, **kwargs):
         result = func(self, *args, **kwargs) 
         self._action_complete = True
-        self._data_available.release()
+        if self._data_available.locked():
+            self._data_available.release()
         return result
     return wrapper
 
@@ -87,14 +88,10 @@ class ScopeInterface:
     @scope_action_handler
     def _force_trigger(self):
         self._xx = self._scope.get_scope_force_trigger_data(self._full_scale)
-        if self._xx is None:
-            self._disconnected_error = True
 
     @scope_action_handler
     def _trigger(self):
         self._xx = self._scope.get_scope_trigger_data(self._full_scale)
-        if self._xx is None:
-            self._disconnected_error = True
 
     @scope_action_handler
     def _set_clock_div(self): self._scope.set_clock_div(self._value)
@@ -186,6 +183,8 @@ class ScopeInterface:
     def stop_trigger(self): 
         self._stop_flag = True
         self._scope.stop_trigger()
+        if self._data_available.locked():
+            self._data_available.release()
 
     def reset_stop_flag(self): self._stop_flag = False
 

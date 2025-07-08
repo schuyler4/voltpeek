@@ -88,8 +88,7 @@ class NS1(ScopeBase):
             self.serial_port.port = self.port
             self.serial_port.timeout = 100 #ms
             self.serial_port.open()
-            self.serial_port.reset_input_buffer()
-            self.serial_port.reset_output_buffer()
+            self._purge_serial_buffers()
         except Exception as _:
             self.error = True
 
@@ -97,6 +96,10 @@ class NS1(ScopeBase):
         self._stop.clear()
         codes: list[str] = []
         while len(codes) < self.SCOPE_SPECS['memory_depth']: 
+            if self._stop.is_set():
+                self._purge_serial_buffers()
+                self._stop.clear()
+                return None
             try:
                 new_data = self.serial_port.read(self.serial_port.inWaiting())
                 if new_data is None:
@@ -112,6 +115,7 @@ class NS1(ScopeBase):
                 print(_)
                 return None
         if self._stop.is_set():
+            self._purge_serial_buffers()
             self._stop.clear()
             return None
         return codes
@@ -145,7 +149,14 @@ class NS1(ScopeBase):
             reconstructed_signal = np.multiply(zeroed_adc_input, 1/attenuation)
         return reconstructed_signal
 
+    def _purge_serial_buffers(self):
+        while self.serial_port.in_waiting:
+            self.serial_port.read(self.serial_port.inWaiting())
+        self.serial_port.reset_input_buffer()
+        self.serial_port.reset_output_buffer()
+
     def get_scope_trigger_data(self, full_scale: float) -> list[float]:
+        self._purge_serial_buffers()
         self.serial_port.write(self.TRIGGER_COMMAND) 
         new_codes = self.read_glob_data()
         if new_codes is not None and len(new_codes) == self.SCOPE_SPECS['memory_depth']:
@@ -153,6 +164,7 @@ class NS1(ScopeBase):
         return self._xx
 
     def get_scope_force_trigger_data(self, full_scale: float, offset_null=True) -> list[float]:
+        self._purge_serial_buffers()
         self.serial_port.write(self.FORCE_TRIGGER_COMMAND) 
         new_codes = self.read_glob_data()
         if new_codes is not None and len(new_codes) == self.SCOPE_SPECS['memory_depth']:
@@ -278,8 +290,7 @@ class NS1(ScopeBase):
         self._cal_offsets['range_low_gain'] = low_range_gain_offset/self.CAL_INT_MULTIPLIER
         return True
 
-    def stop_trigger(self) -> None: 
-        self._stop.set()
+    def stop_trigger(self) -> None: self._stop.set()
 
     @property
     def stopped(self): return self._stop.is_set()
