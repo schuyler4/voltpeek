@@ -109,10 +109,8 @@ class NS1(ScopeBase):
                     codes += list(new_data)
                     sleep(0.0001)
             except (OSError, IOError) as _:
-                print(_)
                 return None
             except Exception as _:
-                print(_)
                 return None
         if self._stop.is_set():
             self._purge_serial_buffers()
