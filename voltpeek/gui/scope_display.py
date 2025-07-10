@@ -33,7 +33,6 @@ class Scope_Display:
         self.cursors: Optional[Cursors] = cursors
         self._trigger_level: int = 0
         self._trigger_set: bool = False
-        self.display_vector = []
         self._display_record: list[int] = None
         self._record: list[float] = None
         self._record_index: int = 0
@@ -218,10 +217,10 @@ class Scope_Display:
         map[grid_lines, :] = self.GRID_LINE_COLOR
         map[:, grid_lines] = self.GRID_LINE_COLOR
         # Draw the Signal
-        if self.display_vector is not None:
-            y = self._size - np.array(self.display_vector)
+        if self._display_vectors[0] is not None:
+            y = self._size - np.array(self._display_vectors[0])
             y_filtered = y[y <= self._size]
-            x = np.arange(len(self.display_vector))[y <= self._size]
+            x = np.arange(len(self._display_vectors[0]))[y <= self._size]
             y_indices = y_filtered.astype(int)
             valid_y = (y_indices >= 0) & (y_indices < self._size)
             for dx in [-1, 0, 1]:
@@ -229,14 +228,14 @@ class Scope_Display:
                     y_shifted = y_indices[valid_y] + dy
                     x_shifted = x[valid_y] + dx
                     valid_points = (y_shifted >= 0) & (y_shifted < self._size) & (x_shifted >= 0) & (x_shifted < self._size)
-                    map[y_shifted[valid_points], x_shifted[valid_points]] = self.SIGNAL_COLOR
+                    map[y_shifted[valid_points], x_shifted[valid_points]] = self.SIGNAL_COLORS[0]
             for i in range(len(x)-1):
                 if 0 <= x[i] < self._size:
                     y1, y2 = int(y_filtered[i]), int(y_filtered[i+1])
                     y_start = max(0, min(y1, y2))
                     y_end = min(self._size, max(y1, y2))
                     if int(x[i]) > 0 and int(x[i]) < self._size:
-                        map[y_start:y_end, int(x[i]) + dx] = self.SIGNAL_COLOR
+                        map[y_start:y_end, int(x[i]) + dx] = self.SIGNAL_COLORS[0]
         # Draw the Cursors
         if self.cursors and self.cursors.hor_visible:
             map[self.cursors.hor1_pos] = self.CURSOR_COLOR
