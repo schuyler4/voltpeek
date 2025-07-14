@@ -76,7 +76,7 @@ be a connection issue. Try unplugging and re-plugging on both the scope and comp
 </p>
 <h2> Auto Trigger </h2>
 <p>
-Now that the scope is connected, we can do some triggering. Enter the <code>atrigger</code> 
+Now that the scope is connected, we can do some triggering. Enter the <code>auto</code> 
 command in voltpeek to auto trigger. This will continually retrigger the scope as fast as 
 possible. There is no trigger event, and the trigger will start at a random time. If nothing 
 is plugged into your scope input, you should get a flat line like so:
@@ -95,7 +95,7 @@ signal, attach your probe as shown. The ground lead is not necessary as the squa
 to the scope ground. To start, make sure your probe is set to 1X mode. This is done with the switch on the side.
 </p>
 <img src="./probe_test_signal.jpg" width="400">
-<p> If you <code>atrigger</code> again, you should see a waveform similar to the following:</p>
+<p> If you <code>auto</code> trigger again, you should see a waveform similar to the following:</p>
 <img src="./atrigger_waveform.png">
 <p> 
 You have probably noticed that the waveform appears to be flying across the graticule.  
@@ -127,7 +127,7 @@ on a rising edge of your square wave like so:
 <img src="./triglevel.png">
 <p>
 Once your trigger level is adjusted where a rising edge can cross it, you can use <code>ctrl-c</code> or <code>esc</code>
-to exit adjust mode and set the trigger level. To run the normal trigger use the <code>ntrigger</code> command. You
+to exit adjust mode and set the trigger level. To run the normal trigger use the <code>normal</code> command. You
 should now get a stable waveform with the rising edge in the center of the graticule like shown. You can zoom in and 
 out on the rising edge if you adjust the scale while normal trigger is running. Like auto trigger, use the <code>stop</code>
 command to stop the normal trigger updates. You can also use the <code>trigfalling</code> command to switch to a falling
