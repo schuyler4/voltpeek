@@ -16,7 +16,7 @@ class MockTrigger(Enum):
     RISING = 0
     FALLING = 1
 
-class MockNewtScopeOne:
+class MockNS1:
     def __init__(self):
         self.connected = False
         self.range = MockRange.LOW
@@ -72,13 +72,12 @@ class MockNewtScopeOne:
     
 class TestScopeInterface(unittest.TestCase):
     def setUp(self):
-        self.scope = MockNewtScopeOne
+        self.scope = MockNS1
         self.scope_interface = ScopeInterface(self.scope)
 
     def test_scope_class(self):
-        self.assertEqual(self.scope, MockNewtScopeOne)
         self.assertTrue(isinstance(self.scope, type))
-        self.assertEqual(self.scope.__name__, 'MockNewtScopeOne')
+        self.assertEqual(self.scope.__name__, 'MockNS1')
 
     def test_scope_interface_init(self):
         self.assertEqual(self.scope_interface._scope_connected, False)
@@ -129,17 +128,18 @@ class TestScopeInterface(unittest.TestCase):
         self.assertEqual(self.scope_interface._scope.clock_div, 2)
 
     def test_scope_interface_set_high_range(self):
-        self.scope_interface.set_value(NS1.LOW_RANGE_THRESHOLD + 1)
+        self.scope_interface.set_full_scale(NS1.LOW_RANGE_THRESHOLD + 1)
         self.scope_interface.set_scope_action(ScopeAction.SET_RANGE)
         self.scope_interface.run()
         self.assertTrue(self.scope_interface._action_complete)
-        self.assertFalse(self.scope_interface._data_available.locked())
+        self.assertTrue(self.scope_interface.data_available)
         self.assertEqual(self.scope_interface._scope.range, MockRange.HIGH)
 
     def test_scope_interface_set_low_range(self):
-        self.scope_interface.set_value(NS1.LOW_RANGE_THRESHOLD - 1)
+        self.scope_interface.set_full_scale(NS1.LOW_RANGE_THRESHOLD - 1)
         self.scope_interface.set_scope_action(ScopeAction.SET_RANGE)
         self.scope_interface.run()
+        self.assertTrue(self)
         self.assertTrue(self.scope_interface._action_complete)
-        self.assertFalse(self.scope_interface._data_available.locked())
+        self.assertTrue(self.scope_interface.data_available)
         self.assertEqual(self.scope_interface._scope.range, MockRange.LOW)

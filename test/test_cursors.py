@@ -8,8 +8,10 @@ import unittest
 from voltpeek.cursors import Cursors, Selected_Cursor
 
 class TestCursors(unittest.TestCase):
+    SIZE = 800
+
     def setUp(self):
-        self.cursors = Cursors()
+        self.cursors = Cursors(self.SIZE)
 
     def test_cursors_init(self):
         self.assertEqual(self.cursors.hor1_pos, 10)

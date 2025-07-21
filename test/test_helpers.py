@@ -3,15 +3,15 @@ sys.path.append('..')
 
 import unittest
 
-from voltpeek.helpers import engineering_units, two_sig_figs
+from voltpeek.helpers import engineering_units, three_sig_figs
 
 class TestHelpers(unittest.TestCase):
-    def test_two_sig_figs(self):
-        self.assertEqual(two_sig_figs(0.111), 0.11)
-        self.assertEqual(two_sig_figs(123), 120)
-        self.assertEqual(two_sig_figs(128), 130)
-        self.assertEqual(two_sig_figs(0.999), 1.00)
-        self.assertEqual(two_sig_figs(-4.8999999), -4.9)
+    def test_three_sig_figs(self):
+        self.assertEqual(three_sig_figs(0.1111), 0.111)
+        self.assertEqual(three_sig_figs(1234), 1230)
+        self.assertEqual(three_sig_figs(1283), 1280)
+        self.assertEqual(three_sig_figs(0.9999), 1.000)
+        self.assertEqual(three_sig_figs(-4.888), -4.89)
 
     def test_engineering_units_mega(self):
         self.assertEqual(engineering_units(9999999), '9.999999M')

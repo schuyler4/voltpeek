@@ -2,14 +2,16 @@ import unittest
 from unittest.mock import MagicMock
 import tkinter as tk
 
-from voltpeek.gui.command_input import Command_Input
+from voltpeek.gui.command_input import CommandInput
 from voltpeek import constants
 
 class TestCommandInput(unittest.TestCase):
+    WIDTH = 800
+
     def setUp(self):
         self.master = tk.Tk()
         self.on_command_mock = MagicMock()
-        self.command_input = Command_Input(self.master, self.on_command_mock)
+        self.command_input = CommandInput(self.master, self.on_command_mock, self.WIDTH)
 
     def tearDown(self):
         self.master.destroy()
@@ -41,7 +43,7 @@ class TestCommandInput(unittest.TestCase):
     def test_display_error(self):
         self.command_input.set_error('error')
         self.command_input.display_error()
-        self.assertEqual(self.command_input.input.cget('bg'), constants.Input.ERROR_BACKGROUND_COLOR)
+        self.assertEqual(self.command_input.input.cget('bg'), CommandInput.ERROR_BACKGROUND_COLOR)
         self.assertEqual(self.command_input.input_text.get(), 'error')
 
     def test_clear_input(self):
@@ -57,10 +59,9 @@ class TestCommandInput(unittest.TestCase):
         self.command_input.set_adjust_mode()
         self.command_input.set_command_mode()
         actual_state = self.command_input.input.cget('state')
-        expected_bg_color = constants.Input.BACKGROUND_COLOR
         actual_bg_color = self.command_input.input.cget('bg')
         self.assertEqual(actual_state, 'normal')
-        self.assertEqual(actual_bg_color, expected_bg_color)
+        self.assertEqual(actual_bg_color, CommandInput.BACKGROUND_COLOR)
     
 if __name__ == '__main__':
     unittest.main()
