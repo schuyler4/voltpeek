@@ -50,9 +50,6 @@ class TestNS1(unittest.TestCase):
     
     def test_FIR_filter_running_average(self):
         N = NS1.FIR_LENGTH
-        test_list = np.array([1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
-        result_list = [(1/N)+(2/N)+(3/N), (2/N)+(3/N)+(4/N), (3/N) + (4/N), (4/N)]  
-        print(self.ns1._FIR_filter(test_list))
-        print(self.ns1.FIR_LENGTH)
-        #print(self.ns1._FIR_filter(test_list))
-        self.assertListEqual(list(self.ns1._FIR_filter(test_list)), result_list)
+        test_list = [1, 2, 3, 4,5,6]
+        result_list = [(1/N)+(2/N)+(3/N), (2/N)+(3/N)+(4/N), (3/N)+(4/N)+(5/N), (4/N)+(5/N)+(6/N)]  
+        np.testing.assert_allclose(list(self.ns1._FIR_filter(test_list)), result_list)
