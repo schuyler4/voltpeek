@@ -7,12 +7,13 @@ from serial import Serial
 from serial.tools import list_ports
 
 from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
+from voltpeek.scopes.pico import Pico
 
 from voltpeek.measurements import average
 from voltpeek.helpers import pad_zero, twos_complement_base10_encode, twos_complement_base10_decode
 
-class NS1(ScopeBase):
-    PICO_VID: int = 0x2E8A
+class NS1(ScopeBase, Pico):
+    DIGITAL_FILTER = True
     FIR_LENGTH = 3
 
     ID = 'NS1'
@@ -24,7 +25,7 @@ class NS1(ScopeBase):
         'memory_depth': 16384, 
         'trigger_resolution': 256, 
         'bias': 0.8,
-        'ranges': (1, 2, 5, 10),
+        'scales': (1, 2, 5, 10),
         'record_sample_rates': (1000, 100, 10, 1)
     }
 
@@ -60,23 +61,6 @@ class NS1(ScopeBase):
         self._stop: Event = Event()
         self._xx: list[float] = []
         self._cal_offsets = {'range_high':0, 'range_high_gain':0, 'range_low':0, 'range_low_gain':0}
-
-    def pico_connected(self) -> bool:
-        ports = list_ports.comports()
-        for port in ports:
-            if port.vid == self.PICO_VID:
-                return True
-        return False
-    
-    def find_pico_serial_port(self) -> Optional[str]:
-        ports = list_ports.comports()
-        for port in ports:
-            if port.vid == self.PICO_VID:
-                return port.device
-        return None
-
-    @classmethod
-    def find_scope_ports(cls) -> list[str]: return [port.device for port in list_ports.comports() if port.vid == cls.PICO_VID]
 
     def connect(self) -> None:
         try:
@@ -123,7 +107,7 @@ class NS1(ScopeBase):
             return np.convolve(xx, np.array([1/self.FIR_LENGTH for _ in range(0, self.FIR_LENGTH)]), mode='valid')
         return []
 
-    def _reconstruct(self, xx: list[float], full_scale: float, offset_null: bool=True, force_low_range=False) -> list[float]:
+    def _reconstruct(self, xx: list[float], full_scale: float, offset_null: bool=True, force_low_range=False):
         if full_scale <= self.LOW_RANGE_THRESHOLD or force_low_range:
             attenuation = self.SCOPE_SPECS['attenuation']['range_low']
             if full_scale == 1:

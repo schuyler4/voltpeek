@@ -359,10 +359,11 @@ class UserInterface:
             readout.update_settings(self.scale.vert*self.scale.probe_div, self.scale.hor)
             readout.set_fs(self.scale.fs)
         if self._scope_interfaces[0].xx is not None and len(self._scope_interfaces[0].xx) > 0:
+            fir_length = self._scope_interfaces[0].scope.FIR_LENGTH if self._scope_interfaces[0].scope.DIGITAL_FILTER else None
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self._last_fs, 
                                                self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'], 
                                                self.scope_trigger.trigger_type, self._triggered,
-                                               self._scope_interfaces[0].scope.FIR_LENGTH, scope_index)
+                                               scope_index, FIR_length=fir_length)
 
     '''
     EVENT: READ CAL OFFSET
@@ -687,10 +688,11 @@ class UserInterface:
             self._readouts[scope_index].set_average(average(xx))
             self._readouts[scope_index].set_rms(rms(xx))
             self.scope_display.add_vector(xx, scope_index)
+            fir_length = self._scope_interfaces[0].scope.FIR_LENGTH if self._scope_interfaces[0].scope.DIGITAL_FILTER else None
             self.scope_display.resample_vector(self.scale.hor, self.scale.vert, self.scale.fs, 
                                                self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'], 
                                                self.scope_trigger.trigger_type, triggered,
-                                               self._scope_interfaces[0].scope.FIR_LENGTH, scope_index)
+                                               scope_index, FIR_length=fir_length)
             self.scope_status = Scope_Status.TRIGGERED
             self._update_scope_status()
     

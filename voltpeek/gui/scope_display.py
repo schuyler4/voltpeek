@@ -90,7 +90,9 @@ class Scope_Display:
         self._display_record = self.resample_record(vert_setting)
 
     def resample_vector(self, hor_setting: float, vert_setting: float, fs: float, memory_depth: int, edge: EdgeType, 
-                        triggered: bool, FIR_length: int, scope_index: int) -> None:
+                        triggered: bool,scope_index: int, FIR_length: Optional[int]=1) -> None:
+        if FIR_length is None:
+            FIR_length = 1
         if len(self._vectors[scope_index]) == memory_depth-(FIR_length-1):
             # Horizontal resampling must be done before vertical quantization because amplitude information is 
             # needed for trigger point interpolation.

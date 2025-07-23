@@ -31,6 +31,11 @@ class ScopeBase(metaclass=ABCMeta):
     def SCOPE_SPECS(self) -> ScopeSpecs:
         pass
 
+    @property
+    @abstractmethod
+    def DIGITAL_FILTER(self) -> bool:
+        pass
+
     @abstractmethod
     def connect(self) -> None:
         pass
@@ -53,6 +58,10 @@ class ScopeBase(metaclass=ABCMeta):
 
     @abstractmethod
     def set_range(self, full_scale: float) -> None:
+        pass
+
+    @abstractmethod
+    def set_amplifier_gain(self, full_scale: float) -> None:
         pass
 
     @abstractmethod

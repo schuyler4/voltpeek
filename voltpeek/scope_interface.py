@@ -78,6 +78,7 @@ class ScopeInterface:
         try:
             scope_action()
         except (Exception, OSError) as _:
+            print(_)
             self._disconnected_error = True
 
     @scope_action_handler
