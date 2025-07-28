@@ -87,8 +87,6 @@ class UserInterface:
         
         self._build_tk_root()
 
-        self.scale: Scale = Scale()
-        self._last_fs = self.scale.fs
         self.scope_trigger: Trigger = Trigger()
         self.cursors: Cursors = Cursors(self._display_size)
 
@@ -316,8 +314,14 @@ class UserInterface:
 
     def _finish_connect(self, scope_index: int) -> None:
         self.scope_status = Scope_Status.NEUTRAL
+        scope_specs = self._scope_interfaces[0].scope.SCOPE_SPECS
+        self.scale: Scale = Scale(scope_specs['scales'], scope_specs['sample_rate'])
+        self._last_fs = self.scale.fs
         self.scale.update_sample_rate(self._scope_interfaces[0].scope.SCOPE_SPECS['sample_rate'], 
                                       self._scope_interfaces[0].scope.SCOPE_SPECS['memory_depth'])
+        self._readouts.append(Readout(self._readout_frame, self.scale.vert, self.scale.hor))
+        self._readouts[len(self._readouts)-1](scope_index)
+        self._set_probe(1)
         self._start_event_queue[scope_index].append(Event.CHANGE_SCALE)
         self._start_event_queue[scope_index].append(Event.SET_RISING_EDGE_TRIGGER)
         self._start_event_queue[scope_index].append(Event.SET_TRIGGER_LEVEL)
@@ -348,7 +352,7 @@ class UserInterface:
     '''
     EVENT: CHANGE SCALE
     '''
-
+    # This is the horizontal scale. Wording needs to be updated.
     def _start_change_scale(self, scope_index: int) -> None:
         self._scope_interfaces[scope_index].set_value(self.scale.clock_div)
         self._scope_interfaces[scope_index].set_scope_action(ScopeAction.SET_CLOCK_DIV)
@@ -520,8 +524,6 @@ class UserInterface:
                         self._scope_interfaces.append(ScopeInterface(scope[identifier], device=connected_device))
                         self._start_event_queue.append([])
                         self._end_event_queue.append([])
-                        self._readouts.append(Readout(self._readout_frame, self.scale.vert, self.scale.hor))
-                        self._readouts[len(self._readouts)-1](i)
                     self.scope_display.init_vectors(len(self._scope_interfaces))
                     self._connect_initiated = True
                     for scope_event_queue in self._start_event_queue:
@@ -531,7 +533,6 @@ class UserInterface:
                     for i, scope_interface in enumerate(self._scope_interfaces):
                         if isinstance(scope_interface.scope, NS1):
                             self._start_event_queue[i].append(Event.READ_CAL_OFFSETS)
-                    self._set_update_scale(None)
                     self._update_scope_status()
                     self._update_scope_probe()
                 else:

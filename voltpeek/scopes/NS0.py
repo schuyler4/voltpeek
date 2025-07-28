@@ -18,7 +18,8 @@ class NS0(ScopeBase, Pico):
         'sample_rate':500e3, 
         'memory_depth':16384, 
         'voltage_ref': 3.3, 
-        'resolution': 4096
+        'resolution': 256,
+        'scales': (3.3,)
     }
 
     TRIGGER_LEVEL_COMMAND: bytes = b'l'
@@ -64,7 +65,6 @@ class NS0(ScopeBase, Pico):
             self.error = True
 
     def read_glob_data(self):
-        #self._stop.clear()
         codes: list[str] = []
         while len(codes) < self.SCOPE_SPECS['memory_depth']: 
             if self._stop.is_set():
@@ -87,7 +87,7 @@ class NS0(ScopeBase, Pico):
             self._purge_serial_buffers()
             self._stop.clear()
             return None
-        return codes
+        return codes[0:self.SCOPE_SPECS['memory_depth']]
     
     def _purge_serial_buffers(self):
         while self.serial_port.in_waiting:
@@ -111,7 +111,8 @@ class NS0(ScopeBase, Pico):
         return self._xx 
 
     def set_clock_div(self, clock_div: int) -> None:
-        pass
+        self.serial_port.write(self.CLOCK_DIV_COMMAND) 
+        self.serial_port.write(bytes(str(clock_div) + '\0', 'utf-8')) 
 
     def set_trigger_voltage(self, trigger_voltage: float, full_scale: float) -> None:
         pass

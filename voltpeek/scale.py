@@ -3,27 +3,26 @@ from typing import Optional
 from voltpeek import constants
 
 class Scale:
-    VERTICALS = (0.2, 0.4, 1, 2)
     HORIZONTALS = (100e-9, 200e-9, 500e-9, 1e-6, 10e-6, 20e-6, 50e-6, 100e-6, 200e-6, 500e-6, 1e-3, 10e-3, 100e-3)
     PROBE_DIVISIONS = (1, 10)
-    MAX_VERTICAL_INDEX: int = len(VERTICALS) - 1
     MAX_HOR_INDEX: int = len(HORIZONTALS) - 1
     RANGE_FLIP_INDEX: int = 2 
-    DEFAULT_VERTICAL_INDEX: int = 3 
     DEFAULT_HORIZONTAL_INDEX: int = 10
     GRID_COUNT: int = 10
 
-    def __init__(self) -> None:
-        self._vertical_index: int = self.DEFAULT_VERTICAL_INDEX
+    def __init__(self, scales, max_fs: int) -> None:
+        self._verticals: list[int] = [scale/(constants.Display.GRID_LINE_COUNT/2) for scale in scales]
+        self._max_vertical_index: int = len(self._verticals) - 1
+        self._vertical_index: int = self._max_vertical_index
         self._horizontal_index: int = self.DEFAULT_HORIZONTAL_INDEX
         self._high_range_flip: bool = False
         self._low_range_flip: bool = False
         self._clock_div: Optional[int] = 1
-        self._fs: Optional[int] = 62500000
+        self._fs: Optional[int] = max_fs
         self._probe_div: int = 1
 
     def increment_vert(self) -> None:
-        if self._vertical_index < self.MAX_VERTICAL_INDEX: 
+        if self._vertical_index < self._max_vertical_index: 
             self._vertical_index += 1     
             self._high_range_flip = self._vertical_index == self.RANGE_FLIP_INDEX + 1 
             self._low_range_flip = False 
@@ -55,7 +54,7 @@ class Scale:
     def low_range_flip(self) -> bool: return self._low_range_flip
 
     @property
-    def vert(self) -> float: return self.VERTICALS[self._vertical_index]
+    def vert(self) -> float: return self._verticals[self._vertical_index]
     
     @property
     def hor(self) -> float: return self.HORIZONTALS[self._horizontal_index]
