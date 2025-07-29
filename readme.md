@@ -15,12 +15,12 @@ command mode. As may be obvious, this is inspired by the Vim text editor.
 
 ### Getting Started
 Install Voltpeek using the following commands:
-`git clone https://github.com/schuyler4/voltpeek.git`  
-`python3 -m pip install -e voltpeek`
+`git clone https://github.com/schuyler4/voltpeek.git`    
+`python3 -m pip install -e voltpeek`   
 You should now be able to run Voltpeek using the `voltpeek` command. If this does not work, you can run directly from
-the install location using the following commands:
-`cd voltpeek`
-`python3 -m voltpeek`
+the install location using the following commands:  
+`cd voltpeek`  
+`python3 -m voltpeek`  
 
 #### Some Basic Commands
 Once you are in Voltpeek connect to your oscilloscope using either `connect NS1` or `connect NS0` depending on the scope you are using.
