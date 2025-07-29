@@ -33,5 +33,6 @@ going to your oscilloscope, you should see a flat line similar to below:
 
 If you are using the NS0 without any analog front end, your line may not actually be at zero if your signal input is floating.
 You can also use the scale command to change the scales. This will put the software in adjust mode. Like it says above, 
-you can then use  `h`, `j`, `k`, and `l` to adjust the scales and `ctrl-c` or `esc` will exit adjust mode. A more detailed getting
+you can then use  `h`, `j`, `k`, and `l` to adjust the scales and `ctrl-c` or `esc` will exit adjust mode.
+If you are using the NS0 with no front end, only one vertical scale will be available. A more detailed getting
 started tutorial and a full list of commands is available [here](https://www.voltpeeklabs.io/). 
