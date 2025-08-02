@@ -23,13 +23,14 @@ the install location using the following commands:
 `python3 -m voltpeek`  
 
 #### Some Basic Commands
-Once you are in Voltpeek connect to your oscilloscope using either `connect NS1` or `connect NS0` depending on the scope you are using.
-Now that you are connected, you should be able to auto trigger using the `auto` command. Provided you don't have an input signal 
+Once you are in Voltpeek, you can connect to a oscilloscope using either `connect NS1` or `connect NS0` depending on the scope you are using.
+Once connected, you should be able to auto trigger using the `auto` command. Provided you don't have an input signal 
 going to your oscilloscope, you should see a flat line similar to below:
 
 <p align="center">
 <img src="./auto.png" width=400>
 </p>
 
-If you are using the NS0 without any analog front end, your line may not actually be at zero if your signal input is floating.
+If you are using the NS0 without any analog front end, the flat line may not actually be at zero if your signal input is floating.
+
 A more detailed getting started tutorial and a full list of commands is available [here](https://www.voltpeeklabs.io/). 
