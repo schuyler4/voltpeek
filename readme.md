@@ -34,3 +34,5 @@ going to your oscilloscope, you should see a flat line similar to below:
 If you are using the NS0 without any analog front end, the flat line may not actually be at zero if your signal input is floating.
 
 A more detailed getting started tutorial and a full list of commands is available [here](https://www.voltpeeklabs.io/). 
+
+**If you would like to purchase the NS1 hardware, you can do so on [Tindie](https://www.tindie.com/products/voltpeeklabs/ns1-oscilloscope/).**
