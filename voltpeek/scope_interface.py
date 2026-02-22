@@ -137,11 +137,6 @@ class ScopeInterface:
     @scope_action_handler
     def _start_record(self) -> float: return self._scope.start_record() 
 
-    def run(self):
-        if not self._action_complete and self._action in self._action_handlers:
-            thread = Thread(target=lambda: self._scope_available(self._action_handlers[self._action]))
-            thread.start()
-
     @property
     def data_available(self) -> bool: return not self._data_available.locked()
 
@@ -175,11 +170,15 @@ class ScopeInterface:
 
     def set_full_scale(self, new_full_scale: float) -> None: self._full_scale = new_full_scale
 
-    def set_scope_action(self, new_scope_action: ScopeAction):
-        if self.data_available:
+    def set_scope_action(self, new_scope_action: ScopeAction) -> bool:
+        if self.data_available and self._action_complete and new_scope_action in self._action_handlers:
             self._action = new_scope_action
             self._action_complete = False
             self._data_available.acquire()
+            thread = Thread(target=lambda: self._scope_available(self._action_handlers[self._action]))
+            thread.start()
+            return True
+        return False
         
     def stop_trigger(self): 
         self._stop_flag = True

@@ -91,7 +91,6 @@ class TestScopeInterface(unittest.TestCase):
 
     def test_scope_interface_connect(self):
         self.scope_interface.set_scope_action(ScopeAction.CONNECT)
-        self.scope_interface.run()
         self.assertTrue(self.scope_interface._scope.connected)
         self.assertTrue(self.scope_interface._scope_connected)
         self.assertTrue(self.scope_interface._action_complete)
@@ -99,7 +98,6 @@ class TestScopeInterface(unittest.TestCase):
 
     def test_scope_interface_trigger(self):
         self.scope_interface.set_scope_action(ScopeAction.TRIGGER)
-        self.scope_interface.run()
         ticks = 0
         while not self.scope_interface._action_complete:
             time.sleep(0.01) 
@@ -113,7 +111,6 @@ class TestScopeInterface(unittest.TestCase):
 
     def test_scope_interface_force_trigger(self):
         self.scope_interface.set_scope_action(ScopeAction.FORCE_TRIGGER)
-        self.scope_interface.run()
         self.assertEqual(len(self.scope_interface._xx), NS1.SCOPE_SPECS['memory_depth'])
         self.assertEqual(self.scope_interface._xx, [0 for _ in range(0, NS1.SCOPE_SPECS['memory_depth'])])
         self.assertTrue(self.scope_interface._action_complete)
@@ -122,7 +119,6 @@ class TestScopeInterface(unittest.TestCase):
     def test_scope_interface_set_clock_div(self):
         self.scope_interface.set_value(2)
         self.scope_interface.set_scope_action(ScopeAction.SET_CLOCK_DIV)
-        self.scope_interface.run()
         self.assertTrue(self.scope_interface._action_complete)
         self.assertFalse(self.scope_interface._data_available.locked())
         self.assertEqual(self.scope_interface._scope.clock_div, 2)
@@ -130,7 +126,6 @@ class TestScopeInterface(unittest.TestCase):
     def test_scope_interface_set_high_range(self):
         self.scope_interface.set_full_scale(NS1.LOW_RANGE_THRESHOLD + 1)
         self.scope_interface.set_scope_action(ScopeAction.SET_RANGE)
-        self.scope_interface.run()
         self.assertTrue(self.scope_interface._action_complete)
         self.assertTrue(self.scope_interface.data_available)
         self.assertEqual(self.scope_interface._scope.range, MockRange.HIGH)
@@ -138,7 +133,6 @@ class TestScopeInterface(unittest.TestCase):
     def test_scope_interface_set_low_range(self):
         self.scope_interface.set_full_scale(NS1.LOW_RANGE_THRESHOLD - 1)
         self.scope_interface.set_scope_action(ScopeAction.SET_RANGE)
-        self.scope_interface.run()
         self.assertTrue(self)
         self.assertTrue(self.scope_interface._action_complete)
         self.assertTrue(self.scope_interface.data_available)
