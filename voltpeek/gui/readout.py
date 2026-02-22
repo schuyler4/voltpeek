@@ -82,9 +82,9 @@ class Readout:
 
     def get_horizontal_str(self) -> str: return f'{engineering_units(self._horizontal_setting)} s/div'
 
-    def set_average(self, average: float) -> None: self._average_text.set(f"{self.AVERAGE_STRING}{average:.3f} V")
+    def set_average(self, average: float) -> None: self._average_text.set(f"{self.AVERAGE_STRING}{average: .3f} V")
 
-    def set_rms(self, rms: float) -> None: self._rms_text.set(f"{self.RMS_STRING}{rms:.3f} Vrms")
+    def set_rms(self, rms: float) -> None: self._rms_text.set(f"{self.RMS_STRING}{rms: .3f} Vrms")
 
     def set_fs(self, fs: float) -> None: self._fs_text.set(f"{engineering_units(fs)}S/s")
 
