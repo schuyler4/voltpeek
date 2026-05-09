@@ -1,8 +1,7 @@
-from typing import Optional, Callable, Dict, Any
+from typing import Optional, Callable, Dict
 from enum import Enum
 from threading import Thread, Lock
 from functools import wraps
-import logging
 
 # Probably can just use the method names directly instead of this
 class ScopeAction(Enum):
