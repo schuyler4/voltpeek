@@ -3,7 +3,7 @@ sys.path.append('..')
 
 import unittest
 
-from voltpeek.helpers import engineering_units, three_sig_figs
+from voltpeek.helpers import engineering_units, three_sig_figs, pad_zero
 
 class TestHelpers(unittest.TestCase):
     def test_three_sig_figs(self):
@@ -61,3 +61,11 @@ class TestHelpers(unittest.TestCase):
     def test_engineering_units_normal_size_numbers(self):
         self.assertEqual(engineering_units(1.01), str(1.01))
         self.assertEqual(engineering_units(1.00), str(1.00))
+
+    def test_pad_zero(self):
+        self.assertEqual(pad_zero('123', 5), '00123')
+        self.assertEqual(pad_zero('123', 3), '123')
+        self.assertEqual(pad_zero('123', 2), '123')
+        self.assertEqual(pad_zero('', 3), '000')
+        self.assertEqual(pad_zero('1', 0), '1')
+        self.assertEqual(pad_zero('1', -1), '1')
