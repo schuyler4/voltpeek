@@ -10,7 +10,7 @@ from voltpeek.scopes.scope_base import ScopeBase, SoftwareScopeSpecs
 from voltpeek.scopes.pico import Pico
 
 from voltpeek.measurements import average
-from voltpeek.helpers import pad_zero, twos_complement_base10_encode, twos_complement_base10_decode
+from voltpeek.helpers import pad_zero, negative_base10_encode, negative_base10_decode
 
 class NS1(ScopeBase, Pico):
     DIGITAL_FILTER = True
@@ -210,10 +210,10 @@ class NS1(ScopeBase, Pico):
         range_high_gain_int = int(self._cal_offsets['range_high_gain']*self.CAL_INT_MULTIPLIER)
         range_low_int = int(self._cal_offsets['range_low']*self.CAL_INT_MULTIPLIER)
         range_low_gain_int = int(self._cal_offsets['range_low_gain']*self.CAL_INT_MULTIPLIER)
-        range_high: int = twos_complement_base10_encode(range_high_int, self.CAL_BITS)
-        range_high_gain: int = twos_complement_base10_encode(range_high_gain_int, self.CAL_BITS)
-        range_low: int = twos_complement_base10_encode(range_low_int, self.CAL_BITS)
-        range_low_gain: int = twos_complement_base10_encode(range_low_gain_int, self.CAL_BITS)
+        range_high: int = negative_base10_encode(range_high_int, self.CAL_BITS)
+        range_high_gain: int = negative_base10_encode(range_high_gain_int, self.CAL_BITS)
+        range_low: int = negative_base10_encode(range_low_int, self.CAL_BITS)
+        range_low_gain: int = negative_base10_encode(range_low_gain_int, self.CAL_BITS)
         range_high_str = pad_zero(str(range_high), self.CAL_MEMORY_DIGITS)
         range_high_gain_str = pad_zero(str(range_high_gain), self.CAL_MEMORY_DIGITS)
         range_low_str = pad_zero(str(range_low), self.CAL_MEMORY_DIGITS)
@@ -262,10 +262,10 @@ class NS1(ScopeBase, Pico):
                 return None
             except Exception as _:
                 return None
-        high_range_offset = twos_complement_base10_decode(offset_bytes[1] << 8 | offset_bytes[0], self.CAL_BITS)
-        high_range_gain_offset = twos_complement_base10_decode(offset_bytes[3] << 8 | offset_bytes[2], self.CAL_BITS)
-        low_range_offset = twos_complement_base10_decode(offset_bytes[5] << 8 | offset_bytes[4], self.CAL_BITS)
-        low_range_gain_offset = twos_complement_base10_decode(offset_bytes[7] << 8 | offset_bytes[6], self.CAL_BITS)
+        high_range_offset = negative_base10_decode(offset_bytes[1] << 8 | offset_bytes[0], self.CAL_BITS)
+        high_range_gain_offset = negative_base10_decode(offset_bytes[3] << 8 | offset_bytes[2], self.CAL_BITS)
+        low_range_offset = negative_base10_decode(offset_bytes[5] << 8 | offset_bytes[4], self.CAL_BITS)
+        low_range_gain_offset = negative_base10_decode(offset_bytes[7] << 8 | offset_bytes[6], self.CAL_BITS)
         self._cal_offsets['range_high'] = high_range_offset/self.CAL_INT_MULTIPLIER
         self._cal_offsets['range_high_gain'] = high_range_gain_offset/self.CAL_INT_MULTIPLIER
         self._cal_offsets['range_low'] = low_range_offset/self.CAL_INT_MULTIPLIER
