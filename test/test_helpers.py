@@ -3,7 +3,7 @@ sys.path.append('..')
 
 import unittest
 
-from voltpeek.helpers import engineering_units, three_sig_figs, negative_base10_encode, negative_base10_decode
+from voltpeek.helpers import engineering_units, three_sig_figs, negative_base10_encode, negative_base10_decode, pad_zero
 
 class TestHelpers(unittest.TestCase):
     def test_three_sig_figs(self):
