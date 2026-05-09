@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from tkinter import filedialog
+import itertools
 
 from PIL import Image, ImageDraw, ImageFont 
 
@@ -14,11 +15,8 @@ class ExportSettings:
     cursor_data: Cursor_Data
 
 def export_png(settings: ExportSettings, filename: str, image_size: int):
-    flat_map = []
-    for row in settings.map:
-        flat_map += row
     image = Image.new('RGB', (image_size, image_size))
-    image.putdata(flat_map) 
+    image.putdata(list(itertools.chain.from_iterable(settings.map)))
     font = ImageFont.load_default()
     draw = ImageDraw.Draw(image)
     y_offset = 5
