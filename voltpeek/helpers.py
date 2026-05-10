@@ -37,11 +37,8 @@ def sinc_interpolation(fs: float, x, new_length: int):
     x_interpolated = np.fft.irfft(X_padded, n=new_length)
     return x_interpolated*(new_length/len(x))
 
-def pad_zero(number_string, digits) -> str:
-    for i in range(1, digits+1):
-        if len(number_string) < i:
-            number_string = '0' + number_string
-    return number_string
+# Should probably just replace this at the call.
+def pad_zero(number_string, digits) -> str: return number_string.zfill(digits)
 
 def negative_base10_encode(number: int, exponent: int):
     if number > (((2**exponent)/2) - 1) or number < (2**exponent)/-2:
