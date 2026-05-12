@@ -9,7 +9,7 @@ from voltpeek.scale import Scale
 
 class TestScale(unittest.TestCase):
     def setUp(self):
-        self.scale = Scale()
+        self.scale = Scale((1,2,5,10), 62500000)
 
     def test_scale_init(self):
         self.assertEqual(self.scale.fs, 62500000)
@@ -31,6 +31,17 @@ class TestScale(unittest.TestCase):
         self.increment_to_max_hor_index()
         self.scale.increment_hor()
         self.assertEqual(self.scale.hor,0.1)
+
+    def test_probe_div_valid(self):
+        self.scale.probe_div = 10
+        self.assertEqual(self.scale.probe_div, 10)
+        self.scale.probe_div = 1
+        self.assertEqual(self.scale.probe_div, 1)
+
+    def test_probe_div_invalid(self):
+        with self.assertRaises(ValueError) as context:
+            self.scale.probe_div = 5
+        self.assertEqual(str(context.exception), 'Not an existing probe division.')
 
 if __name__ == '__main__':
     unittest.main()
